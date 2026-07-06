@@ -1,0 +1,49 @@
+name: Sync Airtable → Supabase
+
+on:
+  # Automatycznie raz dziennie o 6:00 UTC
+  schedule:
+    - cron: '0 6 * * *'
+
+  # Ręczne uruchomienie z GitHub (Actions → Run workflow)
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout kodu
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Instalacja zależności
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Uruchom synchronizację
+      - name: Run Airtable → Supabase sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE: ${{ secrets.AIRTABLE_TABLE || 'Course' }}
+        run: node sync-airtable.js
+
+      # 5. Powiadomienie o sukcesie (opcjonalnie)
+      - name: Notify success
+        if: success()
+        run: echo "✅ Synchronizacja zakończona pomyślnie"
+
+      # 6. Powiadomienie o błędzie (opcjonalnie)
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Synchronizacja nie powiodła się"
