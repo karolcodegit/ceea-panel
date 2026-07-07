@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('partials/head') %>
+  <title>Panel Administratora — CEEA</title>
+  <style>
+    .admin-bg {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1d4ed8 100%);
+    }
+  </style>
+</head>
+<body class="admin-bg min-h-screen flex items-center justify-center p-4">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-20 right-20 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+      <div class="text-center mb-8">
+        <img src="/images/logo-header-color-black.jpg" alt="CEEA" class="h-8 mx-auto">
+        <h1 class="text-xl font-bold text-gray-900 mt-12">Panel Administratora</h1>
+        <p class="text-gray-500 text-sm mt-1">Zarządzanie kursami i materiałami</p>
+      </div>
+
+      <% if (error) { %>
+        <div class="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+          <%= error %>
+        </div>
+      <% } %>
+
+      <div id="step-email" class="space-y-6">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email administratora</label>
+          <input type="email" id="email" placeholder="admin@ceea.org.pl" autofocus
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900">
+        </div>
+        <button onclick="startAuth()"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Dalej</button>
+      </div>
+
+      <div id="step-setup" class="space-y-6 hidden">
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-4">📱 Zeskanuj kod w <strong>Google Authenticator</strong> lub <strong>Microsoft Authenticator</strong></p>
+          <img id="qrCode" src="" alt="QR Code" class="mx-auto rounded-lg border border-gray-200">
+        </div>
+        <div>
+          <label for="setupToken" class="block text-sm font-medium text-gray-700 mb-2">Kod z aplikacji (6 cyfr)</label>
+          <input type="text" id="setupToken" placeholder="123456" maxlength="6" inputmode="numeric"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900 text-center text-lg tracking-widest">
+        </div>
+        <button onclick="verifySetup()"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Potwierdź konfigurację</button>
+      </div>
+
+      <div id="step-verify" class="space-y-6 hidden">
+        <div>
+          <label for="token" class="block text-sm font-medium text-gray-700 mb-2">Kod z aplikacji (6 cyfr)</label>
+          <input type="text" id="token" placeholder="123456" maxlength="6" inputmode="numeric"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900 text-center text-lg tracking-widest">
+        </div>
+        <button onclick="verify()"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Zaloguj</button>
+      </div>
+
+      <div class="mt-6 text-center">
+        <a href="/admin" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">← Zmień dane logowania</a>
+      </div>
+    </div>
+    <p class="text-center text-white/60 text-xs mt-6">© <%= year %> CEEA. Wszelkie prawa zastrzeżone.</p>
+  </div>
+
+  <script>
+    let currentEmail = '';
+
+    async function api(url, body) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      return res.json();
+    }
+
+    function showStep(id) {
+      document.querySelectorAll('[id^="step-"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    async function startAuth() {
+      const email = document.getElementById('email').value.trim();
+      if (!email) return alert('Wpisz email');
+      currentEmail = email;
+      const data = await api('/api/auth/start', { email });
+      if (data.error) return alert(data.error);
+      if (data.step === 'setup') {
+        document.getElementById('qrCode').src = data.qrCode;
+        showStep('step-setup');
+      } else {
+        showStep('step-verify');
+      }
+    }
+
+    async function verifySetup() {
+      const token = document.getElementById('setupToken').value.trim();
+      const data = await api('/api/auth/verify-setup', { email: currentEmail, token });
+      if (data.success) {
+        window.location.href = '/admin/kursy';
+      } else {
+        alert(data.error || 'Błąd weryfikacji');
+      }
+    }
+
+    async function verify() {
+      const token = document.getElementById('token').value.trim();
+      const data = await api('/api/auth/verify', { email: currentEmail, token });
+      if (data.success) {
+        window.location.href = '/admin/kursy';
+      } else {
+        alert(data.error || 'Błędny kod');
+      }
+    }
+
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+          const step = input.closest('[id^="step-"]')?.id;
+          if (step === 'step-email') startAuth();
+          if (step === 'step-setup') verifySetup();
+          if (step === 'step-verify') verify();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

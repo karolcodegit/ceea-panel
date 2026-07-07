@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('partials/head') %>
+  <title><%= course.name %> — Materiały</title>
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  
+  <%- include('partials/header') %>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <a href="/admin/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
+    </div>
+
+    <h1 class="text-2xl font-bold text-gray-900 mb-2"><%= course.name %></h1>
+    <p class="text-gray-500 mb-8">Materiały kursu</p>
+
+    <!-- Dodaj materiał -->
+    <form id="materialForm" method="POST" action="/admin/kursy/<%= course.id %>/materials" class="space-y-4 mb-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="text" name="title" id="title" placeholder="Tytuł materiału" required
+          class="px-4 py-2 border rounded-lg">
+        
+        <select name="type" id="type" required class="px-4 py-2 border rounded-lg">
+          <option value="pdf">PDF</option>
+          <option value="jpg">Zdjęcie</option>
+          <option value="video">Wideo</option>
+          <option value="link">Link</option>
+        </select>
+        
+        <input type="number" name="order_num" value="1" 
+          class="px-4 py-2 border rounded-lg">
+      </div>
+    
+      <!-- Ukryte pole na URL -->
+      <input type="hidden" name="url" id="fileUrl" required>
+    
+      <!-- Przycisk upload -->
+      <button type="button" id="uploadBtn" 
+        class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        📁 Wybierz lub upuść plik
+      </button>
+    
+      <!-- Podgląd -->
+      <div id="preview" class="hidden p-4 bg-green-50 rounded-lg">
+        <p class="text-green-700">✓ Plik gotowy: <span id="fileName"></span></p>
+      </div>
+    
+      <button type="submit" id="submitBtn" disabled
+        class="w-full py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed">
+        Dodaj materiał
+      </button>
+    </form>
+    
+    <script>
+      const uploadBtn = document.getElementById('uploadBtn');
+      const fileUrl = document.getElementById('fileUrl');
+      const title = document.getElementById('title');
+      const preview = document.getElementById('preview');
+      const fileName = document.getElementById('fileName');
+      const submitBtn = document.getElementById('submitBtn');
+    
+      // Cloudinary Upload Widget
+      const widget = cloudinary.createUploadWidget({
+        cloudName: 'TWOJ_CLOUD_NAME',      // ZAMIEŃ
+        uploadPreset: 'TWOJ_PRESET',      // ZAMIEŃ
+        sources: ['local', 'url', 'dropbox', 'google_drive'],
+        multiple: false,
+        maxFileSize: 50000000, // 50MB
+        clientAllowedFormats: ['pdf', 'mp4', 'mov', 'avi', 'jpg', 'png'],
+        // Automatycznie wyciągnij tytuł z nazwy pliku
+        prepareUploadParams: (cb, params) => {
+          cb({ title: params.filename?.replace(/\.[^/.]+$/, '') });
+        }
+      }, (error, result) => {
+        if (!error && result && result.event === "success") {
+          console.log('Upload:', result.info);
+          
+          // Ustaw URL
+          fileUrl.value = result.info.secure_url;
+          
+          // Ustaw tytuł z nazwy pliku (jeśli pusty)
+          if (!title.value) {
+            title.value = result.info.original_filename?.replace(/\.[^/.]+$/, '') || 'Materiał';
+          }
+          
+          // Pokaż podgląd
+          fileName.textContent = result.info.original_filename;
+          preview.classList.remove('hidden');
+          
+          // Włącz przycisk
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+          submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+          
+          // Zmień tekst przycisku upload
+          uploadBtn.textContent = '📁 Zmień plik';
+          uploadBtn.classList.remove('bg-blue-600');
+          uploadBtn.classList.add('bg-gray-600');
+        }
+      });
+    
+      uploadBtn.addEventListener('click', () => widget.open());
+    </script>
+
+    <!-- Lista materiałów -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Kolejność</th>
+            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Tytuł</th>
+            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Typ</th>
+            <th class="text-right px-6 py-3 text-sm font-medium text-gray-500">Akcje</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% materials.forEach(mat => { %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-gray-500"><%= mat.order %></td>
+              <td class="px-6 py-4 font-medium text-gray-900"><%= mat.title %></td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 rounded text-xs font-medium
+                  <%= mat.type === 'pdf' ? 'bg-red-100 text-red-700' : 
+                     mat.type === 'video' ? 'bg-blue-100 text-blue-700' : 
+                     'bg-gray-100 text-gray-700' %>">
+                  <%= mat.type %>
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <a href="<%= mat.url %>" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm mr-4">Otwórz</a>
+                <form method="POST" action="/admin/materiały/<%= mat.id %>/usuń" class="inline">
+                  <button type="submit" class="text-red-600 hover:text-red-700 text-sm" onclick="return confirm('Usunąć?')">
+                    Usuń
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+          <% if (materials.length === 0) { %>
+            <tr>
+              <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                Brak materiałów. Dodaj pierwszy powyżej.
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+</body>
+</html>

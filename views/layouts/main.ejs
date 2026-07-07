@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('../partials/head') %>
+  <title><%= title || 'Panel uczestnika — CEEA' %></title>
+</head>
+<body class="min-h-screen bg-gray-50 flex flex-col">
+  
+  <%- include('../partials/header') %>
+
+  <main class="flex-1">
+    <%- body %>
+  </main>
+
+  <%- include('../partials/footer') %>
+
+</body>
+</html>

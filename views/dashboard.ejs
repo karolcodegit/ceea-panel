@@ -1,77 +1,118 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moje kursy — CEEA</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f5; }
-    header { background: white; border-bottom: 1px solid #e5e5e5; padding: 16px 24px; }
-    .header-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-weight: 700; }
-    .user-info { display: flex; align-items: center; gap: 16px; font-size: 14px; color: #666; }
-    a.logout { color: #dc2626; text-decoration: none; }
-    main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
-    .course { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow: hidden; }
-    .course-header { background: #2563eb; color: white; padding: 20px 24px; }
-    .course-header h2 { font-size: 20px; }
-    .materials { padding: 20px 24px; }
-    .material { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 8px; }
-    .material:hover { background: #f9fafb; }
-    .icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .icon.pdf { background: #fee2e2; }
-    .icon.video { background: #dbeafe; }
-    .info { flex: 1; }
-    .title { font-weight: 500; }
-    .meta { font-size: 13px; color: #999; }
-    .action { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px; color: white; }
-    .action.pdf { background: #dc2626; }
-    .action.video { background: #2563eb; }
-  </style>
+  <%- include('partials/head') %>
+  <title><%= title || 'Moje kursy — CEEA' %></title>
 </head>
-<body>
-  <header>
-    <div class="header-content">
-      <div class="logo">CEEA Panel</div>
-      <div class="user-info">
-        <span><%= user.email %></span>
-        <a href="/logout" class="logout">Wyloguj</a>
-      </div>
+<body class="min-h-screen bg-gray-50">
+  <%- include('partials/header') %>
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Twoje kursy</h1>
+      <p class="text-gray-500 mt-1">Materiały z kursów, na które jesteś zapisany</p>
     </div>
-  </header>
-
-  <main>
-    <h1 style="font-size: 28px; margin-bottom: 32px;">Twoje kursy</h1>
-
     <% if (courses.length === 0) { %>
-      <p style="color: #666;">Brak aktywnych kursów.</p>
-    <% } %>
-
-    <% courses.forEach(course => { %>
-      <div class="course">
-        <div class="course-header">
-          <h2><%= course.name %></h2>
-          <% if (course.description) { %><p style="opacity: 0.9; font-size: 14px;"><%= course.description %></p><% } %>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
         </div>
-        <div class="materials">
-          <% course.materials?.sort((a,b) => a.order - b.order).forEach(mat => { %>
-            <div class="material">
-              <div class="icon <%= mat.type %>">
-                <%= mat.type === 'pdf' ? '📄' : '🎥' %>
-              </div>
-              <div class="info">
-                <div class="title"><%= mat.title %></div>
-                <div class="meta"><%= mat.type === 'pdf' ? 'PDF' : 'Wideo' %></div>
-              </div>
-              <a href="<%= mat.url %>" target="_blank" class="action <%= mat.type %>">
-                <%= mat.type === 'pdf' ? 'Pobierz' : 'Odtwórz' %>
-              </a>
-            </div>
-          <% }) %>
-        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Brak aktywnych kursów</h3>
+        <p class="text-gray-500 mb-6">Nie jesteś zapisany na żaden kurs.</p>
+        <a href="https://ceea.org.pl" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+          Zapisz się na kurs
+        </a>
       </div>
-    <% }) %>
+    <% } %>
+    <div class="space-y-6">
+      <% courses.forEach(course => { %>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-white"><%= course.name %></h2>
+                <% if (course.description) { %>
+                  <p class="text-red-100 text-sm mt-1"><%= course.description %></p>
+                <% } %>
+              </div>
+              <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full">
+                <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span class="text-white text-sm font-medium">Aktywny</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="divide-y divide-gray-100">
+            <% if (!course.materials || course.materials.length === 0) { %>
+              <div class="p-6 text-center text-gray-500">Brak materiałów w tym kursie.</div>
+            <% } else { %>
+              <% course.materials.sort((a,b) => (a.order || 0) - (b.order || 0)).forEach(mat => { %>
+                <div class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors group">
+                  
+                  <div class="flex-shrink-0">
+                    <% if (mat.type === 'pdf') { %>
+                      <div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                      </div>
+                    <% } else if (mat.type === 'video') { %>
+                      <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      </div>
+                    <% } else { %>
+                      <div class="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                      </div>
+                    <% } %>
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-gray-900 truncate"><%= mat.title %></h3>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                      <%= mat.type === 'pdf' ? 'Dokument PDF' : mat.type === 'video' ? 'Film wideo' : 'Link' %>
+                    </p>
+                  </div>
+
+                  <a href="<%= mat.url %>" target="_blank" rel="noopener noreferrer"
+                    class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                    <%= mat.type === 'pdf' ? 'bg-red-600 text-white hover:bg-red-700' : 
+                       mat.type === 'video' ? 'bg-blue-600 text-white hover:bg-blue-700' : 
+                       'bg-gray-100 text-gray-700 hover:bg-gray-200' %>">
+                    <% if (mat.type === 'pdf') { %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                      </svg>
+                      Pobierz
+                    <% } else if (mat.type === 'video') { %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      </svg>
+                      Odtwórz
+                    <% } else { %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                      Otwórz
+                    <% } %>
+                  </a>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
   </main>
+
+  <%- include('partials/footer') %>
+
 </body>
 </html>
