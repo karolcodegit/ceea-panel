@@ -1,5 +1,6 @@
 
 const express = require('express');
+const path = require('path');
 const session = require('express-session');
 const speakeasy = require('speakeasy');
 const cookieParser = require('cookie-parser');
@@ -24,7 +25,7 @@ const app = express();
 app.use(cookieParser());
 // Proste EJS bez ejs-mate
 app.set('view engine', 'ejs');
-app.set('views', './views');
+app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -40,7 +41,7 @@ app.use(session({
   }
 }));
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== INICJALIZACJA TOTP ADMINÓW =====
 app.locals.admins = new Map();
@@ -321,6 +322,14 @@ app.get('/api/admin/force-reset', (req, res) => {
 
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Panel działa na http://localhost:${PORT}`);
-});
+
+// Sprawdź czy to Vercel (serverless) czy lokalny serwer
+if (process.env.VERCEL) {
+    // Vercel — exportuj app
+    module.exports = app;
+} else {
+    // Lokalnie — uruchom serwer
+    app.listen(PORT, () => {
+        console.log(`Panel działa na http://localhost:${PORT}`);
+    });
+}

@@ -1,6 +1,6 @@
 {
   "name": "ceea-panel",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Panel uczestnika CEEA",
   "main": "server.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "watch:css": "tailwindcss -i ./public/css/tailwind.css -o ./public/css/style.css --watch"
   },
   "keywords": [],
-  "author": "",
+  "author": "Karol Znojkiewicz",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
