@@ -4,10 +4,14 @@ const session = require('express-session');
 const speakeasy = require('speakeasy');
 const cookieParser = require('cookie-parser');
 
+console.log('=== ENV DEBUG ===');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+console.log('SUPABASE_SERVICE_KEY exists:', !!process.env.SUPABASE_SERVICE_KEY);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('=================');
+
 const { createClient } = require('@supabase/supabase-js');
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+
 
 const { initializeAdmins } = require('./config/admins');
 const authRoutes = require('./routes/auth');
