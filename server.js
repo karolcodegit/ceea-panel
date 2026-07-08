@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -23,7 +22,7 @@ const supabase = createClient(
 
 const app = express();
 app.use(cookieParser());
-// Proste EJS bez ejs-mate
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -43,6 +42,21 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ===== ROUTING PO DOMENIE =====
+app.use((req, res, next) => {
+  const host = req.headers.host;
+
+  if (host === 'ceea-admin.ceea.org.pl') {
+    req.isAdminDomain = true;
+  } else if (host === 'panel.ceea.org.pl') {
+    req.isAdminDomain = false;
+  } else {
+    // Lokalnie lub inna domena — domyślnie panel użytkownika
+    req.isAdminDomain = false;
+  }
+  next();
+});
+
 // ===== INICJALIZACJA TOTP ADMINÓW =====
 app.locals.admins = new Map();
 app.locals.sessions = new Map();
@@ -56,13 +70,11 @@ app.use('/api/auth', authRoutes);
 
 // ===== MIDDLEWARE =====
 
-// Middleware: sprawdź czy użytkownik zalogowany (magic link)
 const requireAuth = (req, res, next) => {
   if (req.session.user) return next();
   res.redirect('/');
 };
 
-// Middleware: sprawdź czy admin zalogowany przez TOTP
 const requireAdmin = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '')
              || req.cookies?.adminToken;
@@ -75,29 +87,39 @@ const requireAdmin = (req, res, next) => {
     return next();
   }
 
-  // Nie zalogowany — redirect do logowania admina
-  res.redirect('/admin');
+  res.redirect('/');
 };
 
-// ===== PANEL ADMINISTRATORA (TOTP) =====
+// Middleware blokujące dostęp z złej domeny
+const adminOnly = (req, res, next) => {
+  if (!req.isAdminDomain) {
+    return res.redirect('https://ceea.org.pl/');
+  }
+  next();
+};
 
-// Strona logowania admina
-app.get('/admin', (req, res) => {
+const userOnly = (req, res, next) => {
+  if (req.isAdminDomain) {
+    return res.redirect('https://ceea.org.pl/');
+  }
+  next();
+};
+
+// ===== PANEL ADMINISTRATORA (TOTP) — tylko ceea-admin.ceea.org.pl =====
+
+app.get('/', adminOnly, (req, res) => {
   res.render('admin-login', { error: null, year: new Date().getFullYear() });
-  
 });
 
-// Wylogowanie admina
-app.get('/admin/wyloguj', (req, res) => {
+app.get('/wyloguj', adminOnly, (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '')
              || req.cookies?.adminToken;
   app.locals.sessions.delete(token);
   req.session.isAdmin = false;
-  res.redirect('/admin');
+  res.redirect('/');
 });
 
-// Lista kursów
-app.get('/admin/kursy', requireAdmin, async (req, res) => {
+app.get('/kursy', adminOnly, requireAdmin, async (req, res) => {
   const { data: courses } = await supabase
     .from('courses')
     .select('*')
@@ -106,8 +128,7 @@ app.get('/admin/kursy', requireAdmin, async (req, res) => {
   res.render('admin-kursy', { isAdmin: true, courses: courses || [] });
 });
 
-// Dodaj kurs
-app.post('/admin/kursy', requireAdmin, async (req, res) => {
+app.post('/kursy', adminOnly, requireAdmin, async (req, res) => {
   const { name, description } = req.body;
 
   const { data, error } = await supabase
@@ -124,11 +145,10 @@ app.post('/admin/kursy', requireAdmin, async (req, res) => {
     });
   }
 
-  res.redirect('/admin/kursy');
+  res.redirect('/kursy');
 });
 
-// Materiały kursu
-app.get('/admin/kursy/:id/materials', requireAdmin, async (req, res) => {
+app.get('/kursy/:id/materials', adminOnly, requireAdmin, async (req, res) => {
   const { data: course } = await supabase
     .from('courses')
     .select('*')
@@ -144,8 +164,7 @@ app.get('/admin/kursy/:id/materials', requireAdmin, async (req, res) => {
   res.render('admin-materiały', { isAdmin: true, course, materials: materials || [] });
 });
 
-// Dodaj materiał (tylko link)
-app.post('/admin/kursy/:id/materiały', requireAdmin, async (req, res) => {
+app.post('/kursy/:id/materiały', adminOnly, requireAdmin, async (req, res) => {
   const { title, type, url, order } = req.body;
 
   await supabase.from('materials').insert([{
@@ -156,11 +175,10 @@ app.post('/admin/kursy/:id/materiały', requireAdmin, async (req, res) => {
     order: parseInt(order) || 1
   }]);
 
-  res.redirect(`/admin/kursy/${req.params.id}/materiały`);
+  res.redirect(`/kursy/${req.params.id}/materiały`);
 });
 
-// Usuń materiał
-app.post('/admin/materiały/:id/usuń', requireAdmin, async (req, res) => {
+app.post('/materiały/:id/usuń', adminOnly, requireAdmin, async (req, res) => {
   const { data: material } = await supabase
     .from('materials')
     .select('course_id')
@@ -169,11 +187,10 @@ app.post('/admin/materiały/:id/usuń', requireAdmin, async (req, res) => {
 
   await supabase.from('materials').delete().eq('id', req.params.id);
 
-  res.redirect(`/admin/kursy/${material.course_id}/materials`);
+  res.redirect(`/kursy/${material.course_id}/materials`);
 });
 
-// Uczestnicy kursu
-app.get('/admin/kursy/:id/uczestnicy', requireAdmin, async (req, res) => {
+app.get('/kursy/:id/uczestnicy', adminOnly, requireAdmin, async (req, res) => {
   const { data: course } = await supabase
     .from('courses')
     .select('*')
@@ -188,8 +205,7 @@ app.get('/admin/kursy/:id/uczestnicy', requireAdmin, async (req, res) => {
   res.render('admin-uczestnicy', { isAdmin: true, course, enrollments: enrollments || [] });
 });
 
-// Dodaj uczestnika
-app.post('/admin/kursy/:id/uczestnicy', requireAdmin, async (req, res) => {
+app.post('/kursy/:id/uczestnicy', adminOnly, requireAdmin, async (req, res) => {
   const { email } = req.body;
 
   await supabase.from('enrollments').insert([{
@@ -198,12 +214,12 @@ app.post('/admin/kursy/:id/uczestnicy', requireAdmin, async (req, res) => {
     status: 'active'
   }]);
 
-  res.redirect(`/admin/kursy/${req.params.id}/uczestnicy`);
+  res.redirect(`/kursy/${req.params.id}/uczestnicy`);
 });
 
-// ===== NORMALNE TRASY (UCZESTNICY) =====
+// ===== PANEL UCZESTNIKA (Magic Link) — tylko panel.ceea.org.pl =====
 
-app.get('/', (req, res) => {
+app.get('/', userOnly, (req, res) => {
   if (req.session.user) return res.redirect('/kursy');
   res.render('login', {
     title: 'Logowanie — CEEA',
@@ -212,7 +228,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', userOnly, async (req, res) => {
   const { email } = req.body;
   const { data: enrollments } = await supabase
     .from('enrollments')
@@ -247,7 +263,7 @@ app.post('/login', async (req, res) => {
   });
 });
 
-app.get('/auth/callback', async (req, res) => {
+app.get('/auth/callback', userOnly, async (req, res) => {
   const { token_hash } = req.query;
   const { data, error } = await supabase.auth.verifyOtp({
     token_hash,
@@ -269,7 +285,7 @@ app.get('/auth/callback', async (req, res) => {
   res.redirect('/kursy');
 });
 
-app.get('/kursy', requireAuth, async (req, res) => {
+app.get('/kursy', userOnly, requireAuth, async (req, res) => {
   const { data: enrollments } = await supabase
     .from('enrollments')
     .select(`
@@ -295,41 +311,18 @@ app.get('/kursy', requireAuth, async (req, res) => {
   });
 });
 
-app.get('/logout', (req, res) => {
+app.get('/logout', userOnly, (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
 
-
-
-app.get('/api/admin/force-reset', (req, res) => {
-  const { email } = req.query;
-  const admin = app.locals.admins.get(email);
-  if (!admin) return res.status(404).send('Admin nie istnieje');
-  
-  const newSecret = require('speakeasy').generateSecret({
-      name: `Panel: ${admin.name}`,
-      length: 32
-  });
-  
-  admin.secret = newSecret.base32;
-  admin.qrSetup = false;
-  
-  console.log('Nowy secret:', admin.secret);
-  res.send(`Zresetowano ${email}. Zaloguj się ponownie.`);
-});
-
-
-
+// ===== START =====
 const PORT = process.env.PORT || 3000;
 
-// Sprawdź czy to Vercel (serverless) czy lokalny serwer
-if (process.env.VERCEL) {
-    // Vercel — exportuj app
-    module.exports = app;
-} else {
-    // Lokalnie — uruchom serwer
+if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Panel działa na http://localhost:${PORT}`);
     });
+} else {
+    module.exports = app;
 }
