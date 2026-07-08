@@ -5,7 +5,9 @@ const speakeasy = require('speakeasy');
 const cookieParser = require('cookie-parser');
 
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const { initializeAdmins } = require('./config/admins');
 const authRoutes = require('./routes/auth');
