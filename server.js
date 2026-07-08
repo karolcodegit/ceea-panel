@@ -11,7 +11,9 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('=================');
 
 const { createClient } = require('@supabase/supabase-js');
-
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const { initializeAdmins } = require('./config/admins');
 const authRoutes = require('./routes/auth');
