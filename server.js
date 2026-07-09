@@ -8,32 +8,57 @@ const speakeasy = require("speakeasy");
 const { initializeAdmins } = require("./config/admins");
 const authRoutes = require("./routes/auth");
 
-// === NAJWAŻNIEJSZE: DEBUG NA SAMYM POCZĄTKU ===
-console.log("=== ENV DEBUG (na starcie) ===");
-console.log(
-  "SUPABASE_URL:",
-  process.env.SUPABASE_URL ? "✅ PRESENT" : "❌ MISSING"
-);
-console.log(
-  "SUPABASE_SERVICE_KEY:",
-  process.env.SUPABASE_SERVICE_KEY ? "✅ PRESENT" : "❌ MISSING"
-);
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("============================");
-
-// Ładujemy dotenv tylko lokalnie (na Railway nie jest potrzebne)
+// === Ładujemy dotenv TYLKO lokalnie (na Railway nie jest potrzebne) ===
+// WAŻNE: To musi być NA POCZĄTKU, zanim sprawdzimy zmienne
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-// Inicjalizacja Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  {
-    realtime: { transport: WebSocket },
-  }
-);
+// === DEBUG ZMIENNYCH ŚRODOWISKOWYCH ===
+console.log("=== ENV DEBUG (na starcie) ===");
+console.log("NODE_ENV:", process.env.NODE_ENV || "undefined");
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "✅ PRESENT (length: " + process.env.SUPABASE_URL.length + ")" : "❌ MISSING");
+console.log("SUPABASE_SERVICE_KEY:", process.env.SUPABASE_SERVICE_KEY ? "✅ PRESENT (length: " + process.env.SUPABASE_SERVICE_KEY.length + ")" : "❌ MISSING");
+console.log("SESSION_SECRET:", process.env.SESSION_SECRET ? "✅ PRESENT" : "❌ MISSING");
+console.log("PORT:", process.env.PORT || "3000 (default)");
+console.log("============================");
+
+// === WALIDACJA ZMIENNYCH ===
+if (!process.env.SUPABASE_URL) {
+  console.error("❌ BŁĄD KRYTYCZNY: SUPABASE_URL jest wymagane!");
+  console.error("Upewnij się, że zmienna jest ustawiona w Railway i zrób redeploy.");
+  process.exit(1);
+}
+
+if (!process.env.SUPABASE_SERVICE_KEY) {
+  console.error("❌ BŁĄD KRYTYCZNY: SUPABASE_SERVICE_KEY jest wymagane!");
+  process.exit(1);
+}
+
+if (!process.env.SESSION_SECRET) {
+  console.error("❌ BŁĄD KRYTYCZNY: SESSION_SECRET jest wymagane!");
+  process.exit(1);
+}
+
+// Inicjalizacja Supabase z obsługą błędów
+let supabase;
+try {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY,
+    {
+      realtime: { transport: WebSocket },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+  console.log("✅ Supabase client zainicjalizowany poprawnie");
+} catch (error) {
+  console.error("❌ Błąd inicjalizacji Supabase:", error.message);
+  process.exit(1);
+}
 
 const app = express();
 app.use(cookieParser());
@@ -81,6 +106,8 @@ app.locals.sessions = new Map();
 initializeAdmins().then((admins) => {
   app.locals.admins = admins;
   console.log("Admini TOTP zainicjalizowani:", admins.size);
+}).catch(err => {
+  console.error("❌ Błąd inicjalizacji adminów:", err.message);
 });
 
 app.use("/api/auth", authRoutes);
@@ -139,113 +166,191 @@ app.get("/wyloguj", adminOnly, (req, res) => {
 });
 
 app.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*")
-    .order("name");
+  try {
+    const { data: courses, error } = await supabase
+      .from("courses")
+      .select("*")
+      .order("name");
 
-  res.render("admin-kursy", { isAdmin: true, courses: courses || [] });
+    if (error) {
+      console.error("Błąd Supabase (kursy):", error);
+      return res.render("admin-kursy", { isAdmin: true, courses: [], error: error.message });
+    }
+
+    res.render("admin-kursy", { isAdmin: true, courses: courses || [] });
+  } catch (err) {
+    console.error("Błąd serwera (kursy):", err);
+    res.status(500).render("error", { message: "Błąd pobierania kursów" });
+  }
 });
 
 app.post("/kursy", adminOnly, requireAdmin, async (req, res) => {
   const { name, description } = req.body;
 
-  const { data, error } = await supabase
-    .from("courses")
-    .insert([{ name, description }])
-    .select();
+  try {
+    const { data, error } = await supabase
+      .from("courses")
+      .insert([{ name, description }])
+      .select();
 
-  if (error) {
-    console.log("BŁĄD SUPABASE:", error);
-    return res.render("admin-kursy", {
-      isAdmin: true,
-      courses: [],
-      error: error.message,
-    });
+    if (error) {
+      console.error("BŁĄD SUPABASE (dodawanie kursu):", error);
+      return res.render("admin-kursy", {
+        isAdmin: true,
+        courses: [],
+        error: error.message,
+      });
+    }
+
+    res.redirect("/kursy");
+  } catch (err) {
+    console.error("Błąd serwera (dodawanie kursu):", err);
+    res.redirect("/kursy");
   }
-
-  res.redirect("/kursy");
 });
 
+// POPRAWIONE: Ścieżka /materials (nie /materiały) — spójność z kodem
 app.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("id", req.params.id)
-    .single();
+  try {
+    const { data: course, error: courseError } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
 
-  const { data: materials } = await supabase
-    .from("materials")
-    .select("*")
-    .eq("course_id", req.params.id)
-    .order("order");
+    if (courseError) {
+      console.error("Błąd pobierania kursu:", courseError);
+      return res.redirect("/kursy");
+    }
 
-  res.render("admin-materiały", {
-    isAdmin: true,
-    course,
-    materials: materials || [],
-  });
+    const { data: materials, error: materialsError } = await supabase
+      .from("materials")
+      .select("*")
+      .eq("course_id", req.params.id)
+      .order("order");
+
+    if (materialsError) {
+      console.error("Błąd pobierania materiałów:", materialsError);
+    }
+
+    res.render("admin-materials", {
+      isAdmin: true,
+      course,
+      materials: materials || [],
+    });
+  } catch (err) {
+    console.error("Błąd serwera (materiały):", err);
+    res.redirect("/kursy");
+  }
 });
 
-app.post("/kursy/:id/materiały", adminOnly, requireAdmin, async (req, res) => {
+// POPRAWIONE: Ścieżka POST /materials (nie /materiały)
+app.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
   const { title, type, url, order } = req.body;
 
-  await supabase.from("materials").insert([
-    {
-      course_id: req.params.id,
-      title,
-      type,
-      url,
-      order: parseInt(order) || 1,
-    },
-  ]);
+  try {
+    const { error } = await supabase.from("materials").insert([
+      {
+        course_id: req.params.id,
+        title,
+        type,
+        url,
+        order: parseInt(order) || 1,
+      },
+    ]);
 
-  res.redirect(`/kursy/${req.params.id}/materiały`);
+    if (error) {
+      console.error("Błąd dodawania materiału:", error);
+    }
+
+    res.redirect(`/kursy/${req.params.id}/materials`);
+  } catch (err) {
+    console.error("Błąd serwera (dodawanie materiału):", err);
+    res.redirect(`/kursy/${req.params.id}/materials`);
+  }
 });
 
-app.post("/materiały/:id/usuń", adminOnly, requireAdmin, async (req, res) => {
-  const { data: material } = await supabase
-    .from("materials")
-    .select("course_id")
-    .eq("id", req.params.id)
-    .single();
+// POPRAWIONE: Ścieżka DELETE /materials/:id (nie /materiały/:id/usuń)
+app.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { data: material, error: fetchError } = await supabase
+      .from("materials")
+      .select("course_id")
+      .eq("id", req.params.id)
+      .single();
 
-  await supabase.from("materials").delete().eq("id", req.params.id);
+    if (fetchError) {
+      console.error("Błąd pobierania materiału:", fetchError);
+      return res.redirect("/kursy");
+    }
 
-  res.redirect(`/kursy/${material.course_id}/materials`);
+    const { error: deleteError } = await supabase.from("materials").delete().eq("id", req.params.id);
+
+    if (deleteError) {
+      console.error("Błąd usuwania materiału:", deleteError);
+    }
+
+    res.redirect(`/kursy/${material.course_id}/materials`);
+  } catch (err) {
+    console.error("Błąd serwera (usuwanie materiału):", err);
+    res.redirect("/kursy");
+  }
 });
 
 app.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("id", req.params.id)
-    .single();
+  try {
+    const { data: course, error: courseError } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
 
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select("*")
-    .eq("course_id", req.params.id);
+    if (courseError) {
+      console.error("Błąd pobierania kursu:", courseError);
+      return res.redirect("/kursy");
+    }
 
-  res.render("admin-uczestnicy", {
-    isAdmin: true,
-    course,
-    enrollments: enrollments || [],
-  });
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from("enrollments")
+      .select("*")
+      .eq("course_id", req.params.id);
+
+    if (enrollmentsError) {
+      console.error("Błąd pobierania uczestników:", enrollmentsError);
+    }
+
+    res.render("admin-uczestnicy", {
+      isAdmin: true,
+      course,
+      enrollments: enrollments || [],
+    });
+  } catch (err) {
+    console.error("Błąd serwera (uczestnicy):", err);
+    res.redirect("/kursy");
+  }
 });
 
 app.post("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
   const { email } = req.body;
 
-  await supabase.from("enrollments").insert([
-    {
-      course_id: req.params.id,
-      email,
-      status: "active",
-    },
-  ]);
+  try {
+    const { error } = await supabase.from("enrollments").insert([
+      {
+        course_id: req.params.id,
+        email,
+        status: "active",
+      },
+    ]);
 
-  res.redirect(`/kursy/${req.params.id}/uczestnicy`);
+    if (error) {
+      console.error("Błąd dodawania uczestnika:", error);
+    }
+
+    res.redirect(`/kursy/${req.params.id}/uczestnicy`);
+  } catch (err) {
+    console.error("Błąd serwera (dodawanie uczestnika):", err);
+    res.redirect(`/kursy/${req.params.id}/uczestnicy`);
+  }
 });
 
 // ===== PANEL UCZESTNIKA (Magic Link) — tylko panel.ceea.org.pl =====
@@ -261,87 +366,131 @@ app.get("/", userOnly, (req, res) => {
 
 app.post("/login", userOnly, async (req, res) => {
   const { email } = req.body;
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select("id")
-    .eq("email", email)
-    .eq("status", "active")
-    .limit(1);
 
-  if (!enrollments?.length) {
-    return res.render("login", {
-      error: "Ten email nie jest zapisany na kurs.",
+  try {
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("email", email)
+      .eq("status", "active")
+      .limit(1);
+
+    if (enrollmentsError) {
+      console.error("Błąd sprawdzania zapisu:", enrollmentsError);
+    }
+
+    if (!enrollments?.length) {
+      return res.render("login", {
+        error: "Ten email nie jest zapisany na kurs.",
+        message: null,
+      });
+    }
+
+    const { error } = await supabase.auth.admin.generateLink({
+      type: "magiclink",
+      email: email,
+      options: { redirectTo: "https://panel.ceea.org.pl/auth/callback" },
+    });
+
+    if (error) {
+      console.error("Błąd wysyłania magic link:", error);
+      return res.render("login", {
+        error: "Błąd wysyłania. Spróbuj ponownie.",
+        message: null,
+      });
+    }
+
+    res.render("login", {
+      error: null,
+      message: "Sprawdź email z linkiem logowania!",
+    });
+  } catch (err) {
+    console.error("Błąd serwera (login):", err);
+    res.render("login", {
+      error: "Wystąpił błąd serwera. Spróbuj ponownie.",
       message: null,
     });
   }
-
-  const { error } = await supabase.auth.admin.generateLink({
-    type: "magiclink",
-    email: email,
-    options: { redirectTo: "https://panel.ceea.org.pl/auth/callback" },
-  });
-
-  if (error) {
-    return res.render("login", {
-      error: "Błąd wysyłania. Spróbuj ponownie.",
-      message: null,
-    });
-  }
-
-  res.render("login", {
-    error: null,
-    message: "Sprawdź email z linkiem logowania!",
-  });
 });
 
 app.get("/auth/callback", userOnly, async (req, res) => {
   const { token_hash } = req.query;
-  const { data, error } = await supabase.auth.verifyOtp({
-    token_hash,
-    type: "magiclink",
-  });
 
-  if (error) {
+  if (!token_hash) {
     return res.render("login", {
-      error: "Link wygasł lub jest nieprawidłowy.",
+      error: "Brak tokenu w linku.",
       message: null,
     });
   }
 
-  req.session.user = {
-    id: data.user.id,
-    email: data.user.email,
-  };
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: "magiclink",
+    });
 
-  res.redirect("/kursy");
+    if (error) {
+      console.error("Błąd weryfikacji OTP:", error);
+      return res.render("login", {
+        error: "Link wygasł lub jest nieprawidłowy.",
+        message: null,
+      });
+    }
+
+    req.session.user = {
+      id: data.user.id,
+      email: data.user.email,
+    };
+
+    res.redirect("/kursy");
+  } catch (err) {
+    console.error("Błąd serwera (callback):", err);
+    res.render("login", {
+      error: "Wystąpił błąd serwera.",
+      message: null,
+    });
+  }
 });
 
 app.get("/kursy", userOnly, requireAuth, async (req, res) => {
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select(
-      `
-      courses (
-        id,
-        name,
-        description,
-        materials (
-          title,
-          type,
-          url,
-          order_num
+  try {
+    const { data: enrollments, error } = await supabase
+      .from("enrollments")
+      .select(
+        `
+        courses (
+          id,
+          name,
+          description,
+          materials (
+            title,
+            type,
+            url,
+            order_num
+          )
         )
+      `
       )
-    `
-    )
-    .eq("email", req.session.user.email)
-    .eq("status", "active");
+      .eq("email", req.session.user.email)
+      .eq("status", "active");
 
-  res.render("dashboard", {
-    title: "Moje kursy — CEEA",
-    user: req.session.user,
-    courses: enrollments?.map((e) => e.courses) || [],
-  });
+    if (error) {
+      console.error("Błąd pobierania kursów użytkownika:", error);
+    }
+
+    res.render("dashboard", {
+      title: "Moje kursy — CEEA",
+      user: req.session.user,
+      courses: enrollments?.map((e) => e.courses) || [],
+    });
+  } catch (err) {
+    console.error("Błąd serwera (dashboard):", err);
+    res.render("dashboard", {
+      title: "Moje kursy — CEEA",
+      user: req.session.user,
+      courses: [],
+    });
+  }
 });
 
 app.get("/logout", userOnly, (req, res) => {
@@ -354,7 +503,8 @@ const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Panel działa na http://localhost:${PORT}`);
+    console.log(`✅ Panel działa na http://localhost:${PORT}`);
+    console.log(`📅 Data uruchomienia: ${new Date().toISOString()}`);
   });
 } else {
   module.exports = app;
