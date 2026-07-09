@@ -8,39 +8,27 @@ const speakeasy = require("speakeasy");
 const { initializeAdmins } = require("./config/admins");
 const authRoutes = require("./routes/auth");
 
-// === Ładujemy dotenv TYLKO lokalnie (na Railway nie jest potrzebne) ===
-// WAŻNE: To musi być NA POCZĄTKU, zanim sprawdzimy zmienne
+// === Ładujemy dotenv TYLKO lokalnie ===
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-// === DEBUG ZMIENNYCH ŚRODOWISKOWYCH ===
-console.log("=== ENV DEBUG (na starcie) ===");
+// === DEBUG ===
+console.log("=== ENV DEBUG ===");
 console.log("NODE_ENV:", process.env.NODE_ENV || "undefined");
-console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "✅ PRESENT (length: " + process.env.SUPABASE_URL.length + ")" : "❌ MISSING");
-console.log("SUPABASE_SERVICE_KEY:", process.env.SUPABASE_SERVICE_KEY ? "✅ PRESENT (length: " + process.env.SUPABASE_SERVICE_KEY.length + ")" : "❌ MISSING");
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "✅ PRESENT" : "❌ MISSING");
+console.log("SUPABASE_SERVICE_KEY:", process.env.SUPABASE_SERVICE_KEY ? "✅ PRESENT" : "❌ MISSING");
 console.log("SESSION_SECRET:", process.env.SESSION_SECRET ? "✅ PRESENT" : "❌ MISSING");
-console.log("PORT:", process.env.PORT || "3000 (default)");
-console.log("============================");
+console.log("PORT:", process.env.PORT || "3000");
+console.log("================");
 
-// === WALIDACJA ZMIENNYCH ===
-if (!process.env.SUPABASE_URL) {
-  console.error("❌ BŁĄD KRYTYCZNY: SUPABASE_URL jest wymagane!");
-  console.error("Upewnij się, że zmienna jest ustawiona w Railway i zrób redeploy.");
+// === WALIDACJA ===
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY || !process.env.SESSION_SECRET) {
+  console.error("❌ BRAK WYMAGANYCH ZMIENNYCH ŚRODOWISKOWYCH!");
   process.exit(1);
 }
 
-if (!process.env.SUPABASE_SERVICE_KEY) {
-  console.error("❌ BŁĄD KRYTYCZNY: SUPABASE_SERVICE_KEY jest wymagane!");
-  process.exit(1);
-}
-
-if (!process.env.SESSION_SECRET) {
-  console.error("❌ BŁĄD KRYTYCZNY: SESSION_SECRET jest wymagane!");
-  process.exit(1);
-}
-
-// Inicjalizacja Supabase z obsługą błędów
+// === SUPABASE ===
 let supabase;
 try {
   supabase = createClient(
@@ -48,15 +36,12 @@ try {
     process.env.SUPABASE_SERVICE_KEY,
     {
       realtime: { transport: WebSocket },
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      auth: { autoRefreshToken: false, persistSession: false },
     }
   );
-  console.log("✅ Supabase client zainicjalizowany poprawnie");
+  console.log("✅ Supabase OK");
 } catch (error) {
-  console.error("❌ Błąd inicjalizacji Supabase:", error.message);
+  console.error("❌ Supabase error:", error.message);
   process.exit(1);
 }
 
@@ -84,18 +69,12 @@ app.use(
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// ===== ROUTING PO DOMENIE =====
-app.use((req, res, next) => {
-  const host = req.headers.host;
+// ===== ROUTING PO ŚCIEŻCE (zamiast domeny) =====
+const ADMIN_PREFIX = "/ceea-poznan-admin";
 
-  if (host === "ceea-admin.ceea.org.pl") {
-    req.isAdminDomain = true;
-  } else if (host === "panel.ceea.org.pl") {
-    req.isAdminDomain = false;
-  } else {
-    // Lokalnie lub inna domena — domyślnie panel użytkownika
-    req.isAdminDomain = false;
-  }
+app.use((req, res, next) => {
+  // Sprawdź czy ścieżka zaczyna się od prefixu admina
+  req.isAdminPath = req.path.startsWith(ADMIN_PREFIX);
   next();
 });
 
@@ -132,40 +111,41 @@ const requireAdmin = (req, res, next) => {
     return next();
   }
 
-  res.redirect("/");
+  res.redirect(ADMIN_PREFIX + "/");
 };
 
-// Middleware blokujące dostęp z złej domeny
+// Middleware blokujące dostęp z złej ścieżki
 const adminOnly = (req, res, next) => {
-  if (!req.isAdminDomain) {
+  if (!req.isAdminPath) {
     return res.redirect("https://ceea.org.pl/");
   }
   next();
 };
 
 const userOnly = (req, res, next) => {
-  if (req.isAdminDomain) {
+  if (req.isAdminPath) {
     return res.redirect("https://ceea.org.pl/");
   }
   next();
 };
 
-// ===== PANEL ADMINISTRATORA (TOTP) — tylko ceea-admin.ceea.org.pl =====
+// ===== PANEL ADMINISTRATORA — /ceea-poznan-admin/ =====
 
-app.get("/", adminOnly, (req, res) => {
+// Admin login
+app.get(ADMIN_PREFIX + "/", adminOnly, (req, res) => {
   res.render("admin-login", { error: null, year: new Date().getFullYear() });
 });
 
-app.get("/wyloguj", adminOnly, (req, res) => {
+app.get(ADMIN_PREFIX + "/wyloguj", adminOnly, (req, res) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
     req.cookies?.adminToken;
   app.locals.sessions.delete(token);
   req.session.isAdmin = false;
-  res.redirect("/");
+  res.redirect(ADMIN_PREFIX + "/");
 });
 
-app.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
+app.get(ADMIN_PREFIX + "/kursy", adminOnly, requireAdmin, async (req, res) => {
   try {
     const { data: courses, error } = await supabase
       .from("courses")
@@ -184,7 +164,7 @@ app.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
-app.post("/kursy", adminOnly, requireAdmin, async (req, res) => {
+app.post(ADMIN_PREFIX + "/kursy", adminOnly, requireAdmin, async (req, res) => {
   const { name, description } = req.body;
 
   try {
@@ -202,15 +182,14 @@ app.post("/kursy", adminOnly, requireAdmin, async (req, res) => {
       });
     }
 
-    res.redirect("/kursy");
+    res.redirect(ADMIN_PREFIX + "/kursy");
   } catch (err) {
     console.error("Błąd serwera (dodawanie kursu):", err);
-    res.redirect("/kursy");
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
 });
 
-// POPRAWIONE: Ścieżka /materials (nie /materiały) — spójność z kodem
-app.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
+app.get(ADMIN_PREFIX + "/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
   try {
     const { data: course, error: courseError } = await supabase
       .from("courses")
@@ -220,7 +199,7 @@ app.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
 
     if (courseError) {
       console.error("Błąd pobierania kursu:", courseError);
-      return res.redirect("/kursy");
+      return res.redirect(ADMIN_PREFIX + "/kursy");
     }
 
     const { data: materials, error: materialsError } = await supabase
@@ -240,12 +219,11 @@ app.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("Błąd serwera (materiały):", err);
-    res.redirect("/kursy");
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
 });
 
-// POPRAWIONE: Ścieżka POST /materials (nie /materiały)
-app.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
+app.post(ADMIN_PREFIX + "/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
   const { title, type, url, order } = req.body;
 
   try {
@@ -263,15 +241,14 @@ app.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
       console.error("Błąd dodawania materiału:", error);
     }
 
-    res.redirect(`/kursy/${req.params.id}/materials`);
+    res.redirect(ADMIN_PREFIX + `/kursy/${req.params.id}/materials`);
   } catch (err) {
     console.error("Błąd serwera (dodawanie materiału):", err);
-    res.redirect(`/kursy/${req.params.id}/materials`);
+    res.redirect(ADMIN_PREFIX + `/kursy/${req.params.id}/materials`);
   }
 });
 
-// POPRAWIONE: Ścieżka DELETE /materials/:id (nie /materiały/:id/usuń)
-app.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
+app.post(ADMIN_PREFIX + "/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
   try {
     const { data: material, error: fetchError } = await supabase
       .from("materials")
@@ -281,7 +258,7 @@ app.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
 
     if (fetchError) {
       console.error("Błąd pobierania materiału:", fetchError);
-      return res.redirect("/kursy");
+      return res.redirect(ADMIN_PREFIX + "/kursy");
     }
 
     const { error: deleteError } = await supabase.from("materials").delete().eq("id", req.params.id);
@@ -290,14 +267,14 @@ app.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
       console.error("Błąd usuwania materiału:", deleteError);
     }
 
-    res.redirect(`/kursy/${material.course_id}/materials`);
+    res.redirect(ADMIN_PREFIX + `/kursy/${material.course_id}/materials`);
   } catch (err) {
     console.error("Błąd serwera (usuwanie materiału):", err);
-    res.redirect("/kursy");
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
 });
 
-app.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
+app.get(ADMIN_PREFIX + "/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
   try {
     const { data: course, error: courseError } = await supabase
       .from("courses")
@@ -307,7 +284,7 @@ app.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
 
     if (courseError) {
       console.error("Błąd pobierania kursu:", courseError);
-      return res.redirect("/kursy");
+      return res.redirect(ADMIN_PREFIX + "/kursy");
     }
 
     const { data: enrollments, error: enrollmentsError } = await supabase
@@ -326,11 +303,11 @@ app.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("Błąd serwera (uczestnicy):", err);
-    res.redirect("/kursy");
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
 });
 
-app.post("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
+app.post(ADMIN_PREFIX + "/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -346,14 +323,14 @@ app.post("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
       console.error("Błąd dodawania uczestnika:", error);
     }
 
-    res.redirect(`/kursy/${req.params.id}/uczestnicy`);
+    res.redirect(ADMIN_PREFIX + `/kursy/${req.params.id}/uczestnicy`);
   } catch (err) {
     console.error("Błąd serwera (dodawanie uczestnika):", err);
-    res.redirect(`/kursy/${req.params.id}/uczestnicy`);
+    res.redirect(ADMIN_PREFIX + `/kursy/${req.params.id}/uczestnicy`);
   }
 });
 
-// ===== PANEL UCZESTNIKA (Magic Link) — tylko panel.ceea.org.pl =====
+// ===== PANEL UCZESTNIKA — / (root) =====
 
 app.get("/", userOnly, (req, res) => {
   if (req.session.user) return res.redirect("/kursy");

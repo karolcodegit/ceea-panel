@@ -11,14 +11,14 @@
 
   <main class="max-w-6xl mx-auto px-4 py-8">
     <div class="mb-6">
-      <a href="/admin/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
+      <a href="/ceea-poznan-admin/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
     </div>
 
     <h1 class="text-2xl font-bold text-gray-900 mb-2"><%= course.name %></h1>
     <p class="text-gray-500 mb-8">Materiały kursu</p>
 
     <!-- Dodaj materiał -->
-    <form id="materialForm" method="POST" action="/admin/kursy/<%= course.id %>/materials" class="space-y-4 mb-10">
+    <form id="materialForm" method="POST" action="/ceea-poznan-admin/kursy/<%= course.id %>/materials" class="space-y-4 mb-10">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="text" name="title" id="title" placeholder="Tytuł materiału" required
           class="px-4 py-2 border rounded-lg">
@@ -111,45 +111,4 @@
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Kolejność</th>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Tytuł</th>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Typ</th>
-            <th class="text-right px-6 py-3 text-sm font-medium text-gray-500">Akcje</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <% materials.forEach(mat => { %>
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-gray-500"><%= mat.order %></td>
-              <td class="px-6 py-4 font-medium text-gray-900"><%= mat.title %></td>
-              <td class="px-6 py-4">
-                <span class="px-2 py-1 rounded text-xs font-medium
-                  <%= mat.type === 'pdf' ? 'bg-red-100 text-red-700' : 
-                     mat.type === 'video' ? 'bg-blue-100 text-blue-700' : 
-                     'bg-gray-100 text-gray-700' %>">
-                  <%= mat.type %>
-                </span>
-              </td>
-              <td class="px-6 py-4 text-right">
-                <a href="<%= mat.url %>" target="_blank" class="text-blue-600 hover:text-blue-700 text-sm mr-4">Otwórz</a>
-                <form method="POST" action="/admin/materiały/<%= mat.id %>/usuń" class="inline">
-                  <button type="submit" class="text-red-600 hover:text-red-700 text-sm" onclick="return confirm('Usunąć?')">
-                    Usuń
-                  </button>
-                </form>
-              </td>
-            </tr>
-          <% }) %>
-          <% if (materials.length === 0) { %>
-            <tr>
-              <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                Brak materiałów. Dodaj pierwszy powyżej.
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-  </main>
-
-</body>
-</html>
+           
