@@ -10,7 +10,7 @@ const authRoutes = require("./routes/auth");
 
 // === Ładujemy dotenv TYLKO lokalnie ===
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
+  require("dotenv").config({ path: '.env' });
 }
 
 // === DEBUG ===

@@ -1,5 +1,6 @@
 const speakeasy = require('speakeasy');
 const bcrypt = require('bcryptjs');
+const QRCode = require('qrcode');
 
 // Parsuj emaile z .env
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
@@ -24,9 +25,12 @@ async function initializeAdmins() {
         const name = ADMIN_NAMES[i] || `Admin ${i + 1}`;
         
         const secret = speakeasy.generateSecret({
-            name: `Panel: ${name}`,
+            name: `CEEA Panel: ${name}`,
             length: 32
         });
+        
+        // Wygeneruj QR code
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
         
         const backupCodes = Array.from({ length: 10 }, () => 
             Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -46,11 +50,12 @@ async function initializeAdmins() {
         });
         
         console.log(`\n=== ADMIN: ${email} ===`);
+        console.log('Secret (dodaj do Google Authenticator):', secret.base32);
+        console.log('QR Code URL:', secret.otpauth_url);
         console.log('Kody awaryjne (ZAPISZ!):', backupCodes);
     }
     
     return admins;
-
-    
 }
+
 module.exports = { initializeAdmins };
