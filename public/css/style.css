@@ -1764,3 +1764,55 @@ video {
     width: 58.333333%;
   }
 }
+
+
+
+
+/* ===== HELP PAGE ===== */
+.help-hero {
+  background: 
+    radial-gradient(at 40% 20%, rgba(185, 28, 28, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(185, 28, 28, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(185, 28, 28, 0.06) 0px, transparent 50%);
+}
+
+.help-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.help-card:hover {
+  transform: translateY(-4px);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s ease;
+}
+.faq-answer.open {
+  max-height: 600px;
+}
+
+.faq-chevron {
+  transition: transform 0.3s ease;
+}
+.faq-chevron.rotate {
+  transform: rotate(180deg);
+}
+
+.scroll-mt-24 {
+  scroll-margin-top: 6rem;
+}
+
+
+
+
+/* Privacy page */
+.scroll-mt-24 {
+  scroll-margin-top: 6rem;
+}
+
+@media print {
+  .toc-link { display: none; }
+  header { position: static; }
+  section { break-inside: avoid; }
+}

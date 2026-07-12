@@ -1,0 +1,26 @@
+<section id="<%= id %>" class="max-w-3xl mx-auto px-6 mb-16 scroll-mt-24">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+        <%- icon %>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900"><%= title %></h2>
+    </div>
+  
+    <div class="space-y-3">
+      <% questions.forEach(q => { %>
+        <div class="bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden">
+          <button onclick="toggleFaq(this)" class="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-gray-50 transition-all group">
+            <span class="font-semibold text-gray-800 group-hover:text-gray-900"><%= q.question %></span>
+            <svg class="faq-chevron w-5 h-5 text-gray-400 group-hover:text-red-500 shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="px-6 pb-5 text-gray-600 text-sm leading-relaxed">
+              <%- q.answer %>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </section>

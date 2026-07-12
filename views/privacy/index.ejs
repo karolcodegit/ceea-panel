@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('../partials/head') %>
+    <title>Polityka Prywatności — CEEA Panel</title>
+  </head>
+  <body class="min-h-screen bg-white">
+    
+    <%- include('header', { backUrl: '/', backText: 'Wróć do panelu' }) %>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+        <!-- Sidebar TOC -->
+        <div class="hidden lg:block lg:col-span-3">
+          <nav class="sticky top-24 overflow-y-auto h-[calc(100vh-8rem)] pr-4">
+            <%- include('toc') %>
+          </nav>
+        </div>
+
+        <!-- Content -->
+        <div class="lg:col-span-9">
+          <%- include('hero') %>
+
+          <div class="prose prose-lg max-w-none">
+            <%- include('sections/01-administrator') %> <%-
+            include('sections/02-scope') %> <%-
+            include('sections/03-legal-basis') %> <%-
+            include('sections/04-cookies') %> <%-
+            include('sections/05-third-parties') %> <%-
+            include('sections/06-security') %> <%- include('sections/07-rights')
+            %> <%- include('sections/08-contact') %>
+          </div>
+
+          <%- include('footer') %>
+        </div>
+      </div>
+    </main>
+
+    <script src="/js/privacy.js"></script>
+  </body>
+</html>

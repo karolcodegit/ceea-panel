@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('../partials/head') %>
+  <title>Centrum Pomocy — CEEA Panel</title>
+</head>
+<body class="min-h-screen bg-white">
+
+  <%- include('header', { backUrl: '/', backText: 'Wróć do panelu' }) %>
+
+  <main>
+    <%- include('hero') %>
+    <%- include('categories', { categories }) %>
+    
+    <% categories.forEach((category, index) => { %>
+      <%- include('faq-section', { 
+        id: category.id,
+        title: category.title,
+        icon: category.icon,
+        questions: category.questions,
+        index: index + 1
+      }) %>
+    <% }) %>
+    
+    <%- include('contact') %>
+  </main>
+
+  <%- include('footer') %>
+
+  <script src="/js/help.js"></script>
+
+</body>
+</html>

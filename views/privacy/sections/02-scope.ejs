@@ -1,0 +1,75 @@
+<section id="zakres" class="mb-16 scroll-mt-24">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+      <span class="flex items-center justify-center w-8 h-8 bg-red-100 text-red-700 text-sm font-bold rounded-lg">2</span>
+      Zakres i cel przetwarzanych danych
+    </h2>
+  
+    <div class="space-y-6">
+      
+      <div class="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          Dane uczestników kursów
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="text-left px-4 py-3 font-semibold text-gray-700 rounded-tl-lg">Dane</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-700">Cel</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-700 rounded-tr-lg">Okres</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr>
+                <td class="px-4 py-3 text-gray-600">Adres email</td>
+                <td class="px-4 py-3 text-gray-600">Autentykacja, wysyłka magicznego linku logowania</td>
+                <td class="px-4 py-3 text-gray-600">Czas trwania kursu + 1 rok</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-gray-600">Identyfikator sesji</td>
+                <td class="px-4 py-3 text-gray-600">Utrzymanie stanu zalogowania</td>
+                <td class="px-4 py-3 text-gray-600">30 dni lub do wylogowania</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-gray-600">Adres IP</td>
+                <td class="px-4 py-3 text-gray-600">Logi bezpieczeństwa, zapobieganie nadużyciom</td>
+                <td class="px-4 py-3 text-gray-600">90 dni</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+  
+      <div class="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          Dane administratorów (TOTP)
+        </h3>
+        <ul class="space-y-2 text-sm text-gray-600 ml-5 list-disc">
+          <li>Adres email — autentykacja dwuetapowa (TOTP)</li>
+          <li>Klucz TOTP (base32) — generowany lokalnie, nie przechowywany w bazie</li>
+          <li>Kody awaryjne (hash bcrypt) — odzyskiwanie dostępu</li>
+        </ul>
+      </div>
+  
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+        <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-amber-900">Dane z Airtable</p>
+          <p class="text-sm text-amber-800 mt-1">
+            Dane uczestników (email, imię, nazwisko) są przechowywane w Airtable 
+            przed rejestracją w panelu. Panel sprawdza wyłącznie, czy email istnieje 
+            w bazie zapisów na kurs — nie przechowuje danych osobowych poza adresem email.
+          </p>
+        </div>
+      </div>
+  
+    </div>
+  </section>
