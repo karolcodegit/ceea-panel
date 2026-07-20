@@ -1,12 +1,108 @@
-<div class="min-h-screen flex items-center justify-center bg-gray-50">
-    <div class="text-center">
-      <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <svg class="w-12 h-12 text-red-600">...</svg>
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('../partials/head') %>
+  <title><%= typeof title !== 'undefined' ? title : '404 — Nie znaleziono' %></title>
+  <style>
+    .nf-grid {
+      background-image: radial-gradient(#e5e7eb 1.2px, transparent 1.2px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 30%, transparent 75%);
+    }
+    .nf-blob {
+      position: absolute; border-radius: 9999px; filter: blur(90px);
+      animation: nf-drift 16s ease-in-out infinite alternate;
+    }
+    @keyframes nf-drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(50px, -40px) scale(1.15); }
+    }
+    .nf-code {
+      font-size: clamp(6rem, 22vw, 12rem);
+      font-weight: 800; line-height: 1; letter-spacing: -0.04em;
+      background: linear-gradient(120deg, #111827 25%, #dc2626 50%, #111827 75%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+      animation: nf-shine 6s linear infinite;
+      transition: transform .2s ease-out;
+    }
+    @keyframes nf-shine { to { background-position: -200% 0; } }
+    .nf-float { animation: nf-float 5s ease-in-out infinite; }
+    @keyframes nf-float {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      50%      { transform: translateY(-12px) rotate(4deg); }
+    }
+    .nf-ring { animation: nf-spin 26s linear infinite; }
+    @keyframes nf-spin { to { transform: rotate(360deg); } }
+    .nf-in {
+      opacity: 0; transform: translateY(24px);
+      animation: nf-in .7s cubic-bezier(.22, 1, .36, 1) forwards;
+    }
+    @keyframes nf-in { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .nf-blob, .nf-code, .nf-float, .nf-ring, .nf-in { animation: none !important; }
+      .nf-in { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-white text-gray-900">
+
+  <% const statusCode = typeof status !== 'undefined' ? status : 404; %>
+
+  <main class="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+    <!-- tło: siatka kropek + bloby -->
+    <div class="nf-grid absolute inset-0"></div>
+    <div class="nf-blob bg-red-100" style="width:22rem;height:22rem;top:-6rem;left:-6rem;"></div>
+    <div class="nf-blob bg-gray-100" style="width:28rem;height:28rem;bottom:-8rem;right:-8rem;animation-delay:-8s;"></div>
+
+    <div class="relative text-center max-w-xl">
+
+      <!-- unosząca się ikona z obracającym się pierścieniem -->
+      <div class="nf-in relative inline-block mb-6" style="animation-delay:.05s">
+        <svg class="nf-ring absolute text-red-200" style="inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px)" fill="none" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="48" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 10" stroke-linecap="round"/>
+        </svg>
+        <div class="nf-float w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center shadow-sm">
+          <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
       </div>
-      <h1 class="text-4xl font-bold text-gray-900 mb-2">404</h1>
-      <p class="text-gray-500 mb-6">Strona nie została znaleziona</p>
-      <a href="/" class="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700">
-        Wróć do panelu
-      </a>
+
+      <h1 id="nf-code" class="nf-code nf-in select-none" style="animation-delay:.15s"><%= statusCode %></h1>
+
+      <h2 class="nf-in text-2xl font-bold text-gray-900 mt-2 mb-3" style="animation-delay:.25s">
+        <%= statusCode === 404 ? 'Ups! Ta strona zniknęła.' : 'Coś poszło nie tak.' %>
+      </h2>
+
+      <p class="nf-in text-gray-500 leading-relaxed mb-8" style="animation-delay:.35s">
+        <%= typeof message !== 'undefined' ? message : 'Strona nie istnieje lub została przeniesiona.' %>
+      </p>
+
+      <div class="nf-in flex flex-col sm:flex-row items-center justify-center gap-3" style="animation-delay:.45s">
+        <a href="/" class="px-6 py-3 bg-red-600 text-white font-medium rounded-xl shadow-lg shadow-red-600/30 hover:bg-red-700 hover:-translate-y-0.5 transition-all">
+          Wróć do panelu
+        </a>
+        <a href="/pomoc" class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 hover:-translate-y-0.5 transition-all">
+          Centrum pomocy
+        </a>
+      </div>
     </div>
-  </div>
+  </main>
+
+  <script>
+    // Delikatny paralaks wielkiego numeru za kursorem
+    (function () {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var el = document.getElementById('nf-code');
+      window.addEventListener('mousemove', function (e) {
+        var x = (e.clientX / window.innerWidth - 0.5) * 14;
+        var y = (e.clientY / window.innerHeight - 0.5) * 14;
+        el.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      });
+    })();
+  </script>
+</body>
+</html>
