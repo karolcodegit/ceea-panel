@@ -24,6 +24,8 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "express-session": "^1.19.0",
+    "graphql-request": "^7.4.0",
+    "markdown-it": "^14.3.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "ws": "^8.21.0"

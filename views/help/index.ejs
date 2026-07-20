@@ -1,33 +1,22 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-  <%- include('../partials/head') %>
-  <title>Centrum Pomocy — CEEA Panel</title>
-</head>
-<body class="min-h-screen bg-white">
+  <head>
+    <%- include('../partials/head') %>
+    <title><%= title %></title>
+  </head>
+  <body class="min-h-screen bg-white">
+    <%- include('header', { backUrl: '/', backText: 'Wróć do panelu' }) %>
 
-  <%- include('header', { backUrl: '/', backText: 'Wróć do panelu' }) %>
+    <main>
+      <%- include('hero', { page, lastUpdated }) %> <%- include('categories', {
+      categories }) %> <% categories.forEach((category, index) => { %> <%-
+      include('faq-section', { id: category.slug, title: category.title, icon:
+      category.icon, questions: category.questions, index: index + 1 }) %> <% })
+      %> <%- include('contact', { company }) %>
+    </main>
 
-  <main>
-    <%- include('hero') %>
-    <%- include('categories', { categories }) %>
-    
-    <% categories.forEach((category, index) => { %>
-      <%- include('faq-section', { 
-        id: category.id,
-        title: category.title,
-        icon: category.icon,
-        questions: category.questions,
-        index: index + 1
-      }) %>
-    <% }) %>
-    
-    <%- include('contact') %>
-  </main>
+    <%- include('footer', { company }) %>
 
-  <%- include('footer') %>
-
-  <script src="/js/help.js"></script>
-
-</body>
+    <script src="/js/help.js"></script>
+  </body>
 </html>
