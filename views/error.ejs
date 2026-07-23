@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <%- include('../partials/head') %>
+  <%- include('partials/head') %>
   <title><%= typeof title !== 'undefined' ? title : '404 — Nie znaleziono' %></title>
   <style>
     .nf-grid {
@@ -50,8 +50,22 @@
 <body class="min-h-screen bg-white text-gray-900">
 
   <% const statusCode = typeof status !== 'undefined' ? status : 404; %>
-
+  <svg class="nf-shape-svg" viewBox="0 0 900 620" fill="#fef2f2">
+    <path d="M430 40
+             C520 20 640 40 700 90
+             C780 155 860 210 850 300
+             C838 400 770 470 680 520
+             C590 572 510 545 420 560
+             C320 578 210 552 140 490
+             C70 428 45 345 60 260
+             C78 165 180 80 300 60
+             C345 48 385 48 430 40 Z"/>
+  </svg>
+  <svg class="nf-shape-svg nf-shape-svg--back" viewBox="0 0 900 620" fill="#fee2e2">
+    <path d="M430 40 C520 20 640 40 700 90 C780 155 860 210 850 300 C838 400 770 470 680 520 C590 572 510 545 420 560 C320 578 210 552 140 490 C70 428 45 345 60 260 C78 165 180 80 300 60 C345 48 385 48 430 40 Z"/>
+  </svg>
   <main class="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+    
     <!-- tło: siatka kropek + bloby -->
     <div class="nf-grid absolute inset-0"></div>
     <div class="nf-blob bg-red-100" style="width:22rem;height:22rem;top:-6rem;left:-6rem;"></div>

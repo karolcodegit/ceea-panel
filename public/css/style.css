@@ -1816,3 +1816,21 @@ video {
   header { position: static; }
   section { break-inside: avoid; }
 }
+
+.nf-shape-svg {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: min(92vw, 60rem);
+  animation: nf-sway 12s ease-in-out infinite alternate;
+}
+@keyframes nf-sway {
+  from { transform: translate(-50%, -50%) scale(1) rotate(-1.5deg); }
+  to   { transform: translate(-50%, -50%) scale(1.05) rotate(1.5deg); }
+}
+
+.nf-shape-svg--back {
+  width: min(98vw, 66rem);
+  opacity: .55;
+  animation-duration: 16s;
+  animation-direction: alternate-reverse;
+}
