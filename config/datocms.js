@@ -1,5 +1,6 @@
-const { log } = require('console');
 const { GraphQLClient, gql } = require('graphql-request');
+const { slugify } = require("../utils/slugify");
+const {getYearFromDate} = require("../utils/getYearFromDate")
 
 if (!process.env.DATOCMS_API_TOKEN && process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -29,6 +30,8 @@ const GET_COMPANY = gql`
       nameCompany
       nip
       krs
+      street
+      zipCode
       regon
       mail
       city
@@ -63,6 +66,18 @@ const GET_HELP_PAGE = gql`
   }
 `;
 
+const GET_ACTIVE_COURSE = gql`
+  query GetActiveCourse {
+    allCourses(filter: { available: { eq: true } }, orderBy: date_DESC, first: 1) {
+      id
+      nameCourse
+      date
+    }
+  }
+`;
+
+
+
 // === FUNKCJE ===
 
 async function fetchCompany() {
@@ -92,8 +107,27 @@ async function fetchHelpPage() {
   }
 }
 
+async function fetchActiveCourse() {
+  if (!DATOCMS_API_TOKEN) return null;
+  try {
+    const data = await client.request(GET_ACTIVE_COURSE);
+    const c = data.allCourses?.[0];
+
+    if (!c) return null;
+    return {
+      name: c.nameCourse,
+      year: getYearFromDate(c.date),
+      slug: slugify(c.nameCourse),
+    };
+  } catch (err) {
+    console.error('❌ DatoCMS fetchActiveCourse error:', err.message);
+    return null;
+  }
+}
+
 // === EKSPORT ===
 module.exports = {
   fetchCompany,
   fetchHelpPage,
+  fetchActiveCourse
 };

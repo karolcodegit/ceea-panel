@@ -8,13 +8,15 @@
         Administratorem danych osobowych przetwarzanych w ramach Panelu CEEA jest:
       </p>
       <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-        <p class="font-semibold text-gray-900">Europejska Fundacja ds. Szkolenia w Anestezjologii (CEEA)</p>
-        <p class="text-gray-600 text-sm mt-1">ul. Sokolnicka 56, 62-021 Paczkowo</p>
-        <p class="text-gray-600 text-sm">NIP: 777-314-61-00</p>
-        <p class="text-gray-600 text-sm">KRS: 0000347155</p>
+        <p class="font-semibold text-gray-900"><%= company.nameCompany %></p>
+        <p class="text-gray-600 text-sm mt-1"><%= company.street %> <%= company.numberHome %>, <%= company.zipCode %> <%= company.city %></p>
+        <p class="text-gray-600 text-sm">NIP: <%= company.nip %></p>
+        <p class="text-gray-600 text-sm">KRS: <%= company.krs %></p>
         <p class="text-gray-600 text-sm mt-2">
-          Email: <a href="mailto:sekretariat@ceea.org.pl" class="text-red-600 hover:underline">sekretariat@ceea.org.pl</a>
+          Email: <a href="mailto:sekretariat@ceea.org.pl" class="text-red-600 hover:underline"><%= company?.mail || 'biuro@ceea.org.pl' %></a>
         </p>
       </div>
     </div>
   </section>
+
+          

@@ -8,10 +8,12 @@ const WebSocket = require("ws");
 const speakeasy = require("speakeasy");
 const { initializeAdmins } = require("./config/admins");
 const authRoutes = require("./routes/auth");
-const { fetchCompany, fetchHelpPage } = require("./config/datocms");
+const { fetchCompany, fetchHelpPage, fetchActiveCourse } = require("./config/datocms");
 const { ICONS } = require('./config/icons');
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+
+const MAIN_SITE_URL = "https://ceea.org.pl";
 
 
 // === SUPABASE ===
@@ -116,6 +118,8 @@ const userOnly = (req, res, next) => {
   }
   next();
 };
+
+
 
 // ===== PANEL ADMINISTRATORA — /ceea-poznan-admin/ =====
 
@@ -352,12 +356,16 @@ app.post(
 
 // ===== PANEL UCZESTNIKA — / (root) =====
 
-app.get("/", userOnly, (req, res) => {
+app.get("/", userOnly, async (req, res) => {
   if (req.session.user) return res.redirect("/kursy");
+  const course = await fetchActiveCourse();
   res.render("login", {
     title: "Logowanie — CEEA",
     error: null,
     message: null,
+    registrationUrl: course
+      ? `${MAIN_SITE_URL}/kursy/${course.year}/${course.slug}/rejestracja`
+      : null,
   });
 });
 
@@ -571,35 +579,27 @@ app.get("/polityka-prywatnosci", async (req, res) => {
 });
 
 // ===== REGULAMIN =====
-app.get("/regulamin", (req, res) => {
-  res.render("terms/index", {
-    title: "Regulamin — CEEA Panel",
-  });
-});
-
-app.get("/debug/datocms", async (req, res) => {
+app.get("/regulamin", async (req, res) => {
   try {
-    const company = await fetchCompany();
-    res.json({
-      token: DATOCMS_API_TOKEN
-        ? "USTAWIONY (pierwsze 10 znaków: " +
-          DATOCMS_API_TOKEN.substring(0, 10) +
-          "...)"
-        : "BRAK",
-      company: company,
-      error: company === null ? "Brak danych lub błąd" : null,
+    const [company, termsPage] = await Promise.all([
+      fetchCompany(),
+      // fetchTermsPage()  // odkomentuj, gdy dodasz model w DatoCMS
+    ]);
+
+    res.render("terms/index", {
+      title: termsPage?.title || "Regulamin — CEEA Panel",
+      company,
+      page: termsPage,
+      lastUpdated: termsPage?.lastUpdated || new Date().toISOString(),
     });
   } catch (err) {
-    res.json({ error: err.message });
+    console.error("Błąd ładowania regulaminu:", err);
+    res
+      .status(500)
+      .render("error", { message: "Błąd ładowania regulaminu" });
   }
 });
 
-app.use((req, res) => {
-  res.status(404).render("error", {
-    title: "404 — Nie znaleziono",
-    message: "Strona nie istnieje lub została przeniesiona.",
-  });
-});
 
 // ===== START =====
 const PORT = process.env.PORT || 3000;

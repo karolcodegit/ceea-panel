@@ -13,9 +13,9 @@
         </p>
         <div class="mt-3 p-4 bg-gray-50 rounded-xl">
           <p class="text-sm text-gray-700">
-            <strong>Europejska Fundacja ds. Szkolenia w Anestezjologii</strong><br>
-            ul. Sokolnicka 56, 62-021 Paczkowo<br>
-            Email: <a href="mailto:sekretariat@ceea.org.pl" class="text-red-600 hover:underline">sekretariat@ceea.org.pl</a>
+            <strong><%= company.nameCompany %></strong><br>
+            <%= company.street %> <%= company.numberHome %>, <%= company.zipCode %> <%= company.city %><br>
+            Email: <a href="mailto:sekretariat@ceea.org.pl" class="text-red-600 hover:underline"><%= company?.mail || 'biuro@ceea.org.pl' %></a>
           </p>
         </div>
       </div>
