@@ -106,7 +106,7 @@
       const token = document.getElementById('setupToken').value.trim();
       const data = await api('/api/auth/verify-setup', { email: currentEmail, token });
       if (data.success) {
-        window.location.href = '/admin/kursy';
+        window.location.href = '/ceea-poznan-admin/kursy';
       } else {
         alert(data.error || 'Błąd weryfikacji');
       }
@@ -116,7 +116,7 @@
       const token = document.getElementById('token').value.trim();
       const data = await api('/api/auth/verify', { email: currentEmail, token });
       if (data.success) {
-        window.location.href = '/admin/kursy';
+        window.location.href = '/ceea-poznan-admin/kursy';
       } else {
         alert(data.error || 'Błędny kod');
       }

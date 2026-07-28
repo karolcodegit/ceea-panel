@@ -78,7 +78,41 @@ const GET_ACTIVE_COURSE = gql`
 
 
 
+const GET_ALL_COURSES = gql`
+  query GetAllCourses {
+    allCourses(first: 100, orderBy: _createdAt_DESC) {
+      id
+      nameCourse
+      description
+      date
+      available
+      language
+      image { url(imgixParams: { w: "640", h: "360", fit: crop, auto: format }) }
+    }
+  }
+`;
+
+
+const GET_COURSE = gql`
+  query GetCourse($id: ItemId!) {
+    course(filter: { id: { eq: $id } }) {
+      id
+      nameCourse
+      description
+      date
+      available
+      image { url(imgixParams: { w: "640", h: "360", fit: crop, auto: format }) }
+    }
+  }
+`;
+
+
+
 // === FUNKCJE ===
+
+
+
+// === COMPANY ==  //
 
 async function fetchCompany() {
   if (!DATOCMS_API_TOKEN) return null;
@@ -90,6 +124,9 @@ async function fetchCompany() {
     return null;
   }
 }
+
+
+// === HELP == //
 
 async function fetchHelpPage() {
   if (!DATOCMS_API_TOKEN) return null;
@@ -106,6 +143,9 @@ async function fetchHelpPage() {
     return null;
   }
 }
+
+
+// === COURSE ACTIVE == //
 
 async function fetchActiveCourse() {
   if (!DATOCMS_API_TOKEN) return null;
@@ -125,9 +165,38 @@ async function fetchActiveCourse() {
   }
 }
 
+
+// === ALL COURSE == //
+
+async function fetchAllCourses() {
+  if (!DATOCMS_API_TOKEN) return [];
+  try {
+    const data = await client.request(GET_ALL_COURSES);
+    return data.allCourses || [];
+  } catch (err) {
+    console.error("❌ DatoCMS fetchAllCourses error:", err.message);
+    return [];
+  }
+}
+
+// === ID COURSE  // ==
+
+async function fetchCourseById(id) {
+  if (!DATOCMS_API_TOKEN) return null;
+  try {
+    const data = await client.request(GET_COURSE, { id });
+    return data.course || null;
+  } catch (err) {
+    console.error("❌ DatoCMS fetchCourseById error:", err.message);
+    return null;
+  }
+}
+
 // === EKSPORT ===
 module.exports = {
   fetchCompany,
   fetchHelpPage,
-  fetchActiveCourse
+  fetchActiveCourse,
+  fetchAllCourses,
+  fetchCourseById
 };

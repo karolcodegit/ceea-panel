@@ -72,8 +72,8 @@ router.post('/verify-setup', loginLimiter, (req, res) => {
     const verified = speakeasy.totp.verify({
         secret: admin.secret,
         encoding: 'base32',
-        token: token,
-        window: 1
+        token: String(token).replace(/\s/g, ""),
+        window: 2
     });
 
     if (!verified) {

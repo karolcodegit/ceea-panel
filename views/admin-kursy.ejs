@@ -9,59 +9,38 @@
   <%- include('partials/header') %>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-2">
       <h1 class="text-2xl font-bold text-gray-900">Kursy</h1>
-      <a href="/ceea-poznan-admin/kursy" class="text-sm text-gray-500">Odśwież</a>
+      <a href="<%= adminPrefix %>/kursy" class="text-sm text-gray-500 hover:text-gray-700">Odśwież</a>
     </div>
-
-    <!-- Dodaj kurs -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-      <h2 class="text-lg font-semibold mb-4">Dodaj nowy kurs</h2>
-      <form method="POST" action="/ceea-poznan-admin/kursy" class="flex gap-4">
-        <input type="text" name="name" placeholder="Nazwa kursu" required
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-        <input type="text" name="description" placeholder="Opis (opcjonalnie)"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-        <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-          Dodaj
-        </button>
-      </form>
-    </div>
-
-    <!-- Lista kursów -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Nazwa</th>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Opis</th>
-            <th class="text-right px-6 py-3 text-sm font-medium text-gray-500">Akcje</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <% courses.forEach(course => { %>
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 font-medium text-gray-900"><%= course.name %></td>
-              <td class="px-6 py-4 text-gray-500 text-sm"><%= course.description || '-' %></td>
-              <td class="px-6 py-4 text-right">
-                <a href="/ceea-poznan-admin/kursy/<%= course.id %>/materials" class="text-red-600 hover:text-red-700 text-sm font-medium mr-4">
-                  Materiały
-                </a>
-                <a href="/ceea-poznan-admin/kursy/<%= course.id %>/uczestnicy" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  Uczestnicy
-                </a>
-              </td>
-            </tr>
-          <% }) %>
-          <% if (courses.length === 0) { %>
-            <tr>
-              <td colspan="3" class="px-6 py-12 text-center text-gray-500">
-                Brak kursów. Dodaj pierwszy powyżej.
-              </td>
-            </tr>
+    <p class="text-sm text-gray-400 mb-8">
+      Kursy pochodzą z DatoCMS — nowy kurs dodajesz w CMS, pojawi się tutaj automatycznie.
+    </p>
+  
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <% courses.forEach(course => { %>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <% if (course.image?.url) { %>
+            <img src="<%= course.image.url %>" alt="<%= course.nameCourse %>" class="w-full h-40 object-cover">
           <% } %>
-        </tbody>
-      </table>
+          <div class="p-5 flex flex-col flex-1">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <h2 class="font-semibold text-gray-900 leading-snug"><%= course.nameCourse %></h2>
+              <span class="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full <%= course.available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500' %>">
+                <%= course.available ? 'Aktywny' : 'Archiwum' %>
+              </span>
+            </div>
+            <p class="text-sm text-gray-400 mb-1"><%= course.date %></p>
+            <p class="text-xs text-gray-400 mb-4">
+              <%= course.materialsCount %> materiałów · <%= course.participantsCount %> uczestników
+            </p>
+            <div class="mt-auto flex gap-4">
+              <a href="<%= adminPrefix %>/kursy/<%= course.id %>/materials" class="text-red-600 hover:text-red-700 text-sm font-medium">Materiały</a>
+              <a href="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy" class="text-blue-600 hover:text-blue-700 text-sm font-medium">Uczestnicy</a>
+            </div>
+          </div>
+        </div>
+      <% }) %>
     </div>
   </main>
 </body>

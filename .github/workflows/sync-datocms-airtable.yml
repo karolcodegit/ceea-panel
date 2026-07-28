@@ -1,0 +1,25 @@
+name: Sync DatoCMS → Airtable (Courses)
+
+on:
+  push:
+    branches: [panel]
+  schedule:
+    - cron: '0 5 * * *'          # codziennie 5:00 UTC
+  workflow_dispatch:              # ręczne odpalenie z zakładki Actions
+  repository_dispatch:            # webhook z DatoCMS (patrz niżej)
+    types: [datocms-publish]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run sync
+        env:
+          DATOCMS_API_TOKEN: ${{ secrets.DATOCMS_API_TOKEN }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: node sync-datocms-to-airtable.js
