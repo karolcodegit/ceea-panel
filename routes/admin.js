@@ -23,9 +23,6 @@ router.get("/wyloguj", adminOnly, (req, res) => {
   res.redirect(ADMIN_PREFIX + "/");
 });
 
-const course = await fetchCourseById(req.params.id);
-if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
-
 router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
     try {
       const courses = await fetchAllCourses();
@@ -52,27 +49,22 @@ router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
     }
   });
 
-router.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
-  try {
-    const { data: course, error: courseError } = await supabase
-      .from("courses").select("*").eq("id", req.params.id).single();
-
-    if (courseError) {
-      console.error("Błąd pobierania kursu:", courseError);
-      return res.redirect(ADMIN_PREFIX + "/kursy");
+  router.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
+    try {
+      const course = await fetchCourseById(req.params.id);
+      if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
+  
+      const { data: materials, error: materialsError } = await supabase
+        .from("materials").select("*").eq("course_id", req.params.id).order("order");
+  
+      if (materialsError) console.error("Błąd pobierania materiałów:", materialsError);
+  
+      res.render("admin-materials", { isAdmin: true, course, materials: materials || [] });
+    } catch (err) {
+      console.error("Błąd serwera (materiały):", err);
+      res.redirect(ADMIN_PREFIX + "/kursy");
     }
-
-    const { data: materials, error: materialsError } = await supabase
-      .from("materials").select("*").eq("course_id", req.params.id).order("order");
-
-    if (materialsError) console.error("Błąd pobierania materiałów:", materialsError);
-
-    res.render("admin-materials", { isAdmin: true, course, materials: materials || [] });
-  } catch (err) {
-    console.error("Błąd serwera (materiały):", err);
-    res.redirect(ADMIN_PREFIX + "/kursy");
-  }
-});
+  });
 
 
 
@@ -114,13 +106,8 @@ router.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) =
 
 router.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
   try {
-    const { data: course, error: courseError } = await supabase
-      .from("courses").select("*").eq("id", req.params.id).single();
-
-    if (courseError) {
-      console.error("Błąd pobierania kursu:", courseError);
-      return res.redirect(ADMIN_PREFIX + "/kursy");
-    }
+    const course = await fetchCourseById(req.params.id);
+    if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
 
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from("enrollments").select("*").eq("course_id", req.params.id);
