@@ -25,11 +25,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Debug env (tymczasowe — usunąć po naprawie)
-        env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-        run: echo "AIRTABLE_API_KEY length: ${#AIRTABLE_API_KEY}"
-
+      
       - name: Run Airtable → Supabase sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
