@@ -3,6 +3,14 @@ const Airtable = require('airtable');
 const { createClient } = require('@supabase/supabase-js');
 const WebSocket = require('ws');
 
+
+const REQUIRED = ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missing = REQUIRED.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`❌ Brak zmiennych środowiskowych: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
 const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
 const base = airtable.base(process.env.AIRTABLE_BASE_ID);
 
@@ -14,7 +22,7 @@ const supabase = createClient(
     }
 );
 
-const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE || 'Course';
+const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE || 'Registrations';
 
 /**
  * Pobierz wszystkie rekordy z Airtable (działająca paginacja)

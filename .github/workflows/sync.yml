@@ -25,13 +25,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Debug env (tymczasowe — usunąć po naprawie)
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+        run: echo "AIRTABLE_API_KEY length: ${#AIRTABLE_API_KEY}"
+
       - name: Run Airtable → Supabase sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          AIRTABLE_API_KEY: ${{ secrets.GATSBY_AIRTABLE_ACCESS_TOKEN }}
-          AIRTABLE_BASE_ID: ${{ secrets.GATSBY_AIRTABLE_BASE_ID }}
-          AIRTABLE_TABLE: ${{ secrets.GATSBY_AIRTABLE_TABLE_NAME || 'Course' }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE: ${{ secrets.AIRTABLE_TABLE || 'Registrations' }}
         run: node sync-airtable.js
 
       - name: Notify success
