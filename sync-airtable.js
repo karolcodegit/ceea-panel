@@ -1,184 +1,94 @@
-require('dotenv').config();
-const Airtable = require('airtable');
-const { createClient } = require('@supabase/supabase-js');
-const WebSocket = require('ws');
+// sync-airtable.js
+// Airtable (Registrations, Paid ✓) → Supabase: users + payments + enrollments
+// Lokalnie: node sync-airtable.js | CI: GitHub Actions
 
+try { process.loadEnvFile(); } catch {}
 
-const REQUIRED = ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
-const missing = REQUIRED.filter((k) => !process.env[k]);
-if (missing.length) {
-  console.error(`❌ Brak zmiennych środowiskowych: ${missing.join(', ')}`);
+const { grantAccess } = require("./services/access");
+
+const AIRTABLE_KEY = process.env.AIRTABLE_API_KEY;
+const AIRTABLE_BASE = process.env.AIRTABLE_BASE_ID;
+const TABLE = process.env.AIRTABLE_TABLE || "Registrations";
+
+const FIELDS = ["Order Number", "Name", "Surname", "Mail", "Phone", "CourseID", "Total"];
+
+if (!AIRTABLE_KEY || !AIRTABLE_BASE) {
+  console.error("❌ Brak AIRTABLE_API_KEY / AIRTABLE_BASE_ID");
   process.exit(1);
 }
 
-const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
-const base = airtable.base(process.env.AIRTABLE_BASE_ID);
+async function fetchPaidRegistrations() {
+  const records = [];
+  let offset;
 
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-    {
-        realtime: { transport: WebSocket }
-    }
-);
+  do {
+    const params = new URLSearchParams();
+    params.set("filterByFormula", "{Paid}=1");
+    FIELDS.forEach((f) => params.append("fields[]", f));
+    if (offset) params.set("offset", offset);
 
-const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE || 'Registrations';
+    const res = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(TABLE)}?${params}`,
+      { headers: { Authorization: `Bearer ${AIRTABLE_KEY}` } }
+    );
+    const json = await res.json();
+    if (json.error) throw new Error(JSON.stringify(json));
 
-/**
- * Pobierz wszystkie rekordy z Airtable (działająca paginacja)
- */
-async function fetchAllRecords() {
-    const records = [];
-    let offset = undefined;
+    records.push(...(json.records || []));
+    offset = json.offset;
+  } while (offset);
 
-    do {
-        const query = { pageSize: 100 };
-        if (offset) query.offset = offset;
-
-        const result = await base(AIRTABLE_TABLE).select(query).firstPage();
-        records.push(...result);
-
-        // Pobierz offset z ostatniego rekordu
-        offset = result.length > 0 ? result[result.length - 1]._rawJson?.offset : undefined;
-
-        console.log(`  Pobrano ${records.length} rekordów...`);
-    } while (offset);
-
-    return records;
+  return records;
 }
 
-/**
- * Znajdź lub utwórz kurs
- */
-async function getOrCreateCourse(name) {
-    if (!name) return null;
+(async () => {
+  try {
+    console.log("🚀 Synchronizacja Airtable → Supabase");
+    const regs = await fetchPaidRegistrations();
+    console.log(`Opłaconych zapisów (Paid ✓): ${regs.length}\n`);
 
-    const { data: existing } = await supabase
-        .from('courses')
-        .select('id')
-        .eq('name', name)
-        .single();
+    const stats = { granted: 0, skipped: 0, errors: 0 };
 
-    if (existing) return existing.id;
+    for (const [i, r] of regs.entries()) {
+      const f = r.fields;
+      const email = (f.Mail || f.Email || "").toLowerCase().trim();
+      const courseId = (f.CourseID || "").trim();
+      const order = f["Order Number"] || r.id;
 
-    const { data, error } = await supabase
-        .from('courses')
-        .insert({ name, description: name, active: true })
-        .select('id')
-        .single();
+      if (!email || !courseId) {
+        console.warn(`⚠️ [${i + 1}/${regs.length}] ${order}: pomijam — brak ${!email ? "Mail" : "CourseID"}`);
+        stats.skipped++;
+        continue;
+      }
 
-    if (error) { console.error('Błąd kursu:', error); return null; }
-    console.log(`  📚 Nowy kurs: ${name}`);
-    return data.id;
-}
-
-/**
- * Znajdź lub utwórz użytkownika
- */
-async function getOrCreateUser(fields) {
-    const email = fields.Mail?.trim().toLowerCase();
-    if (!email) { console.warn('  ⚠️ Brak emaila'); return null; }
-
-    const { data, error } = await supabase
-        .from('users')
-        .upsert({
-            email: email,
-            name: fields.Name || null,
-            surname: fields.Surname || null,
-            phone: fields.Phone || null
-        }, { onConflict: 'email' })
-        .select('id, email')
-        .single();
-
-    if (error) { console.error('  ❌ Błąd użytkownika:', error); return null; }
-    return data;
-}
-
-/**
- * Utwórz zapis na kurs
- */
-async function createEnrollment(userId, courseId, fields) {
-    const { error } = await supabase
-        .from('enrollments')
-        .insert({
-            user_id: userId,
-            course_id: courseId,
-            email: fields.Mail?.trim().toLowerCase(),
-            order_number: fields['Order Number'] || null,
-            status: 'active'
+      try {
+        await grantAccess({
+          email,
+          name: f.Name,
+          surname: f.Surname,
+          phone: f.Phone ? String(f.Phone) : undefined,
+          courseId,
+          orderNumber: f["Order Number"],
+          amountPln: Number(f.Total) || 0,
+          method: "transfer",
         });
-
-    if (error) {
-        if (error.code === '23505') { console.log('  ℹ️ Już zapisany'); return 'exists'; }
-        console.error('  ❌ Błąd zapisu:', error); return 'error';
-    }
-    return 'created';
-}
-
-/**
- * GŁÓWNA FUNKCJA
- */
-async function sync() {
-    console.log('🚀 Synchronizacja Airtable → Supabase\n');
-
-    const stats = { total: 0, users: 0, courses: 0, enrollments: 0, exists: 0, skipped: 0, errors: 0 };
-
-    const records = await fetchAllRecords();
-    stats.total = records.length;
-    console.log(`✅ Łącznie pobrano: ${records.length} rekordów\n`);
-
-    if (records.length === 0) {
-        console.log('Brak rekordów do synchronizacji.');
-        return;
+        console.log(`✅ [${i + 1}/${regs.length}] ${email} → ${courseId}`);
+        stats.granted++;
+      } catch (err) {
+        console.error(`❌ [${i + 1}/${regs.length}] ${order}: ${err.message}`);
+        stats.errors++;
+      }
     }
 
-    // Cache kursów
-    const { data: existingCourses } = await supabase.from('courses').select('id, name');
-    const courseMap = new Map(existingCourses?.map(c => [c.name, c.id]) || []);
+    console.log("\n════════════════════════");
+    console.log(`✅ Dostęp przyznany: ${stats.granted}`);
+    console.log(`⚠️ Pominięto:        ${stats.skipped}`);
+    console.log(`❌ Błędy:            ${stats.errors}`);
+    console.log("════════════════════════");
 
-    for (let i = 0; i < records.length; i++) {
-        const f = records[i].fields;
-        const name = `${f.Name || ''} ${f.Surname || ''}`.trim() || f.Mail || 'Bez nazwy';
-        console.log(`[${i+1}/${records.length}] ${name}`);
-
-        if (!f.Mail || !f.CourseTitle) {
-            console.log('  ⚠️ Pominięto (brak email lub kurs)');
-            stats.skipped++;
-            continue;
-        }
-
-        // Kurs
-        let courseId = courseMap.get(f.CourseTitle);
-        if (!courseId) {
-            courseId = await getOrCreateCourse(f.CourseTitle);
-            if (courseId) courseMap.set(f.CourseTitle, courseId);
-        }
-        if (!courseId) { stats.errors++; continue; }
-        stats.courses++;
-
-        // Użytkownik
-        const user = await getOrCreateUser(f);
-        if (!user) { stats.errors++; continue; }
-        stats.users++;
-
-        // Zapis
-        const result = await createEnrollment(user.id, courseId, f);
-        if (result === 'created') { console.log('  ✅ Zapisano'); stats.enrollments++; }
-        else if (result === 'exists') stats.exists++;
-        else stats.errors++;
-    }
-
-    console.log('\n═══════════════════════════════════════');
-    console.log('📊 PODSUMOWANIE');
-    console.log('═══════════════════════════════════════');
-    console.log(`Rekordów:       ${stats.total}`);
-    console.log(`Użytkowników:   ${stats.users}`);
-    console.log(`Kursów:         ${stats.courses}`);
-    console.log(`Nowych zapisów: ${stats.enrollments}`);
-    console.log(`Już istniały:   ${stats.exists}`);
-    console.log(`Pominięto:      ${stats.skipped}`);
-    console.log(`Błędy:          ${stats.errors}`);
-    console.log('═══════════════════════════════════════');
-}
-
-sync().catch(e => { console.error('💥', e); process.exit(1); });
+    if (stats.errors > 0) process.exit(1);
+  } catch (err) {
+    console.error("💥 Sync error:", err.message);
+    process.exit(1);
+  }
+})();

@@ -36,94 +36,50 @@ router.get("/", userOnly, async (req, res) => {
   });
 });
 
-router.post("/login", userOnly, async (req, res) => {
-  const { email } = req.body;
-  try {
-    const { data: enrollments, error: enrollmentsError } = await supabase
-      .from("enrollments").select("id").eq("email", email).eq("status", "active").limit(1);
-
-    if (enrollmentsError) console.error("Błąd sprawdzania zapisu:", enrollmentsError);
-
-    if (!enrollments?.length) {
-      return res.render("login", { error: "Ten email nie jest zapisany na kurs.", message: null });
-    }
-
-    const { error } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: { redirectTo: "https://panel.ceea.org.pl/auth/callback" },
-    });
-
-    if (error) {
-      console.error("Błąd wysyłania magic link:", error);
-      return res.render("login", { error: "Błąd wysyłania. Spróbuj ponownie.", message: null });
-    }
-
-    res.render("login", { error: null, message: "Sprawdź email z linkiem logowania!" });
-  } catch (err) {
-    console.error("Błąd serwera (login):", err);
-    res.render("login", { error: "Wystąpił błąd serwera. Spróbuj ponownie.", message: null });
-  }
-});
-
-router.get("/auth/callback", userOnly, async (req, res) => {
-  const { token_hash } = req.query;
-
-  if (!token_hash) {
-    return res.render("login", { error: "Brak tokenu w linku.", message: null });
-  }
-
-  try {
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: "magiclink" });
-
-    if (error) {
-      console.error("Błąd weryfikacji OTP:", error);
-      return res.render("login", { error: "Link wygasł lub jest nieprawidłowy.", message: null });
-    }
-
-    req.session.user = { id: data.user.id, email: data.user.email };
-    res.redirect("/kursy");
-  } catch (err) {
-    console.error("Błąd serwera (callback):", err);
-    res.render("login", { error: "Wystąpił błąd serwera.", message: null });
-  }
-});
-
+// ===== PANEL UCZESTNIKA =====
 // ===== PANEL UCZESTNIKA =====
 router.get("/kursy", userOnly, requireAuth, async (req, res) => {
-    try {
-      const { data: enrollments } = await supabase
-        .from("enrollments").select("course_id")
-        .eq("email", req.session.user.email).eq("status", "active");
-  
-      const ids = (enrollments || []).map((e) => e.course_id);
-  
-      const [datoCourses, { data: materials }] = await Promise.all([
-        fetchAllCourses(),
-        ids.length
-          ? supabase.from("materials").select("*").in("course_id", ids).order("order")
-          : Promise.resolve({ data: [] }),
-      ]);
-  
-      const myCourses = datoCourses
-        .filter((c) => ids.includes(c.id))
-        .map((c) => ({
-          ...c,
-          year: getYearFromDate(c.date),
-          materials: (materials || []).filter((m) => m.course_id === c.id),
-        }));
-  
-      res.render("dashboard", {
-        title: "Moje kursy — CEEA",
-        user: req.session.user,
-        active: myCourses.filter((c) => c.available),
-        archive: myCourses.filter((c) => !c.available),
-      });
-    } catch (err) {
-      console.error("Błąd serwera (dashboard):", err);
-      res.render("dashboard", { title: "Moje kursy — CEEA", user: req.session.user, active: [], archive: [] });
-    }
-  });
+  try {
+    // 1. użytkownik po emailu z sesji
+    const { data: user } = await supabase
+      .from("users").select("id, name, email")
+      .eq("email", req.session.user.email).maybeSingle();
+
+    // 2. jego dostępy
+    const { data: enrollments } = user
+      ? await supabase
+          .from("enrollments").select("course_id")
+          .eq("user_id", user.id).eq("status", "active")
+      : { data: [] };
+
+    const ids = (enrollments || []).map((e) => e.course_id);
+
+    const [datoCourses, { data: materials }] = await Promise.all([
+      fetchAllCourses(),
+      ids.length
+        ? supabase.from("materials").select("*").in("course_id", ids).order("order")
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const myCourses = datoCourses
+      .filter((c) => ids.includes(c.id))
+      .map((c) => ({
+        ...c,
+        year: getYearFromDate(c.date),
+        materials: (materials || []).filter((m) => m.course_id === c.id),
+      }));
+
+    res.render("dashboard", {
+      title: "Moje kursy — CEEA",
+      user: req.session.user,
+      active: myCourses.filter((c) => c.available),
+      archive: myCourses.filter((c) => !c.available),
+    });
+  } catch (err) {
+    console.error("Błąd serwera (dashboard):", err);
+    res.render("dashboard", { title: "Moje kursy — CEEA", user: req.session.user, active: [], archive: [] });
+  }
+});
 
 router.get("/logout", userOnly, (req, res) => {
   req.session.destroy();
@@ -192,6 +148,24 @@ router.get("/regulamin", async (req, res) => {
     console.error("Błąd ładowania regulaminu:", err);
     res.status(500).render("error", { message: "Błąd ładowania regulaminu" });
   }
+});
+
+
+// TYMCZASOWE 
+
+router.post("/login/sprawdz", async (req, res) => {
+  const email = (req.body.email || "").toLowerCase().trim();
+  if (!email) return res.status(400).json({ status: "error" });
+  if (email === "test@test.pl") return res.json({ status: "password" }); // pokazuje pole hasła
+  return res.json({ status: "sent" }); // każdy inny → animacja "wysłano"
+});
+
+router.post("/login", async (req, res) => {
+  if (req.body.password === "123456") {
+    req.session.user = { email: (req.body.email || "").toLowerCase().trim() }; // ← sesja
+    return res.json({ ok: true, redirect: "/kursy" });
+  }
+  return res.json({ ok: false, error: "Nieprawidłowe hasło. Spróbuj ponownie." });
 });
 
 module.exports = router;

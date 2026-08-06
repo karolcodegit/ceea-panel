@@ -3,6 +3,7 @@ const router = express.Router();
 const supabase = require("../config/supabase");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
 const { fetchAllCourses, fetchCourseById } = require("../config/datocms");
+const { grantAccess } = require("../services/access");
 
 
 // Admin login
@@ -37,7 +38,7 @@ router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
       res.render("admin-kursy", {
         isAdmin: true,
         adminPrefix: ADMIN_PREFIX,
-        courses: courses.map((c) => ({
+        courses: courses.map((c) => ({  
           ...c,
           materialsCount: count(materials, c.id),
           participantsCount: count(enrollments, c.id),
@@ -59,7 +60,14 @@ router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
   
       if (materialsError) console.error("Błąd pobierania materiałów:", materialsError);
   
-      res.render("admin-materials", { isAdmin: true, course, materials: materials || [] });
+      res.render("admin-materials", {
+        isAdmin: true,
+        adminPrefix: ADMIN_PREFIX,
+        course,
+        materials: materials || [],
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
+      });
     } catch (err) {
       console.error("Błąd serwera (materiały):", err);
       res.redirect(ADMIN_PREFIX + "/kursy");
@@ -110,29 +118,32 @@ router.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) =>
     if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
 
     const { data: enrollments, error: enrollmentsError } = await supabase
-      .from("enrollments").select("*").eq("course_id", req.params.id);
+  .from("enrollments")
+  .select("id, status, created_at, users(email, name, surname)")
+  .eq("course_id", req.params.id);
 
     if (enrollmentsError) console.error("Błąd pobierania uczestników:", enrollmentsError);
 
-    res.render("admin-uczestnicy", { isAdmin: true, course, enrollments: enrollments || [] });
+    res.render("admin-uczestnicy", {
+      isAdmin: true,
+      adminPrefix: ADMIN_PREFIX,
+      course,
+      enrollments: enrollments || [],
+    });
   } catch (err) {
     console.error("Błąd serwera (uczestnicy):", err);
     res.redirect(ADMIN_PREFIX + "/kursy");
   }
 });
 
+
 router.post("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
-  const { email } = req.body;
   try {
-    const { error } = await supabase.from("enrollments").insert([
-      { course_id: req.params.id, email, status: "active" },
-    ]);
-    if (error) console.error("Błąd dodawania uczestnika:", error);
-    res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
+    await grantAccess({ email: req.body.email, courseId: req.params.id });
   } catch (err) {
-    console.error("Błąd serwera (dodawanie uczestnika):", err);
-    res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
+    console.error("Błąd dodawania uczestnika:", err);
   }
+  res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
 });
 
 module.exports = router;
