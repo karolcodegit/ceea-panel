@@ -1,7 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const WebSocket = require("ws");
 
-
 try { process.loadEnvFile(); } catch {}
 
 // ...reszta bez zmian
