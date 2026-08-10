@@ -81,7 +81,7 @@ router.post("/verify-setup", loginLimiter, async (req, res) => {
   // Ustaw cookie po stronie serwera
   res.cookie("adminToken", sessionToken, {
     httpOnly: true,
-    secure: false, // true w produkcji (HTTPS)
+    secure: process.env.NODE_ENV === "production",
     maxAge: 8 * 60 * 60 * 1000, // 8h
     path: "/",
   });
