@@ -7,6 +7,10 @@ const { fetchCompany, fetchHelpPage, fetchActiveCourse } = require("../config/da
 const { ICONS } = require("../config/icons");
 const { fetchAllCourses, getYearFromDate } = require("../config/datocms");
 
+const rateLimit = require("express-rate-limit");
+const { sendPasswordEmail } = require("../services/mailer");
+const { generatePassword, hashPassword, verifyPassword } = require("../services/passwords");
+
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 const MAIN_SITE_URL = "https://ceea.org.pl";
@@ -36,7 +40,112 @@ router.get("/", userOnly, async (req, res) => {
   });
 });
 
-// ===== PANEL UCZESTNIKA =====
+const emailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { status: "error", error: "Za dużo prób. Spróbuj za 15 minut." },
+  standardHeaders: true,
+});
+
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { ok: false, error: "Za dużo prób. Spróbuj za 15 minut." },
+  standardHeaders: true,
+});
+
+router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
+  const email = (req.body.email || "").toLowerCase().trim();
+  const reset = req.body.reset === true;
+
+  // Ta sama odpowiedź dla nieistniejących adresów — nie zdradzamy, kto jest w bazie
+  const sent = () => res.json({ status: "sent" });
+
+  if (!email) return sent();
+
+  try {
+    // 1. użytkownik
+    const { data: user, error: userErr } = await supabase
+      .from("users")
+      .select("id, email, password_hash")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (userErr) console.error("sprawdz/users:", userErr);
+    if (!user) return sent();
+
+    // 2. aktywny zapis na kurs
+    const { data: enrollment, error: enrErr } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (enrErr) console.error("sprawdz/enrollments:", enrErr);
+    if (!enrollment) return sent();
+
+    // 3. ma już hasło i nie prosi o reset → widok hasła
+    if (user.password_hash && !reset) {
+      return res.json({ status: "password" });
+    }
+
+    // 4. pierwszy raz albo reset — nowe hasło
+    const password = generatePassword();
+    const password_hash = await hashPassword(password);
+
+    const { error: updErr } = await supabase
+      .from("users")
+      .update({ password_hash })
+      .eq("id", user.id);
+
+    if (updErr) {
+      console.error("sprawdz/update:", updErr);
+      return sent();
+    }
+
+    try {
+      await sendPasswordEmail(user.email, password);
+    } catch (mailErr) {
+      console.error("MailerSend:", mailErr.message);
+    }
+
+    return sent();
+  } catch (err) {
+    console.error("sprawdz:", err);
+    return sent();
+  }
+});
+
+router.post("/login", userOnly, passwordLimiter, async (req, res) => {
+  const email = (req.body.email || "").toLowerCase().trim();
+  const password = String(req.body.password || "");
+
+  const fail = () =>
+    res.status(401).json({ ok: false, error: "Nieprawidłowy email lub hasło." });
+
+  try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("id, email, password_hash")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (error) console.error("login/users:", error);
+    if (!user?.password_hash) return fail();
+
+    const ok = await verifyPassword(password, user.password_hash);
+    if (!ok) return fail();
+
+    req.session.user = { id: user.id, email: user.email };
+    res.json({ ok: true, redirect: "/kursy" });
+  } catch (err) {
+    console.error("login:", err);
+    res.status(500).json({ ok: false, error: "Błąd serwera. Spróbuj ponownie." });
+  }
+});
+
 // ===== PANEL UCZESTNIKA =====
 router.get("/kursy", userOnly, requireAuth, async (req, res) => {
   try {
@@ -153,19 +262,19 @@ router.get("/regulamin", async (req, res) => {
 
 // TYMCZASOWE 
 
-router.post("/login/sprawdz", async (req, res) => {
-  const email = (req.body.email || "").toLowerCase().trim();
-  if (!email) return res.status(400).json({ status: "error" });
-  if (email === "test@test.pl") return res.json({ status: "password" }); // pokazuje pole hasła
-  return res.json({ status: "sent" }); // każdy inny → animacja "wysłano"
-});
+// router.post("/login/sprawdz", async (req, res) => {
+//   const email = (req.body.email || "").toLowerCase().trim();
+//   if (!email) return res.status(400).json({ status: "error" });
+//   if (email === "test@test.pl") return res.json({ status: "password" }); // pokazuje pole hasła
+//   return res.json({ status: "sent" }); // każdy inny → animacja "wysłano"
+// });
 
-router.post("/login", async (req, res) => {
-  if (req.body.password === "123456") {
-    req.session.user = { email: (req.body.email || "").toLowerCase().trim() }; // ← sesja
-    return res.json({ ok: true, redirect: "/kursy" });
-  }
-  return res.json({ ok: false, error: "Nieprawidłowe hasło. Spróbuj ponownie." });
-});
+// router.post("/login", async (req, res) => {
+//   if (req.body.password === "123456") {
+//     req.session.user = { email: (req.body.email || "").toLowerCase().trim() }; // ← sesja
+//     return res.json({ ok: true, redirect: "/kursy" });
+//   }
+//   return res.json({ ok: false, error: "Nieprawidłowe hasło. Spróbuj ponownie." });
+// });
 
 module.exports = router;

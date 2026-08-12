@@ -1,13 +1,17 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
-const ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+// Alfabet bez mylących znaków (0/O, 1/I/L)
+const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
-function generatePassword(length = 10) {
+function generatePassword(len = 8) {
+  const bytes = crypto.randomBytes(len);
   let out = "";
-  while (out.length < length) {
-    out += ALPHABET[crypto.randomInt(0, ALPHABET.length)];
-  }
+  for (let i = 0; i < len; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
   return out;
 }
 
-module.exports = { generatePassword };
+const hashPassword = (pw) => bcrypt.hash(pw, 10);
+const verifyPassword = (pw, hash) => bcrypt.compare(pw, hash);
+
+module.exports = { generatePassword, hashPassword, verifyPassword };

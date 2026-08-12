@@ -5,7 +5,6 @@ const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
 const { persistAdmin } = require("../config/admins");
 
-
 const router = express.Router();
 
 // Rate limiting — max 5 prób na 15 min
@@ -78,7 +77,6 @@ router.post("/verify-setup", loginLimiter, async (req, res) => {
     expires: Date.now() + 8 * 60 * 60 * 1000,
   });
 
-  // Ustaw cookie po stronie serwera
   res.cookie("adminToken", sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -105,7 +103,7 @@ router.post("/verify", loginLimiter, async (req, res) => {
   let verified = speakeasy.totp.verify({
     secret: admin.secret,
     encoding: "base32",
-    token: token,
+    token: String(token).replace(/\s/g, ""),
     window: 1,
   });
 
@@ -115,9 +113,9 @@ router.post("/verify", loginLimiter, async (req, res) => {
     );
 
     if (backupIndex !== -1) {
-        admin.backupCodes[backupIndex].used = true;
-        await persistAdmin(admin);   // ← DOPISAĆ
-        verified = true;
+      admin.backupCodes[backupIndex].used = true;
+      await persistAdmin(admin);
+      verified = true;
     }
   }
 
@@ -131,10 +129,9 @@ router.post("/verify", loginLimiter, async (req, res) => {
     expires: Date.now() + 8 * 60 * 60 * 1000,
   });
 
-  // Ustaw cookie po stronie serwera
   res.cookie("adminToken", sessionToken, {
     httpOnly: true,
-    secure: false, // true w produkcji (HTTPS)
+    secure: process.env.NODE_ENV === "production",
     maxAge: 8 * 60 * 60 * 1000,
     path: "/",
   });

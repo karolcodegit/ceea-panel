@@ -10,6 +10,7 @@ const userRoutes = require("./routes/user");
 const { ADMIN_PREFIX, setAdminPathFlag } = require("./middleware/auth");
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -61,11 +62,24 @@ app.use((req, res) => {
 // ===== START =====
 const PORT = process.env.PORT || 3000;
 
-if (require.main === module) {
+async function start() {
+  try {
+    const admins = await initializeAdmins();
+    app.locals.admins = admins;
+    console.log("Admini TOTP zainicjalizowani:", admins.size);
+  } catch (err) {
+    console.error("❌ Błąd inicjalizacji adminów:", err.message);
+    process.exit(1); // Northflank sam zrestartuje kontener i spróbuje ponownie
+  }
+
   app.listen(PORT, () => {
     console.log(`✅ Panel działa na http://localhost:${PORT}`);
     console.log(`📅 Data uruchomienia: ${new Date().toISOString()}`);
   });
+}
+
+if (require.main === module) {
+  start();
 } else {
   module.exports = app;
 }
