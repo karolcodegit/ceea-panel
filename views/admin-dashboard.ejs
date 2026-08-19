@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Panel administratora — CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <% const icon = locals.adminIcon || (() => ""); %> <%-
+    include('partials/admin-nav', { active: 'home' }) %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Pulpit</h1>
+        <p class="text-gray-500 mt-1 mb-6 sm:mb-8">Wybierz moduł</p>
+
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+        >
+          <% (locals.adminModules || []).forEach(m => { %>
+          <a
+            href="<%= adminPrefix + m.path %>"
+            class="group bg-white rounded-xl border border-gray-200 p-5 sm:p-6 hover:shadow-md hover:border-red-200 transition"
+          >
+            <div
+              class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-4 group-hover:bg-red-600 group-hover:text-white transition"
+            >
+              <%- icon(m.icon) %>
+            </div>
+            <h2 class="font-semibold text-gray-900"><%= m.name %></h2>
+            <p class="text-sm text-gray-500 mt-1"><%= m.desc %></p>
+          </a>
+          <% }) %>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

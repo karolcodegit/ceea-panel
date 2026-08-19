@@ -2,113 +2,173 @@
 <html lang="pl">
 <head>
   <%- include('partials/head') %>
-  <title><%= course.name %> — Materiały</title>
+  <title><%= course.nameCourse %> — Materiały</title>
   <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
 </head>
 <body class="min-h-screen bg-gray-50">
-  
-  <%- include('partials/header') %>
+  <%- include('partials/admin-nav', { active: 'kursy' }) %>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <div class="mb-6">
-      <a href="/ceea-poznan-admin/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
-    </div>
+  <div class="lg:pl-64">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-2"><%= course.name %></h1>
-    <p class="text-gray-500 mb-8">Materiały kursu</p>
-
-    <!-- Dodaj materiał -->
-    <form id="materialForm" method="POST" action="/ceea-poznan-admin/kursy/<%= course.id %>/materials" class="space-y-4 mb-10">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input type="text" name="title" id="title" placeholder="Tytuł materiału" required
-          class="px-4 py-2 border rounded-lg">
-        
-        <select name="type" id="type" required class="px-4 py-2 border rounded-lg">
-          <option value="pdf">PDF</option>
-          <option value="jpg">Zdjęcie</option>
-          <option value="video">Wideo</option>
-          <option value="link">Link</option>
-        </select>
-        
-        <input type="number" name="order_num" value="1" 
-          class="px-4 py-2 border rounded-lg">
+      <div class="mb-6">
+        <a href="<%= adminPrefix %>/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
       </div>
-    
-      <!-- Ukryte pole na URL -->
-      <input type="hidden" name="url" id="fileUrl" required>
-    
-      <!-- Przycisk upload -->
-      <button type="button" id="uploadBtn" 
-        class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-        📁 Wybierz lub upuść plik
-      </button>
-    
-      <!-- Podgląd -->
-      <div id="preview" class="hidden p-4 bg-green-50 rounded-lg">
-        <p class="text-green-700">✓ Plik gotowy: <span id="fileName"></span></p>
-      </div>
-    
-      <button type="submit" id="submitBtn" disabled
-        class="w-full py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed">
-        Dodaj materiał
-      </button>
-    </form>
-    
-    <script>
-      const uploadBtn = document.getElementById('uploadBtn');
-      const fileUrl = document.getElementById('fileUrl');
-      const title = document.getElementById('title');
-      const preview = document.getElementById('preview');
-      const fileName = document.getElementById('fileName');
-      const submitBtn = document.getElementById('submitBtn');
-    
-      // Cloudinary Upload Widget
-      const widget = cloudinary.createUploadWidget({
-        cloudName: 'TWOJ_CLOUD_NAME',      // ZAMIEŃ
-        uploadPreset: 'TWOJ_PRESET',      // ZAMIEŃ
-        sources: ['local', 'url', 'dropbox', 'google_drive'],
-        multiple: false,
-        maxFileSize: 50000000, // 50MB
-        clientAllowedFormats: ['pdf', 'mp4', 'mov', 'avi', 'jpg', 'png'],
-        // Automatycznie wyciągnij tytuł z nazwy pliku
-        prepareUploadParams: (cb, params) => {
-          cb({ title: params.filename?.replace(/\.[^/.]+$/, '') });
-        }
-      }, (error, result) => {
-        if (!error && result && result.event === "success") {
-          console.log('Upload:', result.info);
-          
-          // Ustaw URL
-          fileUrl.value = result.info.secure_url;
-          
-          // Ustaw tytuł z nazwy pliku (jeśli pusty)
-          if (!title.value) {
-            title.value = result.info.original_filename?.replace(/\.[^/.]+$/, '') || 'Materiał';
-          }
-          
-          // Pokaż podgląd
-          fileName.textContent = result.info.original_filename;
-          preview.classList.remove('hidden');
-          
-          // Włącz przycisk
-          submitBtn.disabled = false;
-          submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-          submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
-          
-          // Zmień tekst przycisku upload
-          uploadBtn.textContent = '📁 Zmień plik';
-          uploadBtn.classList.remove('bg-blue-600');
-          uploadBtn.classList.add('bg-gray-600');
-        }
-      });
-    
-      uploadBtn.addEventListener('click', () => widget.open());
-    </script>
 
-    <!-- Lista materiałów -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Kolejność</th>
-           
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1"><%= course.nameCourse %></h1>
+      <p class="text-gray-500 mb-6 sm:mb-8">Materiały kursu</p>
+
+      <!-- Dodaj materiał -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 mb-8">
+        <h2 class="text-lg font-semibold mb-4">Dodaj materiał</h2>
+        <form id="materialForm" method="POST" action="<%= adminPrefix %>/kursy/<%= course.id %>/materials" class="space-y-4">
+          <input type="text" name="title" id="title" placeholder="Tytuł materiału" required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+
+          <!-- przełącznik źródła -->
+          <div class="flex gap-2">
+            <button type="button" id="modeFile" class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white">Plik</button>
+            <button type="button" id="modeLink" class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">Link</button>
+          </div>
+
+          <!-- ukryte pola wypełniane automatycznie -->
+          <input type="hidden" name="url" id="fileUrl">
+          <input type="hidden" name="type" id="fileType">
+
+          <div id="fileSection">
+            <button type="button" id="uploadBtn"
+              class="w-full py-8 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-red-400 hover:text-red-600 transition-colors">
+              📁 Wybierz plik<br>
+              <span class="text-xs text-gray-400">PDF, wideo, zdjęcia — typ wykrywany automatycznie</span>
+            </button>
+            <div id="preview" class="hidden mt-3 p-3 bg-green-50 rounded-lg flex items-center justify-between gap-3">
+              <p class="text-green-700 text-sm truncate">✓ <span id="fileName"></span> <span id="fileTypeLabel" class="text-green-500"></span></p>
+              <button type="button" id="clearFile" class="text-xs text-gray-400 hover:text-red-600 shrink-0">zmień</button>
+            </div>
+          </div>
+
+          <div id="linkSection" class="hidden">
+            <input type="url" id="linkUrl" placeholder="https://…"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+          </div>
+
+          <button type="submit" id="submitBtn" disabled
+            class="w-full sm:w-auto px-6 py-2 bg-gray-300 text-white rounded-lg cursor-not-allowed transition-colors">
+            Dodaj materiał
+          </button>
+        </form>
+      </div>
+
+      <!-- Lista materiałów -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <% const badge = { pdf: 'bg-red-50 text-red-600', jpg: 'bg-blue-50 text-blue-600', video: 'bg-purple-50 text-purple-600', link: 'bg-gray-100 text-gray-600' };
+           const label = { pdf: 'PDF', jpg: 'Zdjęcie', video: 'Wideo', link: 'Link' }; %>
+        <% if (materials.length === 0) { %>
+          <p class="px-6 py-12 text-center text-gray-400">Brak materiałów — dodaj pierwszy powyżej.</p>
+        <% } else { %>
+          <ul class="divide-y divide-gray-100">
+            <% materials.forEach(m => { %>
+              <li class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-6 py-4">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                  <span class="px-2 py-1 rounded text-xs font-semibold shrink-0 <%= badge[m.type] || badge.link %>"><%= label[m.type] || m.type %></span>
+                  <p class="font-medium text-gray-900 truncate"><%= m.title %></p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 pl-2 sm:pl-0">
+                  <a href="<%= m.url %>" target="_blank" rel="noopener"
+                     class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg">Otwórz</a>
+                     <form method="POST" action="<%= adminPrefix %>/materials/<%= m.id %>/delete"
+                      class="js-confirm" data-confirm="Usunąć materiał „<%= m.title %>"?">
+                  <button type="submit" class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg">Usuń</button>
+                </form>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileUrl = document.getElementById('fileUrl');
+    const fileType = document.getElementById('fileType');
+    const title = document.getElementById('title');
+    const preview = document.getElementById('preview');
+    const fileName = document.getElementById('fileName');
+    const fileTypeLabel = document.getElementById('fileTypeLabel');
+    const submitBtn = document.getElementById('submitBtn');
+    const modeFile = document.getElementById('modeFile');
+    const modeLink = document.getElementById('modeLink');
+    const fileSection = document.getElementById('fileSection');
+    const linkSection = document.getElementById('linkSection');
+    const linkUrl = document.getElementById('linkUrl');
+    const TYPE_LABELS = { pdf: 'PDF', jpg: 'Zdjęcie', video: 'Wideo', link: 'Link' };
+
+    function enableSubmit() {
+      const ok = !!fileUrl.value;
+      submitBtn.disabled = !ok;
+      submitBtn.classList.toggle('bg-gray-300', !ok);
+      submitBtn.classList.toggle('cursor-not-allowed', !ok);
+      submitBtn.classList.toggle('bg-red-600', ok);
+      submitBtn.classList.toggle('hover:bg-red-700', ok);
+    }
+
+    function detectType(info) {
+      const format = (info.format || '').toLowerCase();
+      if (format === 'pdf') return 'pdf';
+      if (info.resource_type === 'video') return 'video';
+      if (info.resource_type === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(format)) return 'jpg';
+      return 'link';
+    }
+
+    const widget = cloudinary.createUploadWidget({
+      cloudName: '<%= cloudName %>',
+      uploadPreset: '<%= uploadPreset %>',
+      sources: ['local', 'url'],
+      multiple: false,
+      maxFileSize: 50000000,
+      clientAllowedFormats: ['pdf', 'mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png', 'webp'],
+    }, (error, result) => {
+      if (!error && result && result.event === 'success') {
+        fileUrl.value = result.info.secure_url;
+        fileType.value = detectType(result.info);
+        if (!title.value) {
+          title.value = (result.info.original_filename || 'Materiał').replace(/\.[^/.]+$/, '');
+        }
+        fileName.textContent = result.info.original_filename;
+        fileTypeLabel.textContent = '· ' + (TYPE_LABELS[fileType.value] || fileType.value);
+        preview.classList.remove('hidden');
+        enableSubmit();
+      }
+    });
+
+    uploadBtn.addEventListener('click', () => widget.open());
+
+    document.getElementById('clearFile').addEventListener('click', () => {
+      fileUrl.value = ''; fileType.value = '';
+      preview.classList.add('hidden');
+      enableSubmit();
+    });
+
+    function setMode(link) {
+      fileSection.classList.toggle('hidden', link);
+      linkSection.classList.toggle('hidden', !link);
+      modeFile.className = 'px-4 py-2 text-sm rounded-lg ' + (link ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-red-600 text-white');
+      modeLink.className = 'px-4 py-2 text-sm rounded-lg ' + (link ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+      fileUrl.value = ''; fileType.value = link ? 'link' : '';
+      linkUrl.value = '';
+      enableSubmit();
+    }
+    modeFile.addEventListener('click', () => setMode(false));
+    modeLink.addEventListener('click', () => setMode(true));
+
+    linkUrl.addEventListener('input', () => {
+      fileUrl.value = linkUrl.value.trim();
+      fileType.value = 'link';
+      enableSubmit();
+    });
+  </script>
+</body>
+</html>

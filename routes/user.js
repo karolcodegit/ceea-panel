@@ -5,7 +5,8 @@ const supabase = require("../config/supabase");
 const { userOnly, requireAuth } = require("../middleware/auth");
 const { fetchCompany, fetchHelpPage, fetchActiveCourse } = require("../config/datocms");
 const { ICONS } = require("../config/icons");
-const { fetchAllCourses, getYearFromDate } = require("../config/datocms");
+const { fetchAllCourses } = require("../config/datocms");
+const { getYearFromDate } = require("../utils/getYearFromDate");
 
 const rateLimit = require("express-rate-limit");
 const { sendPasswordEmail } = require("../services/mailer");
@@ -154,6 +155,9 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
       .from("users").select("id, name, email")
       .eq("email", req.session.user.email).maybeSingle();
 
+    console.log("[/kursy] session email:", req.session.user.email);
+    console.log("[/kursy] user z bazy:", user);
+
     // 2. jego dostępy
     const { data: enrollments } = user
       ? await supabase
@@ -161,14 +165,19 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
           .eq("user_id", user.id).eq("status", "active")
       : { data: [] };
 
+    console.log("[/kursy] enrollments:", enrollments);
+
     const ids = (enrollments || []).map((e) => e.course_id);
 
     const [datoCourses, { data: materials }] = await Promise.all([
       fetchAllCourses(),
       ids.length
-        ? supabase.from("materials").select("*").in("course_id", ids).order("order")
+        ? supabase.from("materials").select("*").in("course_id", ids).order("order_num")
         : Promise.resolve({ data: [] }),
     ]);
+
+    console.log("[/kursy] ids z Supabase:", ids);
+    console.log("[/kursy] ids z DatoCMS:", datoCourses.map((c) => ({ id: c.id, available: c.available })));
 
     const myCourses = datoCourses
       .filter((c) => ids.includes(c.id))
@@ -177,6 +186,8 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
         year: getYearFromDate(c.date),
         materials: (materials || []).filter((m) => m.course_id === c.id),
       }));
+
+    console.log("[/kursy] myCourses:", myCourses.length);
 
     res.render("dashboard", {
       title: "Moje kursy — CEEA",

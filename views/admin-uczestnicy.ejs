@@ -1,65 +1,104 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-  <%- include('partials/head') %>
-  <title><%= course.name %> — Uczestnicy</title>
-</head>
-<body class="min-h-screen bg-gray-50">
-  
-  <%- include('partials/header') %>
+  <head>
+    <%- include('partials/head') %>
+    <title><%= course.name %> — Uczestnicy</title>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <%- include('partials/admin-nav', { active: 'kursy' }) %>
+    <div class="lg:pl-64">
+      <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div class="mb-6">
+          <a
+            href="/ceea-poznan-admin/kursy"
+            class="text-sm text-gray-500 hover:text-gray-700"
+            >← Wróć do kursów</a
+          >
+        </div>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <div class="mb-6">
-      <a href="/ceea-poznan-admin/kursy" class="text-sm text-gray-500 hover:text-gray-700">← Wróć do kursów</a>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">
+          <%= course.name %>
+        </h1>
+        <p class="text-gray-500 mb-8">Uczestnicy kursu</p>
+
+        <!-- Dodaj uczestnika -->
+        <div
+          class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
+        >
+          <h2 class="text-lg font-semibold mb-4">Dodaj uczestnika</h2>
+          <form
+            method="POST"
+            action="/ceea-poznan-admin/kursy/<%= course.id %>/uczestnicy"
+            class="flex gap-4"
+          >
+            <input
+              type="email"
+              name="email"
+              placeholder="Email uczestnika"
+              required
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+            />
+            <button
+              type="submit"
+              class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Dodaj
+            </button>
+          </form>
+        </div>
+
+        <!-- Lista uczestników -->
+        <div
+          class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+        >
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th
+                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
+                >
+                  Email
+                </th>
+                <th
+                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
+                >
+                  Status
+                </th>
+                <th
+                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
+                >
+                  Data zapisu
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% enrollments.forEach(e => { %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">
+                  <%= e.email %>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    class="px-2 py-1 rounded text-xs font-medium <%= e.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>"
+                  >
+                    <%= e.status %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-gray-500 text-sm">
+                  <%= new Date(e.created_at).toLocaleDateString('pl-PL') %>
+                </td>
+              </tr>
+              <% }) %> <% if (enrollments.length === 0) { %>
+              <tr>
+                <td colspan="3" class="px-6 py-12 text-center text-gray-500">
+                  Brak uczestników. Dodaj pierwszego powyżej.
+                </td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </main>
     </div>
-
-    <h1 class="text-2xl font-bold text-gray-900 mb-2"><%= course.name %></h1>
-    <p class="text-gray-500 mb-8">Uczestnicy kursu</p>
-
-    <!-- Dodaj uczestnika -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-      <h2 class="text-lg font-semibold mb-4">Dodaj uczestnika</h2>
-      <form method="POST" action="/ceea-poznan-admin/kursy/<%= course.id %>/uczestnicy" class="flex gap-4">
-        <input type="email" name="email" placeholder="Email uczestnika" required
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-        <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-          Dodaj
-        </button>
-      </form>
-    </div>
-
-    <!-- Lista uczestników -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Email</th>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
-            <th class="text-left px-6 py-3 text-sm font-medium text-gray-500">Data zapisu</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <% enrollments.forEach(e => { %>
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 font-medium text-gray-900"><%= e.email %></td>
-              <td class="px-6 py-4">
-                <span class="px-2 py-1 rounded text-xs font-medium <%= e.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>">
-                  <%= e.status %>
-                </span>
-              </td>
-              <td class="px-6 py-4 text-gray-500 text-sm"><%= new Date(e.created_at).toLocaleDateString('pl-PL') %></td>
-            </tr>
-          <% }) %>
-          <% if (enrollments.length === 0) { %>
-            <tr>
-              <td colspan="3" class="px-6 py-12 text-center text-gray-500">
-                Brak uczestników. Dodaj pierwszego powyżej.
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-  </main>
-</body>
+  </body>
 </html>
