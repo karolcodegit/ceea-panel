@@ -27,6 +27,33 @@ function renderAnswer(q) {
   return answerHtml + `<div class="callout callout-${c.kind}"><span>${icon}</span><div>${html}</div></div>`;
 }
 
+
+// Doładowanie profilu (name, surname, phone) do sesji — 1 lekkie zapytanie na request
+router.use(async (req, res, next) => {
+  if (!req.session?.user?.id) return next();
+  try {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("name, surname, phone")
+      .eq("id", req.session.user.id)
+      .maybeSingle();
+
+    if (
+      profile &&
+      (req.session.user.name !== profile.name ||
+        req.session.user.surname !== profile.surname ||
+        req.session.user.phone !== profile.phone)
+    ) {
+      Object.assign(req.session.user, profile);
+    }
+  } catch (err) {
+    console.error("profil middleware:", err.message);
+  }
+  next();
+});
+
+
+
 // ===== LOGOWANIE =====
 router.get("/", userOnly, async (req, res) => {
   if (req.session.user) return res.redirect("/kursy");
@@ -129,7 +156,7 @@ router.post("/login", userOnly, passwordLimiter, async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, email, password_hash")
+      .select("id, email, name, surname, phone, password_hash")
       .ilike("email", email)
       .maybeSingle();
 
@@ -139,7 +166,13 @@ router.post("/login", userOnly, passwordLimiter, async (req, res) => {
     const ok = await verifyPassword(password, user.password_hash);
     if (!ok) return fail();
 
-    req.session.user = { id: user.id, email: user.email };
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      surname: user.surname,
+      phone: user.phone,
+    };
     res.json({ ok: true, redirect: "/kursy" });
   } catch (err) {
     console.error("login:", err);
@@ -201,7 +234,65 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
   }
 });
 
-router.get("/logout", userOnly, (req, res) => {
+// ===== PROFIL =====
+router.get("/profil", userOnly, requireAuth, (req, res) => {
+  res.render("profil", {
+    title: "Profil — CEEA",
+    user: req.session.user,
+    sent: req.query.sent === "1",
+  });
+});
+
+router.post("/profil/reset-hasla", userOnly, requireAuth, passwordLimiter, async (req, res) => {
+  try {
+    const { data: user } = await supabase
+      .from("users").select("id, email").eq("id", req.session.user.id).maybeSingle();
+    if (user) {
+      const password = generatePassword();
+      const hash = await hashPassword(password);
+      await supabase.from("users").update({ password_hash: hash }).eq("id", user.id);
+      await sendPasswordEmail(user.email, password);
+    }
+  } catch (err) {
+    console.error("reset hasła:", err);
+  }
+  res.redirect("/profil?sent=1");
+});
+
+// ===== USTAWIENIA =====
+router.get("/ustawienia", userOnly, requireAuth, async (req, res) => {
+  const { data: prefs } = await supabase
+    .from("users").select("notify_materials").eq("id", req.session.user.id).maybeSingle();
+  res.render("ustawienia", {
+    title: "Ustawienia — CEEA",
+    user: { ...req.session.user, ...prefs },
+  });
+});
+
+router.post("/ustawienia/powiadomienia", userOnly, requireAuth, async (req, res) => {
+  await supabase
+    .from("users")
+    .update({ notify_materials: req.body.notify === "1" })
+    .eq("id", req.session.user.id);
+  res.redirect("/ustawienia");
+});
+
+// Eksport danych (RODO)
+router.get("/ustawienia/eksport", userOnly, requireAuth, async (req, res) => {
+  const [{ data: user }, { data: enrollments }, { data: payments }] = await Promise.all([
+    supabase.from("users").select("email, name, surname, phone, created_at").eq("id", req.session.user.id).maybeSingle(),
+    supabase.from("enrollments").select("course_id, status, created_at").eq("user_id", req.session.user.id),
+    supabase.from("payments").select("order_number, course_id, amount, currency, status, paid_at").eq("user_id", req.session.user.id),
+  ]);
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="moje-dane-ceea.json"');
+  res.send(JSON.stringify({ user, enrollments, payments }, null, 2));
+});
+
+
+
+
+router.get("/wyloguj", userOnly, (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
@@ -269,23 +360,5 @@ router.get("/regulamin", async (req, res) => {
     res.status(500).render("error", { message: "Błąd ładowania regulaminu" });
   }
 });
-
-
-// TYMCZASOWE 
-
-// router.post("/login/sprawdz", async (req, res) => {
-//   const email = (req.body.email || "").toLowerCase().trim();
-//   if (!email) return res.status(400).json({ status: "error" });
-//   if (email === "test@test.pl") return res.json({ status: "password" }); // pokazuje pole hasła
-//   return res.json({ status: "sent" }); // każdy inny → animacja "wysłano"
-// });
-
-// router.post("/login", async (req, res) => {
-//   if (req.body.password === "123456") {
-//     req.session.user = { email: (req.body.email || "").toLowerCase().trim() }; // ← sesja
-//     return res.json({ ok: true, redirect: "/kursy" });
-//   }
-//   return res.json({ ok: false, error: "Nieprawidłowe hasło. Spróbuj ponownie." });
-// });
 
 module.exports = router;

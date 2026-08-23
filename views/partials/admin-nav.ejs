@@ -3,12 +3,17 @@
   const prefix = locals.adminPrefix || "";
   const current = locals.active || "";
   const icon = locals.adminIcon || (() => "");
+  const linkCls = (key) =>
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors " +
+    (current === key
+      ? "bg-red-500/15 text-red-400 font-medium"
+      : "text-slate-400 hover:bg-white/5 hover:text-white");
 %>
 
 <!-- Topbar mobilny -->
-<div class="lg:hidden sticky top-0 z-20 flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-  <a href="<%= prefix %>/" class="font-bold text-gray-900">CEEA <span class="text-red-600">Panel</span></a>
-  <button id="navOpen" class="p-2 -mr-2 text-gray-600" aria-label="Otwórz menu">
+<div class="lg:hidden sticky top-0 z-20 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 h-14">
+  <a href="<%= prefix %>/" class="font-bold text-gray-900 dark:text-white">CEEA <span class="text-red-600">Panel</span></a>
+  <button id="navOpen" class="p-2 -mr-2 text-gray-600 dark:text-slate-300" aria-label="Otwórz menu">
     <%- icon('menu') %>
   </button>
 </div>
@@ -17,7 +22,7 @@
 <div id="navBackdrop" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
 
 <!-- Sidebar -->
-<aside id="adminNav" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-200 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-200">
+<aside id="adminNav" class="fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 border-r border-slate-800 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-200">
   <div class="flex items-center justify-between h-14 px-5 border-b border-slate-800 shrink-0">
     <a href="<%= prefix %>/" class="font-bold text-white">CEEA <span class="text-red-500">Panel</span></a>
     <button id="navClose" class="lg:hidden p-1 text-slate-400 hover:text-white" aria-label="Zamknij menu">
@@ -25,21 +30,26 @@
     </button>
   </div>
 
-  <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-    <a href="<%= prefix %>/"
-       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm <%= current === 'home' ? 'bg-red-600 text-white' : 'hover:bg-slate-800' %>">
-      <%- icon('home') %> Pulpit
-    </a>
-    <% mods.forEach(m => { %>
-      <a href="<%= prefix + m.path %>"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm <%= current === m.key ? 'bg-red-600 text-white' : 'hover:bg-slate-800' %>">
-        <%- icon(m.icon) %> <%= m.name %>
+  <nav class="flex-1 overflow-y-auto px-3 py-4">
+    <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Menu</p>
+    <div class="space-y-1">
+      <a href="<%= prefix %>/" class="<%= linkCls('home') %>">
+        <%- icon('home') %> Pulpit
       </a>
-    <% }) %>
+      <% mods.forEach(m => { %>
+        <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>">
+          <%- icon(m.icon) %> <%= m.name %>
+        </a>
+      <% }) %>
+    </div>
   </nav>
 
-  <div class="border-t border-slate-800 p-3 shrink-0">
-    <a href="<%= prefix %>/wyloguj" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800">
+  <div class="border-t border-slate-800 p-3 shrink-0 space-y-1">
+    <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Konto</p>
+    <a href="<%= prefix %>/ustawienia" class="<%= linkCls('ustawienia') %>">
+      <%- icon('settings') %> Ustawienia
+    </a>
+    <a href="<%= prefix %>/wyloguj" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors">
       <%- icon('logout') %> Wyloguj
     </a>
   </div>
@@ -60,14 +70,14 @@
 
 <!-- Modal potwierdzenia (globalny dla panelu admina) -->
 <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div id="confirmBackdrop" class="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-150"></div>
+    <div id="confirmBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-150"></div>
     <div id="confirmCard" role="dialog" aria-modal="true"
-         class="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-150">
-      <h3 class="text-lg font-semibold text-gray-900 mb-1">Potwierdzenie</h3>
-      <p id="confirmMessage" class="text-sm text-gray-500 mb-6"></p>
+         class="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-150">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Potwierdzenie</h3>
+      <p id="confirmMessage" class="text-sm text-gray-500 dark:text-slate-400 mb-6"></p>
       <div class="flex justify-end gap-2">
         <button type="button" id="confirmCancel"
-          class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">Anuluj</button>
+          class="px-4 py-2 text-sm rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600">Anuluj</button>
         <button type="button" id="confirmOk"
           class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">Usuń</button>
       </div>

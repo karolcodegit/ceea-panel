@@ -3,7 +3,15 @@
 <link rel="icon" type="image/png" href="/images/Icon-logo.png">
 <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 <link rel="stylesheet" href="/css/style.css">
+<script>
+  (function () {
+    var t = localStorage.getItem('ceea-theme') || 'system';
+    var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.classList.add('dark');
+  })();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: 'class' };</script>
 <script type="text/javascript" charset="UTF-8" 
   src="https://cdn.cookie-script.com/s/fb8b0a0dc09c9f0d3e13eeb8cbd6fe9f.js" 
   async>

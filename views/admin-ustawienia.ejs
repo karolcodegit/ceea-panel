@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <%- include('partials/head') %>
+  <title>Ustawienia — Panel Administratora</title>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-slate-900">
+  <%- include('partials/admin-nav', { active: 'ustawienia' }) %>
+
+  <div class="lg:pl-64">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">Ustawienia</h1>
+      <p class="text-gray-500 dark:text-slate-400 mb-6 sm:mb-8">Konfiguracja i stan panelu administratora</p>
+
+      <!-- Motyw -->
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Motyw panelu</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Wybór jest wspólny z panelem uczestnika.</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-theme-choice="light">Jasny</button>
+          <button type="button" data-theme-choice="dark">Ciemny</button>
+          <button type="button" data-theme-choice="system">Systemowy</button>
+        </div>
+      </section>
+
+      <!-- Status integracji -->
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status integracji</h2>
+        <%
+          const integrations = [
+            { name: 'Supabase', desc: 'Baza danych — użytkownicy, zapisy, materiały', ok: status.supabase },
+            { name: 'DatoCMS', desc: 'Treści i definicje kursów', ok: status.datocms },
+            { name: 'Cloudinary', desc: 'Przesyłanie i serwowanie plików', ok: status.cloudinary },
+            { name: 'MailerSend', desc: 'Wysyłka e-maili z hasłami', ok: status.mailer },
+          ];
+        %>
+        <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
+          <% integrations.forEach(i => { %>
+            <li class="flex items-center gap-3 py-3">
+              <span class="w-2.5 h-2.5 rounded-full shrink-0 <%= i.ok ? 'bg-green-500' : 'bg-red-500' %>"></span>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-gray-900 dark:text-slate-100"><%= i.name %></p>
+                <p class="text-sm text-gray-500 dark:text-slate-400 truncate"><%= i.desc %></p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0 <%= i.ok ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' %>">
+                <%= i.ok ? 'Skonfigurowano' : 'Brak konfiguracji' %>
+              </span>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+
+      <!-- Statystyki -->
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Statystyki</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="rounded-lg bg-gray-50 dark:bg-slate-700/40 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.courses %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Kursy</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-slate-700/40 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.materials %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Materiały</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-slate-700/40 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.enrollments %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Zapisy</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-slate-700/40 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.users %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Użytkownicy</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Kopia zapasowa -->
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Kopia zapasowa</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+          Eksport JSON: użytkownicy (bez haseł), zapisy na kursy i materiały. Przydatne do archiwum i wniosków RODO.
+        </p>
+        <a href="<%= adminPrefix %>/ustawienia/eksport"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Pobierz kopię danych
+        </a>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      var KEY = 'ceea-theme';
+      var btns = document.querySelectorAll('[data-theme-choice]');
+      var BASE = 'px-4 py-2 text-sm rounded-lg border transition-colors ';
+      var ON = 'bg-red-600 border-red-600 text-white';
+      var OFF = 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700';
+
+      function current() { return localStorage.getItem(KEY) || 'system'; }
+      function apply(mode) {
+        var dark = mode === 'dark' ||
+          (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      }
+      function paint() {
+        var c = current();
+        btns.forEach(function (b) {
+          b.className = BASE + (b.dataset.themeChoice === c ? ON : OFF);
+        });
+      }
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          localStorage.setItem(KEY, b.dataset.themeChoice);
+          apply(b.dataset.themeChoice);
+          paint();
+        });
+      });
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        if (current() === 'system') apply('system');
+      });
+      paint();
+    })();
+  </script>
+</body>
+</html>

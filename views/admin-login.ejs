@@ -4,37 +4,137 @@
   <%- include('partials/head') %>
   <title>Panel Administratora — CEEA</title>
   <style>
+    /* stałe ciemne tło — konsola admina */
     .admin-bg {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1d4ed8 100%);
+      background: radial-gradient(60% 60% at 50% 0%, rgba(59, 130, 246, 0.12), transparent), #020617;
+    }
+
+    /* dryfująca siatka kropek */
+    .dots-layer {
+      background-image: radial-gradient(rgba(148, 163, 184, 0.5) 1px, transparent 1.2px);
+      background-size: 28px 28px;
+      animation: dots-drift 22s linear infinite;
+    }
+    @keyframes dots-drift {
+      from { background-position: 0 0; }
+      to { background-position: 56px 56px; }
+    }
+
+    /* pływające bloby */
+    .anim-float-a { animation: float-a 14s ease-in-out infinite; }
+    .anim-float-b { animation: float-b 19s ease-in-out infinite; }
+    @keyframes float-a {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(24px, -28px); }
+    }
+    @keyframes float-b {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-28px, 20px); }
+    }
+
+    /* radar znad karty */
+    .radar-ring {
+      position: absolute;
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      border-radius: 9999px;
+      animation: radar 4.5s ease-out infinite;
+    }
+    @keyframes radar {
+      0% { transform: scale(0.55); opacity: 0.45; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    /* scanline na QR */
+    .qr-frame { position: relative; overflow: hidden; display: inline-block; border-radius: 0.5rem; }
+    .qr-scan {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+      box-shadow: 0 0 8px rgba(96, 165, 250, 0.8);
+      animation: qr-scan 2.4s ease-in-out infinite;
+    }
+    @keyframes qr-scan {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      50% { top: calc(100% - 2px); }
+      90% { opacity: 1; }
+      100% { top: 0; opacity: 0; }
+    }
+
+    /* przejście między krokami */
+    .step-anim { animation: step-in 0.35s ease; }
+    @keyframes step-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* wejście przy ładowaniu */
+    .anim-rise { animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* puls tarczy shield */
+    .shield-ping {
+      position: absolute; inset: 0; border-radius: 9999px;
+      background: rgba(59, 130, 246, 0.3);
+      animation: shield-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes shield-ping {
+      0% { transform: scale(1); opacity: 0.7; }
+      75%, 100% { transform: scale(1.7); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dots-layer, .anim-float-a, .anim-float-b, .radar-ring, .qr-scan, .step-anim, .anim-rise, .shield-ping { animation: none !important; }
     }
   </style>
 </head>
 <body class="admin-bg min-h-screen flex items-center justify-center p-4">
 
   <div class="fixed inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-20 right-20 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+    <div class="absolute inset-0 dots-layer opacity-30"></div>
+    <div class="absolute top-20 left-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl anim-float-a"></div>
+    <div class="absolute bottom-20 right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl anim-float-b"></div>
+    <!-- radar -->
+    <div class="absolute inset-0 flex items-center justify-center">
+      <div class="radar-ring" style="width: 420px; height: 420px;"></div>
+      <div class="radar-ring" style="width: 420px; height: 420px; animation-delay: 1.5s;"></div>
+      <div class="radar-ring" style="width: 420px; height: 420px; animation-delay: 3s;"></div>
+    </div>
   </div>
 
   <div class="relative z-10 w-full max-w-md">
-    <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+    <div class="bg-slate-900/80 backdrop-blur rounded-2xl shadow-2xl shadow-black/50 border border-slate-800 p-8 md:p-10 anim-rise">
       <div class="text-center mb-8">
-        <img src="/images/logo-header-color-black.jpg" alt="CEEA" class="h-8 mx-auto">
-        <h1 class="text-xl font-bold text-gray-900 mt-12">Panel Administratora</h1>
-        <p class="text-gray-500 text-sm mt-1">Zarządzanie kursami i materiałami</p>
+        <span class="bg-white rounded-md px-2 py-1 inline-flex">
+          <img src="/images/logo-header-color-black.jpg" alt="CEEA" class="h-8 w-auto">
+        </span>
+        <div class="mt-10 flex items-center justify-center gap-3">
+          <span class="relative w-9 h-9 inline-flex">
+            <span class="shield-ping"></span>
+            <span class="relative w-9 h-9 bg-blue-500/20 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </span>
+          </span>
+          <h1 class="text-xl font-bold text-white">Panel Administratora</h1>
+        </div>
+        <p class="text-slate-400 text-sm mt-1">Zarządzanie kursami i materiałami</p>
       </div>
 
       <% if (error) { %>
-        <div class="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+        <div class="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">
           <%= error %>
         </div>
       <% } %>
 
       <div id="step-email" class="space-y-6">
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email administratora</label>
+          <label for="email" class="block text-sm font-medium text-slate-300 mb-2">Email administratora</label>
           <input type="email" id="email" placeholder="admin@ceea.org.pl" autofocus
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900">
+            class="w-full px-4 py-3 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-slate-100 placeholder-slate-500 bg-slate-800/70">
         </div>
         <button onclick="startAuth()"
           class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Dalej</button>
@@ -42,13 +142,25 @@
 
       <div id="step-setup" class="space-y-6 hidden">
         <div class="text-center">
-          <p class="text-sm text-gray-600 mb-4">📱 Zeskanuj kod w <strong>Google Authenticator</strong> lub <strong>Microsoft Authenticator</strong></p>
-          <img id="qrCode" src="" alt="QR Code" class="mx-auto rounded-lg border border-gray-200">
+          <p class="text-sm text-slate-300 mb-4">📱 Zeskanuj kod w <strong>Google Authenticator</strong> lub <strong>Microsoft Authenticator</strong></p>
+          <div class="qr-frame border border-slate-700 bg-white p-1">
+            <img id="qrCode" src="" alt="QR Code" class="block mx-auto">
+            <span class="qr-scan"></span>
+          </div>
         </div>
         <div>
-          <label for="setupToken" class="block text-sm font-medium text-gray-700 mb-2">Kod z aplikacji (6 cyfr)</label>
+          <div class="flex items-center justify-between mb-2">
+            <label for="setupToken" class="block text-sm font-medium text-slate-300">Kod z aplikacji (6 cyfr)</label>
+            <span class="relative inline-flex items-center justify-center w-7 h-7 shrink-0">
+              <svg class="w-7 h-7 -rotate-90" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="rgba(96,165,250,0.2)" stroke-width="2.5"/>
+                <circle class="totp-arc" cx="12" cy="12" r="10" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.83" stroke-dashoffset="0"/>
+              </svg>
+              <span class="totp-sec absolute font-semibold text-blue-300" style="font-size: 9px;">30</span>
+            </span>
+          </div>
           <input type="text" id="setupToken" placeholder="123456" maxlength="6" inputmode="numeric"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900 text-center text-lg tracking-widest">
+            class="w-full px-4 py-3 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-slate-100 placeholder-slate-500 bg-slate-800/70 text-center text-lg tracking-widest">
         </div>
         <button onclick="verifySetup()"
           class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Potwierdź konfigurację</button>
@@ -56,19 +168,28 @@
 
       <div id="step-verify" class="space-y-6 hidden">
         <div>
-          <label for="token" class="block text-sm font-medium text-gray-700 mb-2">Kod z aplikacji (6 cyfr)</label>
+          <div class="flex items-center justify-between mb-2">
+            <label for="token" class="block text-sm font-medium text-slate-300">Kod z aplikacji (6 cyfr)</label>
+            <span class="relative inline-flex items-center justify-center w-7 h-7 shrink-0">
+              <svg class="w-7 h-7 -rotate-90" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="rgba(96,165,250,0.2)" stroke-width="2.5"/>
+                <circle class="totp-arc" cx="12" cy="12" r="10" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="62.83" stroke-dashoffset="0"/>
+              </svg>
+              <span class="totp-sec absolute font-semibold text-blue-300" style="font-size: 9px;">30</span>
+            </span>
+          </div>
           <input type="text" id="token" placeholder="123456" maxlength="6" inputmode="numeric"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-gray-900 text-center text-lg tracking-widest">
+            class="w-full px-4 py-3 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-slate-100 placeholder-slate-500 bg-slate-800/70 text-center text-lg tracking-widest">
         </div>
         <button onclick="verify()"
           class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50">Zaloguj</button>
       </div>
 
       <div class="mt-6 text-center">
-        <a href="/ceea-poznan-admin" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">← Zmień dane logowania</a>
+        <a href="/ceea-poznan-admin" class="text-sm text-slate-400 hover:text-slate-200 transition-colors">← Zmień dane logowania</a>
       </div>
     </div>
-    <p class="text-center text-white/60 text-xs mt-6">© <%= year %> CEEA. Wszelkie prawa zastrzeżone.</p>
+    <p class="text-center text-slate-500 text-xs mt-6">© <%= year %> CEEA. Wszelkie prawa zastrzeżone.</p>
   </div>
 
   <script>
@@ -85,7 +206,11 @@
 
     function showStep(id) {
       document.querySelectorAll('[id^="step-"]').forEach(el => el.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.remove('step-anim');
+      void el.offsetWidth; // restart animacji
+      el.classList.add('step-anim');
     }
 
     async function startAuth() {
@@ -121,6 +246,26 @@
         alert(data.error || 'Błędny kod');
       }
     }
+
+    // żywy pierścień TOTP — odlicza 30 s do rotacji kodu
+    (function totpTicker() {
+      const CIRC = 62.83; // 2πr dla r=10
+      function tick() {
+        const s = 30 - (Math.floor(Date.now() / 1000) % 30);
+        document.querySelectorAll('.totp-sec').forEach(el => {
+          el.textContent = s;
+          el.classList.toggle('text-red-400', s <= 5);
+          el.classList.toggle('text-blue-300', s > 5);
+        });
+        const offset = CIRC * (1 - s / 30);
+        document.querySelectorAll('.totp-arc').forEach(el => {
+          el.style.strokeDashoffset = offset;
+          el.style.stroke = s <= 5 ? '#f87171' : '#60a5fa';
+        });
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
 
     document.querySelectorAll('input').forEach(input => {
       input.addEventListener('keypress', e => {

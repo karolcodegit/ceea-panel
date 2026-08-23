@@ -2,41 +2,41 @@
 <html lang="pl">
   <head>
     <%- include('partials/head') %>
-    <title><%= course.name %> — Uczestnicy</title>
+    <title><%= course.nameCourse %> — Uczestnicy</title>
   </head>
-  <body class="min-h-screen bg-gray-50">
+  <body class="min-h-screen bg-gray-50 dark:bg-slate-900">
     <%- include('partials/admin-nav', { active: 'kursy' }) %>
     <div class="lg:pl-64">
       <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div class="mb-6">
           <a
             href="/ceea-poznan-admin/kursy"
-            class="text-sm text-gray-500 hover:text-gray-700"
+            class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
             >← Wróć do kursów</a
           >
         </div>
 
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">
-          <%= course.name %>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <%= course.nameCourse %>
         </h1>
-        <p class="text-gray-500 mb-8">Uczestnicy kursu</p>
+        <p class="text-gray-500 dark:text-slate-400 mb-8">Uczestnicy kursu</p>
 
         <!-- Dodaj uczestnika -->
         <div
-          class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
+          class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-6"
         >
-          <h2 class="text-lg font-semibold mb-4">Dodaj uczestnika</h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj uczestnika</h2>
           <form
             method="POST"
             action="/ceea-poznan-admin/kursy/<%= course.id %>/uczestnicy"
-            class="flex gap-4"
+            class="flex flex-col sm:flex-row gap-3 sm:gap-4"
           >
             <input
               type="email"
               name="email"
               placeholder="Email uczestnika"
               required
-              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              class="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
             />
             <button
               type="submit"
@@ -49,54 +49,80 @@
 
         <!-- Lista uczestników -->
         <div
-          class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+          class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden"
         >
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th
-                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
-                >
-                  Email
-                </th>
-                <th
-                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
-                >
-                  Status
-                </th>
-                <th
-                  class="text-left px-6 py-3 text-sm font-medium text-gray-500"
-                >
-                  Data zapisu
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
+          <% if (enrollments.length === 0) { %>
+            <p class="px-6 py-12 text-center text-gray-500 dark:text-slate-400">
+              Brak uczestników. Dodaj pierwszego powyżej.
+            </p>
+          <% } else { %>
+
+            <!-- MOBILE: karty -->
+            <div class="md:hidden divide-y divide-gray-100 dark:divide-slate-700/60">
               <% enrollments.forEach(e => { %>
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-medium text-gray-900">
-                  <%= e.email %>
-                </td>
-                <td class="px-6 py-4">
-                  <span
-                    class="px-2 py-1 rounded text-xs font-medium <%= e.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>"
-                  >
-                    <%= e.status %>
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-gray-500 text-sm">
-                  <%= new Date(e.created_at).toLocaleDateString('pl-PL') %>
-                </td>
-              </tr>
-              <% }) %> <% if (enrollments.length === 0) { %>
-              <tr>
-                <td colspan="3" class="px-6 py-12 text-center text-gray-500">
-                  Brak uczestników. Dodaj pierwszego powyżej.
-                </td>
-              </tr>
-              <% } %>
-            </tbody>
-          </table>
+                <div class="p-4">
+                  <p class="font-medium text-gray-900 dark:text-slate-100 break-all">
+                    <%= e.email %>
+                  </p>
+                  <div class="mt-2 flex items-center justify-between gap-3">
+                    <span
+                      class="px-2 py-1 rounded text-xs font-medium <%= e.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300' %>"
+                    >
+                      <%= e.status %>
+                    </span>
+                    <span class="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                      <%= new Date(e.created_at).toLocaleDateString('pl-PL') %>
+                    </span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+
+            <!-- DESKTOP: tabela -->
+            <div class="hidden md:block overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-slate-700/40 border-b border-gray-200 dark:border-slate-700">
+                  <tr>
+                    <th
+                      class="text-left px-6 py-3 text-sm font-medium text-gray-500 dark:text-slate-400"
+                    >
+                      Email
+                    </th>
+                    <th
+                      class="text-left px-6 py-3 text-sm font-medium text-gray-500 dark:text-slate-400"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="text-left px-6 py-3 text-sm font-medium text-gray-500 dark:text-slate-400 whitespace-nowrap"
+                    >
+                      Data zapisu
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-700/60">
+                  <% enrollments.forEach(e => { %>
+                  <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/40">
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-slate-100">
+                      <%= e.email %>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="px-2 py-1 rounded text-xs font-medium <%= e.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300' %>"
+                      >
+                        <%= e.status %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500 dark:text-slate-400 text-sm whitespace-nowrap">
+                      <%= new Date(e.created_at).toLocaleDateString('pl-PL') %>
+                    </td>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+
+          <% } %>
         </div>
       </main>
     </div>

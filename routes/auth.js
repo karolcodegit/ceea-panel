@@ -143,7 +143,7 @@ router.post("/verify", loginLimiter, async (req, res) => {
 });
 
 // Wylogowanie
-router.post("/logout", (req, res) => {
+router.post("/wyloguj", (req, res) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
     req.cookies?.adminToken;

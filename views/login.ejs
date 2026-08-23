@@ -3,12 +3,70 @@
   <head>
     <%- include('partials/head') %>
     <title><%= title || 'Panel uczestnika — CEEA' %></title>
+    <style>
+      /* prawa strona — kropki */
+      .login-dots { background-image: radial-gradient(#dc2626 1px, transparent 1px); background-size: 20px 20px; }
+      .dark .login-dots { background-image: radial-gradient(rgba(148, 163, 184, 0.5) 1px, transparent 1px); }
+
+      /* lewa strona — dryfujące kropki */
+      .dots-layer {
+        background-image: radial-gradient(rgba(255, 255, 255, 0.85) 1.2px, transparent 1.3px);
+        background-size: 28px 28px;
+        animation: dots-drift 22s linear infinite;
+      }
+      @keyframes dots-drift {
+        from { background-position: 0 0; }
+        to { background-position: 56px 56px; }
+      }
+
+      /* pływające bloby */
+      .anim-float-a { animation: float-a 14s ease-in-out infinite; }
+      .anim-float-b { animation: float-b 19s ease-in-out infinite; }
+      @keyframes float-a {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(24px, -28px); }
+      }
+      @keyframes float-b {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-28px, 20px); }
+      }
+
+      /* linia EKG — jasny puls przesuwa się po śladzie */
+      .ecg-pulse {
+        stroke-dasharray: 200 2000;
+        animation: ecg-run 6s linear infinite;
+      }
+      @keyframes ecg-run {
+        from { stroke-dashoffset: 0; }
+        to { stroke-dashoffset: -2200; }
+      }
+
+      /* karty delikatnie się unoszą */
+      .anim-bob { animation: bob 6s ease-in-out infinite; }
+      .anim-bob-delay { animation-delay: 1.6s; }
+      @keyframes bob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      /* wejście przy ładowaniu */
+      .anim-rise { animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both; }
+      .anim-rise-1 { animation-delay: 0.1s; }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dots-layer, .anim-float-a, .anim-float-b, .ecg-pulse, .anim-bob, .anim-rise { animation: none !important; }
+      }
+    </style>
   </head>
 
-  <body class="h-screen w-full flex overflow-hidden">
+  <body class="h-screen w-full flex overflow-hidden bg-white dark:bg-slate-950">
     <!-- LEWA STRONA -->
     <div
-      class="hidden lg:flex lg:w-1/2 xl:w-5/12 bg-gradient-to-br from-red-600 via-red-700 to-red-900 relative items-center justify-center p-12 overflow-hidden"
+      class="hidden lg:flex lg:w-1/2 xl:w-5/12 bg-gradient-to-br from-red-600 via-red-700 to-red-900 dark:from-slate-950 dark:via-red-950 dark:to-slate-900 relative items-center justify-center p-12 overflow-hidden"
     >
       <div class="absolute top-8 left-8 z-20">
         <img
@@ -18,37 +76,39 @@
         />
       </div>
 
-      <div class="absolute inset-0 opacity-10">
-        <svg
-          class="w-full h-full"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-        >
-          <pattern
-            id="grid"
-            width="10"
-            height="10"
-            patternUnits="userSpaceOnUse"
-          >
-            <circle cx="5" cy="5" r="1" fill="white" />
-          </pattern>
-          <rect width="100" height="100" fill="url(#grid)"></rect>
+      <!-- dryfujące kropki -->
+      <div class="absolute inset-0 opacity-15 dots-layer"></div>
+
+      <!-- pływające bloby -->
+      <div
+        class="absolute -top-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl anim-float-a"
+      ></div>
+      <div
+        class="absolute -bottom-20 -left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl anim-float-b"
+      ></div>
+
+      <!-- linia EKG -->
+      <div class="absolute inset-x-0 bottom-14 pointer-events-none" aria-hidden="true">
+        <svg class="w-full h-40" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none">
+          <path
+            d="M0 60 H150 L172 50 L186 60 H260 L282 14 L296 100 L308 60 H430 L445 52 L460 60 H620 L642 14 L656 100 L668 60 H790 L805 52 L820 60 H980 L1002 14 L1016 100 L1028 60 H1200"
+            stroke="rgba(255,255,255,0.18)"
+            stroke-width="2"
+            vector-effect="non-scaling-stroke"
+          />
+          <path
+            class="ecg-pulse"
+            d="M0 60 H150 L172 50 L186 60 H260 L282 14 L296 100 L308 60 H430 L445 52 L460 60 H620 L642 14 L656 100 L668 60 H790 L805 52 L820 60 H980 L1002 14 L1016 100 L1028 60 H1200"
+            stroke="rgba(255,255,255,0.9)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+            style="filter: drop-shadow(0 0 6px rgba(255,255,255,0.7))"
+          />
         </svg>
       </div>
 
-      <div
-        class="absolute -top-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl"
-      ></div>
-      <div
-        class="absolute -bottom-20 -left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl"
-      ></div>
-
-      <div class="relative z-10 text-white max-w-md">
-        <!-- <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full mb-6">
-        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-        <span class="text-sm font-medium">Panel aktywny</span>
-      </div> -->
-
+      <div class="relative z-10 text-white max-w-md anim-rise">
         <h1 class="text-5xl font-bold mb-2 leading-tight">
           Panel<br />
           <span class="text-red-200">uczestnika</span>
@@ -60,7 +120,7 @@
 
         <div class="space-y-3">
           <div
-            class="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10"
+            class="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 anim-bob"
           >
             <div
               class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center"
@@ -86,7 +146,7 @@
           </div>
 
           <div
-            class="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10"
+            class="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 anim-bob anim-bob-delay"
           >
             <div
               class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center"
@@ -116,50 +176,38 @@
 
     <!-- PRAWA STRONA -->
     <div
-      class="w-full lg:w-1/2 xl:w-7/12 flex items-center justify-center relative overflow-hidden"
-      style="
-        background: linear-gradient(
-          135deg,
-          #fef2f2 0%,
-          #ffffff 50%,
-          #eff6ff 100%
-        );
-      "
+      class="w-full lg:w-1/2 xl:w-7/12 flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-red-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
     >
-      <div
-        class="absolute inset-0 opacity-10"
-        style="
-          background-image: radial-gradient(#dc2626 1px, transparent 1px);
-          background-size: 20px 20px;
-        "
-      ></div>
+      <div class="absolute inset-0 opacity-10 login-dots"></div>
 
       <!-- Kolorowe kółka -->
       <div
-        class="absolute top-10 right-10 w-32 h-32 bg-red-200 rounded-full blur-3xl opacity-30"
+        class="absolute top-10 right-10 w-32 h-32 bg-red-200 dark:bg-red-900 rounded-full blur-3xl opacity-30 anim-float-a"
       ></div>
       <div
-        class="absolute bottom-10 left-10 w-32 h-32 bg-blue-200 rounded-full blur-3xl opacity-30"
+        class="absolute bottom-10 left-10 w-32 h-32 bg-blue-200 dark:bg-blue-900 rounded-full blur-3xl opacity-30 anim-float-b"
       ></div>
 
       <div class="relative z-10 w-full max-w-md px-6 lg:px-0">
         <div
-          class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl shadow-gray-200/50 p-8 lg:p-10 border border-gray-100"
+          class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-2xl shadow-gray-200/50 dark:shadow-black/40 p-8 lg:p-10 border border-gray-100 dark:border-slate-700 anim-rise anim-rise-1"
         >
           <div class="lg:hidden flex justify-center mb-12">
-            <img
-              src="/images/logo-header-color-black.jpg"
-              alt="CEEA"
-              class="h-8 w-auto"
-            />
+            <span class="bg-white rounded-md px-2 py-1 inline-flex">
+              <img
+                src="/images/logo-header-color-black.jpg"
+                alt="CEEA"
+                class="h-8 w-auto"
+              />
+            </span>
           </div>
 
           <% if (error) { %>
           <div
-            class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3"
+            class="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl flex items-start gap-3"
           >
             <svg
-              class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
+              class="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -171,14 +219,14 @@
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p class="text-red-700 text-sm"><%= error %></p>
+            <p class="text-red-700 dark:text-red-300 text-sm"><%= error %></p>
           </div>
           <% } %> <% if (message) { %>
           <div
-            class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3"
+            class="mb-6 p-4 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl flex items-start gap-3"
           >
             <svg
-              class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+              class="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -190,15 +238,15 @@
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <p class="text-green-700 text-sm"><%= message %></p>
+            <p class="text-green-700 dark:text-green-300 text-sm"><%= message %></p>
           </div>
           <% } %>
 
           <!-- WIDOK 1: email -->
           <div id="view-email" class="login-view active">
             <div class="mb-8 text-center">
-              <h2 class="text-2xl font-bold text-gray-900 mb-2">Zaloguj się</h2>
-              <p class="text-gray-500 text-sm">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Zaloguj się</h2>
+              <p class="text-gray-500 dark:text-slate-400 text-sm">
                 Wprowadź email podany przy rejestracji na kurs
               </p>
             </div>
@@ -207,7 +255,7 @@
               <div>
                 <label
                   for="email"
-                  class="block text-sm font-medium text-gray-700 mb-2"
+                  class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
                   >Adres email</label
                 >
                 <div class="relative">
@@ -215,7 +263,7 @@
                     class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                   >
                     <svg
-                      class="h-5 w-5 text-gray-500"
+                      class="h-5 w-5 text-gray-500 dark:text-slate-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -234,7 +282,7 @@
                     name="email"
                     required
                     placeholder="twoj@email.com"
-                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors text-gray-900 placeholder-gray-400 bg-gray-50/50"
+                    class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 bg-gray-50/50 dark:bg-slate-900/60"
                   />
                 </div>
               </div>
@@ -248,19 +296,30 @@
               </button>
             </form>
 
-            <div class="mt-6 pt-6 border-t border-gray-100">
+            <p class="mt-4 text-center text-sm text-gray-500 dark:text-slate-400">
+              Nie pamiętasz hasła?
+              <button
+                type="button"
+                id="btn-reset-email"
+                class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+              >
+                Wyślij nowe
+              </button>
+            </p>
+
+            <div class="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
               <% if (typeof registrationUrl !== 'undefined' && registrationUrl)
               { %>
-              <p class="text-sm text-gray-500 text-center">
+              <p class="text-sm text-gray-500 dark:text-slate-400 text-center">
                 Nie masz konta?
                 <a
                   href="<%= registrationUrl %>"
-                  class="text-red-600 hover:text-red-700 font-semibold"
+                  class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
                   >Zapisz się na kurs</a
                 >
               </p>
               <% } else { %>
-              <p class="text-sm text-gray-400 text-center">
+              <p class="text-sm text-gray-400 dark:text-slate-500 text-center">
                 Nie masz konta? Rejestracja będzie dostępna, gdy kurs zostanie
                 aktywowany.
               </p>
@@ -271,18 +330,18 @@
           <!-- WIDOK 2: hasło -->
           <div id="view-password" class="login-view">
             <div class="mb-8 text-center">
-              <h2 class="text-2xl font-bold text-gray-900 mb-2">Wpisz hasło</h2>
-              <p class="text-gray-500 text-sm">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Wpisz hasło</h2>
+              <p class="text-gray-500 dark:text-slate-400 text-sm">
                 Hasło wysłaliśmy wcześniej na Twój adres email
               </p>
             </div>
 
             <div
-              class="mb-5 flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl"
+              class="mb-5 flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-slate-700/40 border border-gray-200 dark:border-slate-700 rounded-xl"
             >
               <div class="flex items-center gap-2 min-w-0">
                 <svg
-                  class="h-4 w-4 text-gray-400 flex-shrink-0"
+                  class="h-4 w-4 text-gray-400 dark:text-slate-500 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -296,13 +355,13 @@
                 </svg>
                 <span
                   id="password-email"
-                  class="text-sm text-gray-700 font-medium truncate"
+                  class="text-sm text-gray-700 dark:text-slate-200 font-medium truncate"
                 ></span>
               </div>
               <button
                 type="button"
                 id="btn-change-email"
-                class="text-sm text-red-600 hover:text-red-700 font-semibold flex-shrink-0"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold flex-shrink-0"
               >
                 Zmień
               </button>
@@ -310,10 +369,10 @@
 
             <div
               id="login-error"
-              class="hidden mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3"
+              class="hidden mb-5 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl flex items-start gap-3"
             >
               <svg
-                class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0"
+                class="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -325,14 +384,14 @@
                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p class="text-red-700 text-sm" id="login-error-text"></p>
+              <p class="text-red-700 dark:text-red-300 text-sm" id="login-error-text"></p>
             </div>
 
             <form id="form-password" class="space-y-5">
               <div>
                 <label
                   for="password"
-                  class="block text-sm font-medium text-gray-700 mb-2"
+                  class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
                   >Hasło</label
                 >
                 <div class="relative">
@@ -340,7 +399,7 @@
                     class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                   >
                     <svg
-                      class="h-5 w-5 text-gray-500"
+                      class="h-5 w-5 text-gray-500 dark:text-slate-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -359,12 +418,12 @@
                     autocomplete="current-password"
                     required
                     placeholder="••••••••"
-                    class="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors text-gray-900 placeholder-gray-400 bg-gray-50/50"
+                    class="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 bg-gray-50/50 dark:bg-slate-900/60"
                   />
                   <button
                     type="button"
                     id="toggle-password"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
                   >
                     <svg
                       id="eye-open"
@@ -413,12 +472,12 @@
               </button>
             </form>
 
-            <p class="mt-5 text-center text-sm text-gray-500">
+            <p class="mt-5 text-center text-sm text-gray-500 dark:text-slate-400">
               Nie pamiętasz hasła?
               <button
                 type="button"
                 id="btn-reset"
-                class="text-red-600 hover:text-red-700 font-semibold"
+                class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
               >
                 Wyślij nowe
               </button>
@@ -462,15 +521,15 @@
                 </span>
               </div>
 
-              <h2 class="text-2xl font-bold text-gray-900 mb-3">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                 Sprawdź skrzynkę
               </h2>
-              <p class="text-gray-500 text-sm leading-relaxed mb-2">
+              <p class="text-gray-500 dark:text-slate-400 text-sm leading-relaxed mb-2">
                 Jeśli adres
-                <strong id="sent-email" class="text-gray-800"></strong> figuruje
+                <strong id="sent-email" class="text-gray-800 dark:text-slate-100"></strong> figuruje
                 w naszej bazie, wysłaliśmy na niego hasło do logowania.
               </p>
-              <p class="text-gray-400 text-xs mb-8">
+              <p class="text-gray-400 dark:text-slate-500 text-xs mb-8">
                 Nie widzisz wiadomości? Sprawdź folder spam lub poczekaj kilka
                 minut.
               </p>
@@ -478,7 +537,7 @@
               <button
                 type="button"
                 id="btn-back"
-                class="w-full py-3 px-4 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                class="w-full py-3 px-4 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
               >
                 Wróć do logowania
               </button>
@@ -487,15 +546,15 @@
         </div>
 
         <div
-          class="mt-6 flex items-center justify-center gap-6 text-xs text-gray-400"
+          class="mt-6 flex items-center justify-center gap-6 text-xs text-gray-400 dark:text-slate-500"
         >
-          <a href="/pomoc" class="hover:text-gray-600">Pomoc</a>
-          <span class="text-gray-300">|</span>
-          <a href="/polityka-prywatnosci" class="hover:text-gray-600"
+          <a href="/pomoc" class="hover:text-gray-600 dark:hover:text-slate-300">Pomoc</a>
+          <span class="text-gray-300 dark:text-slate-600">|</span>
+          <a href="/polityka-prywatnosci" class="hover:text-gray-600 dark:hover:text-slate-300"
             >Polityka prywatności</a
           >
-          <span class="text-gray-300">|</span>
-          <a href="/regulamin" class="hover:text-gray-600">Regulamin</a>
+          <span class="text-gray-300 dark:text-slate-600">|</span>
+          <a href="/regulamin" class="hover:text-gray-600 dark:hover:text-slate-300">Regulamin</a>
         </div>
       </div>
     </div>
@@ -605,7 +664,7 @@
           }
         });
 
-      // "Wyślij nowe hasło"
+      // "Wyślij nowe hasło" — ekran hasła
       document
         .getElementById("btn-reset")
         .addEventListener("click", async () => {
@@ -616,6 +675,22 @@
             });
           } catch {}
           goSent(currentEmail);
+        });
+
+      // "Wyślij nowe hasło" — ekran emaila (używa adresu z pola)
+      document
+        .getElementById("btn-reset-email")
+        .addEventListener("click", async () => {
+          const email = emailInput.value.toLowerCase().trim();
+          if (!email) {
+            emailInput.focus();
+            return;
+          }
+          currentEmail = email;
+          try {
+            await postJson("/login/sprawdz", { email, reset: true });
+          } catch {}
+          goSent(email);
         });
 
       document

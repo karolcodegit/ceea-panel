@@ -29,6 +29,59 @@ router.get("/", adminOnly, (req, res) => {
   res.render("admin-dashboard", { isAdmin: true, active: "home" });
 });
 
+router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
+  const status = { supabase: false, datocms: false, cloudinary: false, mailer: false };
+  const stats = { courses: 0, materials: 0, enrollments: 0, users: 0 };
+
+  // Supabase + statystyki (prawdziwe zapytanie = prawdziwy status)
+  try {
+    const [u, e, m] = await Promise.all([
+      supabase.from("users").select("id", { count: "exact", head: true }),
+      supabase.from("enrollments").select("id", { count: "exact", head: true }),
+      supabase.from("materials").select("id", { count: "exact", head: true }),
+    ]);
+    if (!u.error && !e.error && !m.error) status.supabase = true;
+    stats.users = u.count || 0;
+    stats.enrollments = e.count || 0;
+    stats.materials = m.count || 0;
+  } catch (err) {
+    console.error("ustawienia/supabase:", err.message);
+  }
+
+  // DatoCMS (jeśli kursy się pobierają — integracja działa)
+  try {
+    const courses = await fetchAllCourses();
+    status.datocms = true;
+    stats.courses = courses.length;
+  } catch (err) {
+    console.error("ustawienia/datocms:", err.message);
+  }
+
+  status.cloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET);
+  status.mailer = !!(process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN);
+
+  res.render("admin-ustawienia", { isAdmin: true, active: "ustawienia", status, stats });
+});
+
+// Kopia zapasowa danych (RODO) — bez haseł
+router.get("/ustawienia/eksport", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const [{ data: users }, { data: enrollments }, { data: materials }] = await Promise.all([
+      supabase.from("users").select("id, email, name, surname, phone, created_at"),
+      supabase.from("enrollments").select("*"),
+      supabase.from("materials").select("*"),
+    ]);
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="ceea-backup-${stamp}.json"`);
+    res.send(JSON.stringify({ exportedAt: new Date().toISOString(), users, enrollments, materials }, null, 2));
+  } catch (err) {
+    console.error("ustawienia/eksport:", err);
+    res.redirect(ADMIN_PREFIX + "/ustawienia");
+  }
+});
+
+
 router.get("/wyloguj", adminOnly, (req, res) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
