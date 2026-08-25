@@ -7,7 +7,6 @@ const { grantAccess } = require("../services/access");
 const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
 
-
 router.use((req, res, next) => {
   res.locals.adminPrefix = ADMIN_PREFIX;
   res.locals.adminModules = adminModules;
@@ -15,8 +14,8 @@ router.use((req, res, next) => {
   next();
 });
 
-// Admin login
-router.get("/", adminOnly, (req, res) => {
+// ===== PULPIT (lub login, gdy niezalogowany) =====
+router.get("/", adminOnly, async (req, res) => {
   const token = req.cookies?.adminToken;
   const logged = token && req.app.locals.sessions.has(token);
   if (!logged) {
@@ -24,16 +23,70 @@ router.get("/", adminOnly, (req, res) => {
       error: null,
       year: new Date().getFullYear(),
       adminPrefix: ADMIN_PREFIX,
-    });res.locals
+    });
   }
-  res.render("admin-dashboard", { isAdmin: true, active: "home" });
+
+  const stats = { courses: 0, materials: 0, enrollments: 0, users: 0 };
+  const visits = { today: 0, week: 0, month: 0 };
+  const series = [];
+  let topPages = [];
+
+  try {
+    const monthAgo = new Date(Date.now() - 30 * 864e5);
+    const [u, e, m, courses, viewsRes] = await Promise.all([
+      supabase.from("users").select("id", { count: "exact", head: true }),
+      supabase.from("enrollments").select("id", { count: "exact", head: true }),
+      supabase.from("materials").select("id", { count: "exact", head: true }),
+      fetchAllCourses().catch(() => []),
+      supabase.from("page_views").select("path, created_at").gte("created_at", monthAgo.toISOString()),
+    ]);
+
+    stats.users = u.count || 0;
+    stats.enrollments = e.count || 0;
+    stats.materials = m.count || 0;
+    stats.courses = courses.length;
+
+    const views = viewsRes.data || [];
+    const now = new Date();
+    const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(now.getTime() - 7 * 864e5);
+
+    visits.month = views.length;
+    visits.week = views.filter((v) => new Date(v.created_at) >= weekAgo).length;
+    visits.today = views.filter((v) => new Date(v.created_at) >= startToday).length;
+
+    // ostatnie 14 dni — dzień po dniu
+    for (let i = 13; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+      dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = new Date(dayStart.getTime() + 864e5);
+      series.push({
+        label: `${dayStart.getDate()}.${dayStart.getMonth() + 1}`,
+        count: views.filter((v) => {
+          const t = new Date(v.created_at);
+          return t >= dayStart && t < dayEnd;
+        }).length,
+      });
+    }
+
+    const byPath = {};
+    views.forEach((v) => { byPath[v.path] = (byPath[v.path] || 0) + 1; });
+    topPages = Object.entries(byPath)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([path, count]) => ({ path, count }));
+  } catch (err) {
+    console.error("pulpit:", err);
+  }
+
+  res.render("admin-dashboard", { isAdmin: true, active: "home", stats, visits, series, topPages });
 });
 
+// ===== USTAWIENIA ADMINA =====
 router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
   const status = { supabase: false, datocms: false, cloudinary: false, mailer: false };
-  const stats = { courses: 0, materials: 0, enrollments: 0, users: 0 };
 
-  // Supabase + statystyki (prawdziwe zapytanie = prawdziwy status)
   try {
     const [u, e, m] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
@@ -41,18 +94,13 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
       supabase.from("materials").select("id", { count: "exact", head: true }),
     ]);
     if (!u.error && !e.error && !m.error) status.supabase = true;
-    stats.users = u.count || 0;
-    stats.enrollments = e.count || 0;
-    stats.materials = m.count || 0;
   } catch (err) {
     console.error("ustawienia/supabase:", err.message);
   }
 
-  // DatoCMS (jeśli kursy się pobierają — integracja działa)
   try {
-    const courses = await fetchAllCourses();
+    await fetchAllCourses();
     status.datocms = true;
-    stats.courses = courses.length;
   } catch (err) {
     console.error("ustawienia/datocms:", err.message);
   }
@@ -60,7 +108,7 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
   status.cloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET);
   status.mailer = !!(process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN);
 
-  res.render("admin-ustawienia", { isAdmin: true, active: "ustawienia", status, stats });
+  res.render("admin-ustawienia", { isAdmin: true, active: "ustawienia", status });
 });
 
 // Kopia zapasowa danych (RODO) — bez haseł
@@ -81,7 +129,7 @@ router.get("/ustawienia/eksport", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
-
+// ===== WYLOGOWANIE =====
 router.get("/wyloguj", adminOnly, (req, res) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
@@ -91,6 +139,7 @@ router.get("/wyloguj", adminOnly, (req, res) => {
   res.redirect(ADMIN_PREFIX + "/");
 });
 
+// ===== KURSY =====
 router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
   try {
     const courses = await fetchAllCourses();
@@ -118,6 +167,7 @@ router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
+// ===== MATERIALY =====
 router.get(
   "/kursy/:id/materials",
   adminOnly,
@@ -144,33 +194,6 @@ router.get(
     } catch (err) {
       console.error("Błąd serwera (materiały):", err);
       res.redirect(ADMIN_PREFIX + "/kursy");
-    }
-  }
-);
-
-router.post(
-  "/kursy/:id/materials",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    const { title, type, url, order_num } = req.body;
-    try {
-      const { error } = await supabase
-        .from("materials")
-        .insert([
-          {
-            course_id: req.params.id,
-            title,
-            type,
-            url,
-            order_num: parseInt(order_num) || 1,
-          },
-        ]);
-      if (error) console.error("Błąd dodawania materiału:", error);
-      res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
-    } catch (err) {
-      console.error("Błąd serwera (dodawanie materiału):", err);
-      res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
     }
   }
 );
@@ -239,6 +262,7 @@ router.post(
   }
 );
 
+// ===== UCZESTNICY =====
 router.get(
   "/kursy/:id/uczestnicy",
   adminOnly,
@@ -292,11 +316,10 @@ router.post(
   }
 );
 
-
+// ===== MAILE =====
 router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
   const courses = await fetchAllCourses();
   res.render("admin-maile", { isAdmin: true, active: "maile", courses, sent: null });
 });
-
 
 module.exports = router;

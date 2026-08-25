@@ -12,7 +12,6 @@ const rateLimit = require("express-rate-limit");
 const { sendPasswordEmail } = require("../services/mailer");
 const { generatePassword, hashPassword, verifyPassword } = require("../services/passwords");
 
-
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 const MAIN_SITE_URL = "https://ceea.org.pl";
 const CALLOUT_ICONS = { info: "ℹ️", warning: "⚠️", danger: "🚨" };
@@ -26,7 +25,6 @@ function renderAnswer(q) {
   const html = md.renderInline(c.content || "");
   return answerHtml + `<div class="callout callout-${c.kind}"><span>${icon}</span><div>${html}</div></div>`;
 }
-
 
 // Doładowanie profilu (name, surname, phone) do sesji — 1 lekkie zapytanie na request
 router.use(async (req, res, next) => {
@@ -51,8 +49,6 @@ router.use(async (req, res, next) => {
   }
   next();
 });
-
-
 
 // ===== LOGOWANIE =====
 router.get("/", userOnly, async (req, res) => {
@@ -92,7 +88,6 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
   if (!email) return sent();
 
   try {
-    // 1. użytkownik
     const { data: user, error: userErr } = await supabase
       .from("users")
       .select("id, email, password_hash")
@@ -102,7 +97,6 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
     if (userErr) console.error("sprawdz/users:", userErr);
     if (!user) return sent();
 
-    // 2. aktywny zapis na kurs
     const { data: enrollment, error: enrErr } = await supabase
       .from("enrollments")
       .select("id")
@@ -114,12 +108,12 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
     if (enrErr) console.error("sprawdz/enrollments:", enrErr);
     if (!enrollment) return sent();
 
-    // 3. ma już hasło i nie prosi o reset → widok hasła
+    // ma już hasło i nie prosi o reset → widok hasła
     if (user.password_hash && !reset) {
       return res.json({ status: "password" });
     }
 
-    // 4. pierwszy raz albo reset — nowe hasło
+    // pierwszy raz albo reset — nowe hasło
     const password = generatePassword();
     const password_hash = await hashPassword(password);
 
@@ -183,22 +177,15 @@ router.post("/login", userOnly, passwordLimiter, async (req, res) => {
 // ===== PANEL UCZESTNIKA =====
 router.get("/kursy", userOnly, requireAuth, async (req, res) => {
   try {
-    // 1. użytkownik po emailu z sesji
     const { data: user } = await supabase
       .from("users").select("id, name, email")
       .eq("email", req.session.user.email).maybeSingle();
 
-    console.log("[/kursy] session email:", req.session.user.email);
-    console.log("[/kursy] user z bazy:", user);
-
-    // 2. jego dostępy
     const { data: enrollments } = user
       ? await supabase
           .from("enrollments").select("course_id")
           .eq("user_id", user.id).eq("status", "active")
       : { data: [] };
-
-    console.log("[/kursy] enrollments:", enrollments);
 
     const ids = (enrollments || []).map((e) => e.course_id);
 
@@ -209,9 +196,6 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
         : Promise.resolve({ data: [] }),
     ]);
 
-    console.log("[/kursy] ids z Supabase:", ids);
-    console.log("[/kursy] ids z DatoCMS:", datoCourses.map((c) => ({ id: c.id, available: c.available })));
-
     const myCourses = datoCourses
       .filter((c) => ids.includes(c.id))
       .map((c) => ({
@@ -219,8 +203,6 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
         year: getYearFromDate(c.date),
         materials: (materials || []).filter((m) => m.course_id === c.id),
       }));
-
-    console.log("[/kursy] myCourses:", myCourses.length);
 
     res.render("dashboard", {
       title: "Moje kursy — CEEA",
@@ -289,9 +271,6 @@ router.get("/ustawienia/eksport", userOnly, requireAuth, async (req, res) => {
   res.send(JSON.stringify({ user, enrollments, payments }, null, 2));
 });
 
-
-
-
 router.get("/wyloguj", userOnly, (req, res) => {
   req.session.destroy();
   res.redirect("/");
@@ -359,6 +338,22 @@ router.get("/regulamin", async (req, res) => {
     console.error("Błąd ładowania regulaminu:", err);
     res.status(500).render("error", { message: "Błąd ładowania regulaminu" });
   }
+});
+
+// publiczny licznik odwiedzin strony (beacon z ceea.org.pl)
+router.post("/api/track", express.text({ type: "*/*", limit: "2kb" }), async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "https://ceea.org.pl");
+  try {
+    const payload = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    const path = String(payload.path || "").slice(0, 200);
+    if (path.startsWith("/")) {
+      const referrer = payload.referrer ? String(payload.referrer).slice(0, 300) : null;
+      await supabase.from("page_views").insert([{ path, referrer }]);
+    }
+  } catch (err) {
+    console.error("track:", err.message);
+  }
+  res.status(204).end();
 });
 
 module.exports = router;

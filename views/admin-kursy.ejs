@@ -1,71 +1,123 @@
 <!DOCTYPE html>
 <html lang="pl">
-  <head>
-    <%- include('partials/head') %>
-    <title>Kursy — Admin CEEA</title>
-  </head>
-  <body class="min-h-screen bg-gray-50">
-    <%- include('partials/admin-nav', { active: 'kursy' }) %>
-    <div class="lg:pl-64">
-      <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div class="flex items-center justify-between mb-2">
-          <h1 class="text-2xl font-bold text-gray-900">Kursy</h1>
-          <a
-            href="<%= adminPrefix %>/kursy"
-            class="text-sm text-gray-500 hover:text-gray-700"
-            >Odśwież</a
-          >
-        </div>
-        <p class="text-sm text-gray-400 mb-8">
-          Kursy pochodzą z DatoCMS — nowy kurs dodajesz w CMS, pojawi się tutaj
-          automatycznie.
-        </p>
+<head>
+  <%- include('partials/head') %>
+  <title>Kursy — Panel administratora</title>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors">
+  <%- include('partials/admin-nav', { active: 'kursy' }) %>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <% courses.forEach(course => { %>
-          <div
-            class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
-          >
-            <% if (course.image?.url) { %>
-            <img
-              src="<%= course.image.url %>"
-              alt="<%= course.nameCourse %>"
-              class="w-full h-40 object-cover"
-            />
-            <% } %>
-            <div class="p-5 flex flex-col flex-1">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <h2 class="font-semibold text-gray-900 leading-snug">
-                  <%= course.nameCourse %>
-                </h2>
-                <span
-                  class="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full <%= course.available ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500' %>"
-                >
-                  <%= course.available ? 'Aktywny' : 'Archiwum' %>
-                </span>
-              </div>
-              <p class="text-sm text-gray-400 mb-1"><%= course.date %></p>
-              <p class="text-xs text-gray-400 mb-4">
-                <%= course.materialsCount %> materiałów · <%=
-                course.participantsCount %> uczestników
-              </p>
-              <div class="mt-auto flex gap-4">
-                <a
-                  href="<%= adminPrefix %>/kursy/<%= course.id %>/materials"
-                  class="text-red-600 hover:text-red-700 text-sm font-medium"
-                  >Materiały</a
-                >
-                <a
-                  href="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy"
-                  class="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >Uczestnicy</a
-                >
-              </div>
-            </div>
+  <div class="lg:pl-64">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Kursy</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">
+            Lista kursów pobieranych z DatoCMS
+          </p>
+        </div>
+
+        <a href="<%= adminPrefix %>/kursy"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Odśwież
+        </a>
+      </div>
+
+      <div class="mb-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+        Kursy są zarządzane w DatoCMS. Tutaj możesz sprawdzić liczbę materiałów i uczestników oraz przejść do szczegółów kursu.
+      </div>
+
+      <% const list = courses || []; %>
+
+      <% if (list.length === 0) { %>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+            <svg class="w-8 h-8 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
           </div>
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Brak kursów</h2>
+          <p class="text-gray-500 dark:text-slate-400">
+            Nie udało się pobrać żadnego kursu z DatoCMS.
+          </p>
+        </div>
+      <% } else { %>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <% list.forEach(course => { %>
+            <article class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-slate-950/30 transition-all">
+
+              <% if (course.image?.url) { %>
+                <img src="<%= course.image.url %>"
+                     alt="<%= course.nameCourse %>"
+                     loading="lazy"
+                     class="w-full h-40 object-cover">
+              <% } else { %>
+                <div class="w-full h-40 bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                  <span class="text-4xl font-bold text-white">
+                    <%= (course.nameCourse || 'C').charAt(0) %>
+                  </span>
+                </div>
+              <% } %>
+
+              <div class="p-5">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <h2 class="font-semibold text-gray-900 dark:text-white leading-snug">
+                    <%= course.nameCourse %>
+                  </h2>
+
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium shrink-0 <%= course.available
+                    ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+                    : 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400' %>">
+                    <%= course.available ? 'Aktywny' : 'Archiwum' %>
+                  </span>
+                </div>
+
+                <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+                  <%= course.date %>
+                </p>
+
+                <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-500 dark:text-slate-400 mb-5">
+                  <span class="inline-flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    <%= course.materialsCount %> materiałów
+                  </span>
+
+                  <span class="inline-flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 11-3-3"/>
+                    </svg>
+                    <%= course.participantsCount %> uczestników
+                  </span>
+                </div>
+
+                <div class="flex gap-2 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <a href="<%= adminPrefix %>/kursy/<%= course.id %>/materials"
+                     class="flex-1 text-center px-3 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors">
+                    Materiały
+                  </a>
+
+                  <a href="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy"
+                     class="flex-1 text-center px-3 py-2 text-sm font-medium rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors">
+                    Uczestnicy
+                  </a>
+                </div>
+              </div>
+            </article>
           <% }) %>
         </div>
-      </main>
-    </div>
-  </body>
+      <% } %>
+
+    </main>
+  </div>
+</body>
 </html>

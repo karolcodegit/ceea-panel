@@ -4,34 +4,120 @@
     <%- include('partials/head') %>
     <title>Panel administratora — CEEA</title>
   </head>
-  <body class="min-h-screen bg-gray-50">
-    <% const icon = locals.adminIcon || (() => ""); %> <%-
-    include('partials/admin-nav', { active: 'home' }) %>
+  <body class="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <% const icon = locals.adminIcon || (() => ""); %>
+    <%- include('partials/admin-nav', { active: 'home' }) %>
 
     <div class="lg:pl-64">
       <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Pulpit</h1>
-        <p class="text-gray-500 mt-1 mb-6 sm:mb-8">Wybierz moduł</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Pulpit</h1>
+        <p class="text-gray-500 dark:text-slate-400 mt-1 mb-6 sm:mb-8">Przegląd systemu i odwiedzin strony</p>
 
-        <div
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-        >
+        <!-- Statystyki systemu -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.courses %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Kursy</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.materials %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Materiały</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.enrollments %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Zapisy</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white"><%= stats.users %></p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Użytkownicy</p>
+          </div>
+        </div>
+
+        <!-- Analityka strony -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+
+          <!-- Wykres odwiedzin -->
+          <section class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Odwiedziny ceea.org.pl</h2>
+                <p class="text-sm text-gray-500 dark:text-slate-400">Ostatnie 14 dni</p>
+              </div>
+              <div class="flex gap-4 text-center">
+                <div>
+                  <p class="text-xl font-bold text-gray-900 dark:text-white"><%= visits.today %></p>
+                  <p class="text-xs text-gray-500 dark:text-slate-400">dziś</p>
+                </div>
+                <div>
+                  <p class="text-xl font-bold text-gray-900 dark:text-white"><%= visits.week %></p>
+                  <p class="text-xs text-gray-500 dark:text-slate-400">7 dni</p>
+                </div>
+                <div>
+                  <p class="text-xl font-bold text-red-600 dark:text-red-400"><%= visits.month %></p>
+                  <p class="text-xs text-gray-500 dark:text-slate-400">30 dni</p>
+                </div>
+              </div>
+            </div>
+
+            <% const maxV = Math.max(...series.map(s => s.count), 1); %>
+            <div id="visitsChart" class="flex items-end gap-1 h-28">
+              <% series.forEach(s => { %>
+                <div class="flex-1 bg-red-500/80 dark:bg-red-500/70 rounded-t hover:bg-red-600 transition-colors"
+                     data-h="<%= Math.max(s.count ? 6 : 2, Math.round((s.count / maxV) * 100)) %>"
+                     title="<%= s.label %>: <%= s.count %> wejść"></div>
+              <% }) %>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 dark:text-slate-500 mt-2">
+              <span><%= series[0] ? series[0].label : '' %></span>
+              <span>dziś</span>
+            </div>
+          </section>
+
+          <!-- Top strony -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Najpopularniejsze strony</h2>
+            <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Ostatnie 30 dni</p>
+            <% if (topPages.length === 0) { %>
+              <p class="text-sm text-gray-400 dark:text-slate-500 py-6 text-center">Brak danych — statystyki pojawią się po pierwszych wejściach.</p>
+            <% } else { %>
+              <ul class="space-y-2">
+                <% topPages.forEach((p, i) => { %>
+                  <li class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-md bg-gray-100 dark:bg-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-300 flex items-center justify-center shrink-0"><%= i + 1 %></span>
+                    <span class="flex-1 text-sm text-gray-700 dark:text-slate-200 truncate" title="<%= p.path %>"><%= p.path %></span>
+                    <span class="text-sm font-semibold text-gray-900 dark:text-white shrink-0"><%= p.count %></span>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } %>
+          </section>
+        </div>
+
+        <!-- Moduły -->
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Moduły</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <% (locals.adminModules || []).forEach(m => { %>
           <a
             href="<%= adminPrefix + m.path %>"
-            class="group bg-white rounded-xl border border-gray-200 p-5 sm:p-6 hover:shadow-md hover:border-red-200 transition"
+            class="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 hover:shadow-md hover:border-red-200 dark:hover:border-red-500/40 transition"
           >
             <div
-              class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-4 group-hover:bg-red-600 group-hover:text-white transition"
+              class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center mb-4 group-hover:bg-red-600 group-hover:text-white transition"
             >
               <%- icon(m.icon) %>
             </div>
-            <h2 class="font-semibold text-gray-900"><%= m.name %></h2>
-            <p class="text-sm text-gray-500 mt-1"><%= m.desc %></p>
+            <h2 class="font-semibold text-gray-900 dark:text-white"><%= m.name %></h2>
+            <p class="text-sm text-gray-500 dark:text-slate-400 mt-1"><%= m.desc %></p>
           </a>
           <% }) %>
         </div>
       </main>
     </div>
+
+    <script>
+      document.querySelectorAll('#visitsChart [data-h]').forEach(function (el) {
+        el.style.height = el.dataset.h + '%';
+      });
+    </script>
   </body>
 </html>
