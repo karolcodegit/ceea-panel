@@ -72,7 +72,7 @@ async function initializeAdmins() {
 
     console.log(`\n=== NOWY ADMIN: ${email} ===`);
     console.log("Secret:", secret.base32);
-    console.log("Kody awaryjne (ZAPISZ!):", backupCodes.join(", "));
+    console.log("Kody awaryjne (ZAPISZ!):"  , backupCodes.join(", "));
   }
 
   return admins;

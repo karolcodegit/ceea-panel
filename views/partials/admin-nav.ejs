@@ -3,55 +3,99 @@
   const prefix = locals.adminPrefix || "";
   const current = locals.active || "";
   const icon = locals.adminIcon || (() => "");
+  const adminUser = locals.adminUser || null;
+  const adminName = adminUser ? (adminUser.name || adminUser.email) : '';
+  const adminInitial = (adminName || 'A').charAt(0).toUpperCase();
   const linkCls = (key) =>
-    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors " +
+    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 " +
     (current === key
-      ? "bg-red-500/15 text-red-400 font-medium"
-      : "text-slate-400 hover:bg-white/5 hover:text-white");
+      ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+      : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5");
 %>
 
-<!-- Topbar mobilny -->
-<div class="lg:hidden sticky top-0 z-20 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 h-14">
-  <a href="<%= prefix %>/" class="font-bold text-gray-900 dark:text-white">CEEA <span class="text-red-600">Panel</span></a>
-  <button id="navOpen" class="p-2 -mr-2 text-gray-600 dark:text-slate-300" aria-label="Otwórz menu">
-    <%- icon('menu') %>
-  </button>
-</div>
+<!-- ═════ GÓRNY PASEK ADMINA ═════ -->
+<header class="fixed top-0 left-0 right-0 z-30 h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 lg:pl-64 transition-colors">
+  <div class="flex items-center justify-between h-full px-4 lg:px-6">
+    
+    <!-- Lewa strona -->
+    <div class="flex items-center gap-3">
+      <button id="navOpen" class="lg:hidden p-2 -ml-2 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors" aria-label="Otwórz menu">
+        <%- icon('menu') %>
+      </button>
+      <a href="<%= prefix %>/" class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <span class="text-lg tracking-tight">CEEA</span>
+        <span class="text-red-500">Panel</span>
+      </a>
+    </div>
+    
+    <!-- Prawa strona: admin -->
+    <% if (adminUser) { %>
+      <div class="flex items-center gap-3">
+        <span class="hidden sm:block text-sm text-gray-600 dark:text-slate-300 font-medium">
+          <%= adminName %>
+        </span>
+        <span class="w-9 h-9 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full flex items-center justify-center text-sm font-semibold">
+          <%= adminInitial %>
+        </span>
+      </div>
+    <% } %>
+  </div>
+</header>
 
-<!-- Backdrop (mobile) -->
-<div id="navBackdrop" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+<!-- Spacer pod header -->
+<div class="h-16 lg:pl-64"></div>
+
+<!-- Backdrop mobile -->
+<div id="navBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
 <!-- Sidebar -->
-<aside id="adminNav" class="fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 border-r border-slate-800 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-200">
-  <div class="flex items-center justify-between h-14 px-5 border-b border-slate-800 shrink-0">
-    <a href="<%= prefix %>/" class="font-bold text-white">CEEA <span class="text-red-500">Panel</span></a>
-    <button id="navClose" class="lg:hidden p-1 text-slate-400 hover:text-white" aria-label="Zamknij menu">
+<aside id="adminNav" class="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#0f172a] via-[#0B1120] to-[#020617] text-slate-200 border-r border-white/10 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-2xl shadow-black/40">
+  
+  <!-- Logo w sidebarze -->
+  <div class="flex items-center justify-between h-16 px-5 border-b border-white/10 shrink-0 bg-white/5 backdrop-blur-sm">
+    <a href="<%= prefix %>/" class="font-bold text-white flex items-center gap-2">
+      <img
+      src="/images/logo-header-color-black.jpg"
+      alt="CEEA"
+      class="h-5 md:h-5 xl:h-7 w-auto dark:hidden brightness-0 invert"
+    />
+    <img
+      src="/images/logo-header.png"
+      alt="CEEA"
+      class="h-5 md:h-5 xl:h-7 w-auto hidden dark:block"
+    />
+    </a>
+    <button id="navClose" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" aria-label="Zamknij menu">
       <%- icon('close') %>
     </button>
   </div>
 
-  <nav class="flex-1 overflow-y-auto px-3 py-4">
-    <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Menu</p>
-    <div class="space-y-1">
-      <a href="<%= prefix %>/" class="<%= linkCls('home') %>">
-        <%- icon('home') %> Pulpit
+  <!-- Menu -->
+  <nav class="flex-1 overflow-y-auto px-3 py-5 space-y-1">
+    <p class="px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Menu</p>
+    
+    <a href="<%= prefix %>/" class="<%= linkCls('home') %>">
+      <%- icon('home') %> Pulpit
+    </a>
+    
+    <% mods.forEach(m => { %>
+      <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>">
+        <%- icon(m.icon) %> <%= m.name %>
       </a>
-      <% mods.forEach(m => { %>
-        <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>">
-          <%- icon(m.icon) %> <%= m.name %>
-        </a>
-      <% }) %>
-    </div>
+    <% }) %>
   </nav>
 
-  <div class="border-t border-slate-800 p-3 shrink-0 space-y-1">
-    <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Konto</p>
-    <a href="<%= prefix %>/ustawienia" class="<%= linkCls('ustawienia') %>">
-      <%- icon('settings') %> Ustawienia
-    </a>
-    <a href="<%= prefix %>/wyloguj" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors">
-      <%- icon('logout') %> Wyloguj
-    </a>
+  <!-- Konto -->
+  <div class="border-t border-white/10 p-3 shrink-0 bg-gradient-to-t from-black/20 to-transparent">
+    <p class="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Konto</p>
+    <div class="space-y-1">
+      <a href="<%= prefix %>/ustawienia" class="<%= linkCls('ustawienia') %>">
+        <%- icon('settings') %> Ustawienia
+      </a>
+      <a href="<%= prefix %>/wyloguj" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200">
+        <%- icon('logout') %> Wyloguj
+      </a>
+    </div>
   </div>
 </aside>
 
@@ -59,8 +103,19 @@
   (function () {
     var nav = document.getElementById('adminNav');
     var backdrop = document.getElementById('navBackdrop');
-    function open() { nav.classList.remove('-translate-x-full'); backdrop.classList.remove('hidden'); }
-    function close() { nav.classList.add('-translate-x-full'); backdrop.classList.add('hidden'); }
+    
+    function open() { 
+      nav.classList.remove('-translate-x-full'); 
+      backdrop.classList.remove('hidden');
+      requestAnimationFrame(() => backdrop.classList.remove('opacity-0'));
+    }
+    
+    function close() { 
+      nav.classList.add('-translate-x-full'); 
+      backdrop.classList.add('opacity-0');
+      setTimeout(() => backdrop.classList.add('hidden'), 300);
+    }
+    
     document.getElementById('navOpen')?.addEventListener('click', open);
     document.getElementById('navClose')?.addEventListener('click', close);
     backdrop?.addEventListener('click', close);
@@ -68,67 +123,67 @@
   })();
 </script>
 
-<!-- Modal potwierdzenia (globalny dla panelu admina) -->
+<!-- Modal potwierdzenia -->
 <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-    <div id="confirmBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-150"></div>
-    <div id="confirmCard" role="dialog" aria-modal="true"
-         class="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-150">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Potwierdzenie</h3>
-      <p id="confirmMessage" class="text-sm text-gray-500 dark:text-slate-400 mb-6"></p>
-      <div class="flex justify-end gap-2">
-        <button type="button" id="confirmCancel"
-          class="px-4 py-2 text-sm rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600">Anuluj</button>
-        <button type="button" id="confirmOk"
-          class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700">Usuń</button>
-      </div>
+  <div id="confirmBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-200"></div>
+  <div id="confirmCard" role="dialog" aria-modal="true"
+       class="relative bg-white dark:bg-slate-800 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-200">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Potwierdzenie</h3>
+    <p id="confirmMessage" class="text-sm text-gray-500 dark:text-slate-400 mb-6"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="confirmCancel"
+        class="px-4 py-2 text-sm rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">Anuluj</button>
+      <button type="button" id="confirmOk"
+        class="px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all">Usuń</button>
     </div>
   </div>
-  
-  <script>
-    (function () {
-      var modal = document.getElementById('confirmModal');
-      var cBackdrop = document.getElementById('confirmBackdrop');
-      var card = document.getElementById('confirmCard');
-      var msg = document.getElementById('confirmMessage');
-      var btnOk = document.getElementById('confirmOk');
-      var btnCancel = document.getElementById('confirmCancel');
-      var pendingForm = null;
-  
-      function open(message, form) {
-        pendingForm = form;
-        msg.textContent = message;
-        btnOk.textContent = form.dataset.confirmOk || 'Usuń';
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        requestAnimationFrame(function () {
-          cBackdrop.classList.remove('opacity-0');
-          card.classList.remove('opacity-0', 'scale-95');
-        });
-        btnOk.focus();
-      }
-  
-      function close() {
-        cBackdrop.classList.add('opacity-0');
-        card.classList.add('opacity-0', 'scale-95');
-        setTimeout(function () {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-          pendingForm = null;
-        }, 150);
-      }
-  
-      document.addEventListener('submit', function (e) {
-        var form = e.target.closest('form.js-confirm');
-        if (!form) return;
-        e.preventDefault();
-        open(form.dataset.confirm || 'Czy na pewno?', form);
+</div>
+
+<script>
+  (function () {
+    var modal = document.getElementById('confirmModal');
+    var cBackdrop = document.getElementById('confirmBackdrop');
+    var card = document.getElementById('confirmCard');
+    var msg = document.getElementById('confirmMessage');
+    var btnOk = document.getElementById('confirmOk');
+    var btnCancel = document.getElementById('confirmCancel');
+    var pendingForm = null;
+
+    function open(message, form) {
+      pendingForm = form;
+      msg.textContent = message;
+      btnOk.textContent = form.dataset.confirmOk || 'Usuń';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(function () {
+        cBackdrop.classList.remove('opacity-0');
+        card.classList.remove('opacity-0', 'scale-95');
       });
-  
-      btnOk.addEventListener('click', function () { if (pendingForm) pendingForm.submit(); });
-      btnCancel.addEventListener('click', close);
-      cBackdrop.addEventListener('click', close);
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
-      });
-    })();
-  </script>
+      btnOk.focus();
+    }
+
+    function close() {
+      cBackdrop.classList.add('opacity-0');
+      card.classList.add('opacity-0', 'scale-95');
+      setTimeout(function () {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        pendingForm = null;
+      }, 200);
+    }
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target.closest('form.js-confirm');
+      if (!form) return;
+      e.preventDefault();
+      open(form.dataset.confirm || 'Czy na pewno?', form);
+    });
+
+    btnOk.addEventListener('click', function () { if (pendingForm) pendingForm.submit(); });
+    btnCancel.addEventListener('click', close);
+    cBackdrop.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+    });
+  })();
+</script>

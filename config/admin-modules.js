@@ -15,4 +15,18 @@ module.exports = [
       icon: "envelope",
       desc: "Wysyłka wiadomości do uczestników kursów",
     },
+    {
+      key: "certyfikaty",
+      name: "Certyfikaty",
+      path: "/certyfikaty",
+      icon: "envelope",
+      desc: "Generowanie certifikatów",
+    },
+    {
+      key: "platnosci",
+      name: "Płatności",
+      path: "/platnosci",
+      icon: "envelope",
+      desc: "Zarządzanie płatnościami",
+    },
   ];

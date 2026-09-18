@@ -8,10 +8,21 @@
   
   <%- include('../partials/header') %>
 
-  <main class="flex-1">
+  <main class="flex bg-slate-950">
     <%- body %>
   </main>
 
   <%- include('../partials/footer') %>
 </body>
+<script>
+  window.CEEA_FEEDBACK_CONFIG = {
+    supabaseUrl: 'https://kdksdqfnfqoauphpippu.supabase.co',
+    edgeFunctionUrl: 'https://kdksdqfnfqoauphpippu.supabase.co/functions/v1/feedback-submit',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtka3NkcWZuZnFvYXVwaHBpcHB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2ODcxMTcsImV4cCI6MjEwNDI2MzExN30.4gBxpq2yqvVf6O4spB8V7c1xiHEhxSz5oy2j0hHXsdg',
+    source: 'panel',
+    position: 'bottom-right',
+    primaryColor: '#0ea5e9',
+  };
+</script>
+<script src="/js/ceea-feedback-widget.js" defer></script>
 </html>

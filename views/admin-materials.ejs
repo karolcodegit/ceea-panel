@@ -5,11 +5,11 @@
   <title><%= course.nameCourse %> — Materiały</title>
   <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
 </head>
-<body class="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors">
+<body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors">
   <%- include('partials/admin-nav', { active: 'kursy' }) %>
 
   <div class="lg:pl-64">
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 ">
 
       <div class="mb-6">
         <a href="<%= adminPrefix %>/kursy"
@@ -272,38 +272,61 @@
 
     // 🔹 Natywny upload przez fetch — mobile fallback
     nativeFileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-      uploadBtn.innerHTML = '<span class="text-2xl block mb-1">⏳</span><span class="font-medium">Wysyłanie...</span>';
-      uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '<span class="text-2xl block mb-1">⏳</span><span class="font-medium">Wysyłanie...</span>';
+  uploadBtn.disabled = true;
 
-      const detectedType = detectTypeFromFile(file);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', '<%= uploadPreset %>');
+  const detectedType = detectTypeFromFile(file);
 
-      try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/<%= cloudName %>/auto/upload`, {
-          method: 'POST',
-          body: formData
-        });
+  // 🔹 iOS Safari lepiej radzi sobie z konkretnym endpointem niż /auto/
+  let resourceType = 'auto';
+  if (detectedType === 'jpg') resourceType = 'image';
+  else if (detectedType === 'video') resourceType = 'video';
+  else resourceType = 'raw'; // PDF i inne
 
-        if (!res.ok) throw new Error('Upload failed');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', '<%= uploadPreset %>');
+  formData.append('resource_type', resourceType);
 
-        const data = await res.json();
-        fileUrl.value = data.secure_url;
-        fileType.value = detectedType;
-        showPreview(file.name, detectedType);
-      } catch (err) {
-        console.error('Upload error:', err);
-        alert('Błąd przesyłania pliku. Spróbuj ponownie lub użyj mniejszego pliku.');
-      } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = '<span class="text-2xl block mb-1">📁</span><span class="font-medium">Wybierz plik</span><br><span class="text-xs text-gray-400 dark:text-slate-500">PDF, wideo, zdjęcia — typ wykrywany automatycznie</span>';
-        nativeFileInput.value = '';
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/<%= cloudName %>/${resourceType}/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        credentials: 'omit', // 🔹 ważne dla CORS na Safari
+        // NIE dodawaj Content-Type! FormData sam ustawia boundary
       }
-    });
+    );
+
+    const data = await res.json();
+
+    // 🔹 Cloudinary zwraca błąd w body mimo statusu 200
+    if (data.error) {
+      console.error('Cloudinary error:', data.error);
+      throw new Error(data.error.message);
+    }
+
+    if (!res.ok) {
+      throw new Error(`Błąd serwera: ${res.status}`);
+    }
+
+    fileUrl.value = data.secure_url;
+    fileType.value = detectedType;
+    showPreview(file.name, detectedType);
+
+  } catch (err) {
+    console.error('Upload error:', err);
+    alert('Błąd przesyłania:\n\n' + (err.message || 'Sprawdź połączenie i spróbuj ponownie.'));
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.innerHTML = '<span class="text-2xl block mb-1">📁</span><span class="font-medium">Wybierz plik</span><br><span class="text-xs text-gray-400 dark:text-slate-500">PDF, wideo, zdjęcia — typ wykrywany automatycznie</span>';
+    nativeFileInput.value = '';
+  }
+});
 
     document.getElementById('clearFile').addEventListener('click', () => {
       fileUrl.value = '';

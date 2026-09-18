@@ -5,30 +5,59 @@
     <title><%= title || 'Panel uczestnika — CEEA' %></title>
     <style>
       /* prawa strona — kropki */
-      .login-dots { background-image: radial-gradient(#dc2626 1px, transparent 1px); background-size: 20px 20px; }
-      .dark .login-dots { background-image: radial-gradient(rgba(148, 163, 184, 0.5) 1px, transparent 1px); }
+      .login-dots {
+        background-image: radial-gradient(#dc2626 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      .dark .login-dots {
+        background-image: radial-gradient(
+          rgba(148, 163, 184, 0.5) 1px,
+          transparent 1px
+        );
+      }
 
       /* lewa strona — dryfujące kropki */
       .dots-layer {
-        background-image: radial-gradient(rgba(255, 255, 255, 0.85) 1.2px, transparent 1.3px);
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.85) 1.2px,
+          transparent 1.3px
+        );
         background-size: 28px 28px;
         animation: dots-drift 22s linear infinite;
       }
       @keyframes dots-drift {
-        from { background-position: 0 0; }
-        to { background-position: 56px 56px; }
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: 56px 56px;
+        }
       }
 
       /* pływające bloby */
-      .anim-float-a { animation: float-a 14s ease-in-out infinite; }
-      .anim-float-b { animation: float-b 19s ease-in-out infinite; }
+      .anim-float-a {
+        animation: float-a 14s ease-in-out infinite;
+      }
+      .anim-float-b {
+        animation: float-b 19s ease-in-out infinite;
+      }
       @keyframes float-a {
-        0%, 100% { transform: translate(0, 0); }
-        50% { transform: translate(24px, -28px); }
+        0%,
+        100% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(24px, -28px);
+        }
       }
       @keyframes float-b {
-        0%, 100% { transform: translate(0, 0); }
-        50% { transform: translate(-28px, 20px); }
+        0%,
+        100% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(-28px, 20px);
+        }
       }
 
       /* linia EKG — jasny puls przesuwa się po śladzie */
@@ -37,28 +66,58 @@
         animation: ecg-run 6s linear infinite;
       }
       @keyframes ecg-run {
-        from { stroke-dashoffset: 0; }
-        to { stroke-dashoffset: -2200; }
+        from {
+          stroke-dashoffset: 0;
+        }
+        to {
+          stroke-dashoffset: -2200;
+        }
       }
 
       /* karty delikatnie się unoszą */
-      .anim-bob { animation: bob 6s ease-in-out infinite; }
-      .anim-bob-delay { animation-delay: 1.6s; }
+      .anim-bob {
+        animation: bob 6s ease-in-out infinite;
+      }
+      .anim-bob-delay {
+        animation-delay: 1.6s;
+      }
       @keyframes bob {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
       }
 
       /* wejście przy ładowaniu */
-      .anim-rise { animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both; }
-      .anim-rise-1 { animation-delay: 0.1s; }
+      .anim-rise {
+        animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both;
+      }
+      .anim-rise-1 {
+        animation-delay: 0.1s;
+      }
       @keyframes rise {
-        from { opacity: 0; transform: translateY(14px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .dots-layer, .anim-float-a, .anim-float-b, .ecg-pulse, .anim-bob, .anim-rise { animation: none !important; }
+        .dots-layer,
+        .anim-float-a,
+        .anim-float-b,
+        .ecg-pulse,
+        .anim-bob,
+        .anim-rise {
+          animation: none !important;
+        }
       }
     </style>
   </head>
@@ -88,8 +147,16 @@
       ></div>
 
       <!-- linia EKG -->
-      <div class="absolute inset-x-0 bottom-14 pointer-events-none" aria-hidden="true">
-        <svg class="w-full h-40" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none">
+      <div
+        class="absolute inset-x-0 bottom-14 pointer-events-none"
+        aria-hidden="true"
+      >
+        <svg
+          class="w-full h-40"
+          viewBox="0 0 1200 120"
+          preserveAspectRatio="none"
+          fill="none"
+        >
           <path
             d="M0 60 H150 L172 50 L186 60 H260 L282 14 L296 100 L308 60 H430 L445 52 L460 60 H620 L642 14 L656 100 L668 60 H790 L805 52 L820 60 H980 L1002 14 L1016 100 L1028 60 H1200"
             stroke="rgba(255,255,255,0.18)"
@@ -103,7 +170,7 @@
             stroke-width="2.5"
             stroke-linecap="round"
             vector-effect="non-scaling-stroke"
-            style="filter: drop-shadow(0 0 6px rgba(255,255,255,0.7))"
+            style="filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7))"
           />
         </svg>
       </div>
@@ -197,7 +264,7 @@
               <img
                 src="/images/logo-header-color-black.jpg"
                 alt="CEEA"
-                class="h-8 w-auto"
+                class="xl:h-8 h-6 w-auto dark:brightness-0 dark:invert"
               />
             </span>
           </div>
@@ -238,14 +305,18 @@
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <p class="text-green-700 dark:text-green-300 text-sm"><%= message %></p>
+            <p class="text-green-700 dark:text-green-300 text-sm">
+              <%= message %>
+            </p>
           </div>
           <% } %>
 
           <!-- WIDOK 1: email -->
           <div id="view-email" class="login-view active">
             <div class="mb-8 text-center">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Zaloguj się</h2>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Zaloguj się
+              </h2>
               <p class="text-gray-500 dark:text-slate-400 text-sm">
                 Wprowadź email podany przy rejestracji na kurs
               </p>
@@ -296,7 +367,9 @@
               </button>
             </form>
 
-            <p class="mt-4 text-center text-sm text-gray-500 dark:text-slate-400">
+            <p
+              class="mt-4 text-center text-sm text-gray-500 dark:text-slate-400"
+            >
               Nie pamiętasz hasła?
               <button
                 type="button"
@@ -307,7 +380,9 @@
               </button>
             </p>
 
-            <div class="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+            <div
+              class="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700"
+            >
               <% if (typeof registrationUrl !== 'undefined' && registrationUrl)
               { %>
               <p class="text-sm text-gray-500 dark:text-slate-400 text-center">
@@ -330,7 +405,9 @@
           <!-- WIDOK 2: hasło -->
           <div id="view-password" class="login-view">
             <div class="mb-8 text-center">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Wpisz hasło</h2>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Wpisz hasło
+              </h2>
               <p class="text-gray-500 dark:text-slate-400 text-sm">
                 Hasło wysłaliśmy wcześniej na Twój adres email
               </p>
@@ -384,7 +461,10 @@
                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p class="text-red-700 dark:text-red-300 text-sm" id="login-error-text"></p>
+              <p
+                class="text-red-700 dark:text-red-300 text-sm"
+                id="login-error-text"
+              ></p>
             </div>
 
             <form id="form-password" class="space-y-5">
@@ -472,7 +552,9 @@
               </button>
             </form>
 
-            <p class="mt-5 text-center text-sm text-gray-500 dark:text-slate-400">
+            <p
+              class="mt-5 text-center text-sm text-gray-500 dark:text-slate-400"
+            >
               Nie pamiętasz hasła?
               <button
                 type="button"
@@ -524,10 +606,15 @@
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                 Sprawdź skrzynkę
               </h2>
-              <p class="text-gray-500 dark:text-slate-400 text-sm leading-relaxed mb-2">
+              <p
+                class="text-gray-500 dark:text-slate-400 text-sm leading-relaxed mb-2"
+              >
                 Jeśli adres
-                <strong id="sent-email" class="text-gray-800 dark:text-slate-100"></strong> figuruje
-                w naszej bazie, wysłaliśmy na niego hasło do logowania.
+                <strong
+                  id="sent-email"
+                  class="text-gray-800 dark:text-slate-100"
+                ></strong>
+                figuruje w naszej bazie, wysłaliśmy na niego hasło do logowania.
               </p>
               <p class="text-gray-400 dark:text-slate-500 text-xs mb-8">
                 Nie widzisz wiadomości? Sprawdź folder spam lub poczekaj kilka
@@ -548,13 +635,21 @@
         <div
           class="mt-6 flex items-center justify-center gap-6 text-xs text-gray-400 dark:text-slate-500"
         >
-          <a href="/pomoc" class="hover:text-gray-600 dark:hover:text-slate-300">Pomoc</a>
+          <a href="/pomoc" class="hover:text-gray-600 dark:hover:text-slate-300"
+            >Pomoc</a
+          >
           <span class="text-gray-300 dark:text-slate-600">|</span>
-          <a href="/polityka-prywatnosci" class="hover:text-gray-600 dark:hover:text-slate-300"
+          <a
+            href="/polityka-prywatnosci"
+            class="hover:text-gray-600 dark:hover:text-slate-300"
             >Polityka prywatności</a
           >
           <span class="text-gray-300 dark:text-slate-600">|</span>
-          <a href="/regulamin" class="hover:text-gray-600 dark:hover:text-slate-300">Regulamin</a>
+          <a
+            href="/regulamin"
+            class="hover:text-gray-600 dark:hover:text-slate-300"
+            >Regulamin</a
+          >
         </div>
       </div>
     </div>

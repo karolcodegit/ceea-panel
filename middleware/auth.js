@@ -1,10 +1,9 @@
 const ADMIN_PREFIX = "/ceea-poznan-admin";
 
 const setAdminPathFlag = (req, res, next) => {
-  req.isAdminPath = req.path.startsWith(ADMIN_PREFIX);
+  req.isAdminPath = req.originalUrl.startsWith(ADMIN_PREFIX);process.on("SIGTERM", () => emailQueue.stop());
   next();
 };
-
 const requireAuth = (req, res, next) => {
   if (req.session.user) return next();
   res.redirect("/");

@@ -7,10 +7,22 @@ const { grantAccess } = require("../services/access");
 const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
 
+const { renderTemplate, getTemplateDefaults } = require("../services/email");
+const EmailQueue = require("../services/emailQueue");
+
 router.use((req, res, next) => {
   res.locals.adminPrefix = ADMIN_PREFIX;
   res.locals.adminModules = adminModules;
   res.locals.adminIcon = adminIcon;
+
+  const token = req.cookies?.adminToken;
+  const session = req.app.locals.sessions.get(token);
+  if (session && session.expires > Date.now()) {
+    res.locals.adminUser = req.app.locals.admins.get(session.email);
+  } else {
+    res.locals.adminUser = null;
+  }
+  
   next();
 });
 
@@ -55,7 +67,6 @@ router.get("/", adminOnly, async (req, res) => {
     visits.week = views.filter((v) => new Date(v.created_at) >= weekAgo).length;
     visits.today = views.filter((v) => new Date(v.created_at) >= startToday).length;
 
-    // ostatnie 14 dni — dzień po dniu
     for (let i = 13; i >= 0; i--) {
       const dayStart = new Date(now);
       dayStart.setHours(0, 0, 0, 0);
@@ -111,7 +122,6 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
   res.render("admin-ustawienia", { isAdmin: true, active: "ustawienia", status });
 });
 
-// Kopia zapasowa danych (RODO) — bez haseł
 router.get("/ustawienia/eksport", adminOnly, requireAdmin, async (req, res) => {
   try {
     const [{ data: users }, { data: enrollments }, { data: materials }] = await Promise.all([
@@ -168,35 +178,29 @@ router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
 });
 
 // ===== MATERIALY =====
-router.get(
-  "/kursy/:id/materials",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const course = await fetchCourseById(req.params.id);
-      if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
+router.get("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const course = await fetchCourseById(req.params.id);
+    if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
 
-      const { data: materials, error: materialsError } = await supabase
-        .from("materials").select("*").eq("course_id", req.params.id).order("order_num");
+    const { data: materials, error: materialsError } = await supabase
+      .from("materials").select("*").eq("course_id", req.params.id).order("order_num");
 
-      if (materialsError)
-        console.error("Błąd pobierania materiałów:", materialsError);
+    if (materialsError) console.error("Błąd pobierania materiałów:", materialsError);
 
-      res.render("admin-materials", {
-        isAdmin: true,
-        adminPrefix: ADMIN_PREFIX,
-        course,
-        materials: materials || [],
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-        uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
-      });
-    } catch (err) {
-      console.error("Błąd serwera (materiały):", err);
-      res.redirect(ADMIN_PREFIX + "/kursy");
-    }
+    res.render("admin-materials", {
+      isAdmin: true,
+      adminPrefix: ADMIN_PREFIX,
+      course,
+      materials: materials || [],
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
+    });
+  } catch (err) {
+    console.error("Błąd serwera (materiały):", err);
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
-);
+});
 
 router.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) => {
   const { title, type, url } = req.body;
@@ -213,15 +217,13 @@ router.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) =>
       .limit(1)
       .maybeSingle();
 
-    const { error } = await supabase.from("materials").insert([
-      {
-        course_id: req.params.id,
-        title,
-        type: type || "link",
-        url,
-        order_num: (last?.order_num || 0) + 1,
-      },
-    ]);
+    const { error } = await supabase.from("materials").insert([{
+      course_id: req.params.id,
+      title,
+      type: type || "link",
+      url,
+      order_num: (last?.order_num || 0) + 1,
+    }]);
     if (error) console.error("Błąd dodawania materiału:", error);
     res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
   } catch (err) {
@@ -230,96 +232,274 @@ router.post("/kursy/:id/materials", adminOnly, requireAdmin, async (req, res) =>
   }
 });
 
-router.post(
-  "/materials/:id/delete",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { data: material, error: fetchError } = await supabase
-        .from("materials")
-        .select("course_id")
-        .eq("id", req.params.id)
-        .single();
+router.post("/materials/:id/delete", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { data: material, error: fetchError } = await supabase
+      .from("materials")
+      .select("course_id")
+      .eq("id", req.params.id)
+      .single();
 
-      if (fetchError) {
-        console.error("Błąd pobierania materiału:", fetchError);
-        return res.redirect(ADMIN_PREFIX + "/kursy");
-      }
-
-      const { error: deleteError } = await supabase
-        .from("materials")
-        .delete()
-        .eq("id", req.params.id);
-
-      if (deleteError) console.error("Błąd usuwania materiału:", deleteError);
-
-      res.redirect(`${ADMIN_PREFIX}/kursy/${material.course_id}/materials`);
-    } catch (err) {
-      console.error("Błąd serwera (usuwanie materiału):", err);
-      res.redirect(ADMIN_PREFIX + "/kursy");
+    if (fetchError) {
+      console.error("Błąd pobierania materiału:", fetchError);
+      return res.redirect(ADMIN_PREFIX + "/kursy");
     }
+
+    const { error: deleteError } = await supabase
+      .from("materials")
+      .delete()
+      .eq("id", req.params.id);
+
+    if (deleteError) console.error("Błąd usuwania materiału:", deleteError);
+    res.redirect(`${ADMIN_PREFIX}/kursy/${material.course_id}/materials`);
+  } catch (err) {
+    console.error("Błąd serwera (usuwanie materiału):", err);
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
-);
+});
 
 // ===== UCZESTNICY =====
-router.get(
-  "/kursy/:id/uczestnicy",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const course = await fetchCourseById(req.params.id);
-      if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
+router.get("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const course = await fetchCourseById(req.params.id);
+    if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
 
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from("enrollments")
-        .select("id, status, created_at, users(email, name, surname)")
-        .eq("course_id", req.params.id);
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from("enrollments")
+      .select("id, status, created_at, users(email, name, surname)")
+      .eq("course_id", req.params.id);
 
-      if (enrollmentsError)
-        console.error("Błąd pobierania uczestników:", enrollmentsError);
+    if (enrollmentsError) console.error("Błąd pobierania uczestników:", enrollmentsError);
 
-      const participants = (enrollments || []).map((e) => ({
-        id: e.id,
-        status: e.status,
-        created_at: e.created_at,
-        email: e.users?.email || "",
-        name: e.users?.name || "",
-        surname: e.users?.surname || "",
-      }));
+    const participants = (enrollments || []).map((e) => ({
+      id: e.id,
+      status: e.status,
+      created_at: e.created_at,
+      email: e.users?.email || "",
+      name: e.users?.name || "",
+      surname: e.users?.surname || "",
+    }));
 
-      res.render("admin-uczestnicy", {
-        isAdmin: true,
-        adminPrefix: ADMIN_PREFIX,
-        course,
-        enrollments: participants,
-      });
-    } catch (err) {
-      console.error("Błąd serwera (uczestnicy):", err);
-      res.redirect(ADMIN_PREFIX + "/kursy");
-    }
+    res.render("admin-uczestnicy", {
+      isAdmin: true,
+      adminPrefix: ADMIN_PREFIX,
+      course,
+      enrollments: participants,
+    });
+  } catch (err) {
+    console.error("Błąd serwera (uczestnicy):", err);
+    res.redirect(ADMIN_PREFIX + "/kursy");
   }
-);
+});
 
-router.post(
-  "/kursy/:id/uczestnicy",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      await grantAccess({ email: req.body.email, courseId: req.params.id });
-    } catch (err) {
-      console.error("Błąd dodawania uczestnika:", err);
-    }
-    res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
+router.post("/kursy/:id/uczestnicy", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    await grantAccess({ email: req.body.email, courseId: req.params.id });
+  } catch (err) {
+    console.error("Błąd dodawania uczestnika:", err);
   }
-);
+  res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
+});
 
+// ═══════════════════════════════════════════════════════════════
 // ===== MAILE =====
+// ═══════════════════════════════════════════════════════════════
+
+// ── Strona główna modułu mailowego ──
 router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
-  const courses = await fetchAllCourses();
-  res.render("admin-maile", { isAdmin: true, active: "maile", courses, sent: null });
+  try {
+    const courses = await fetchAllCourses();
+    const queue = req.app.get("emailQueue");
+    
+    let stats = { pending: 0, sentToday: 0, failed: 0, limit: 50 };
+    if (queue && typeof queue.getStats === "function") {
+      stats = await queue.getStats();
+    }
+
+    const { data: logs } = await supabase
+      .from("email_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    res.render("admin-maile", {
+      isAdmin: true,
+      active: "maile",
+      courses,
+      stats,
+      logs: logs || [],
+      sent: req.query.sent || null,
+      error: req.query.error || null,
+    });
+  } catch (err) {
+    console.error("[GET /maile] Błąd:", err);
+    const courses = await fetchAllCourses().catch(() => []);
+    res.render("admin-maile", {
+      isAdmin: true,
+      active: "maile",
+      courses,
+      stats: { pending: 0, sentToday: 0, failed: 0, limit: 50 },
+      logs: [],
+      sent: null,
+      error: err.message,
+    });
+  }
+});
+
+// ── API: Pobierz predefiniowane dane szablonu ──
+router.post("/maile/template-data", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { templateKey, courseId, courseName, courseDate } = req.body;
+
+    const data = {
+      courseTitle: courseName || "Kurs CEEA",
+      courseNumber: courseId && courseId !== "all" && courseId !== "test" ? courseId : "6",
+      date: courseDate || "22-24.10.2026",
+      location: "Hotelu Ilonn w Poznaniu",
+      firstName: "Jan",
+      total: "2500",
+      orderNumber: "CEEA-2026-001",
+      panelUrl: "https://panel.ceea.org.pl",
+      agendaUrl: "",
+    };
+
+    const defaults = getTemplateDefaults(templateKey, data);
+    res.json({ ok: true, ...defaults });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+// ── API: Podgląd maila ──
+router.post("/maile/preview", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { templateKey, courseTitle, firstName, bodyHtml, subject, preheader } = req.body;
+
+    const data = {
+      courseTitle: courseTitle || "Medycyna okołooperacyjna",
+      courseNumber: "6",
+      firstName: firstName || "Jan",
+      total: "2500",
+      orderNumber: "CEEA-2026-001",
+      panelUrl: "https://panel.ceea.org.pl",
+      date: "22-24.10.2026",
+      location: "Hotelu Ilonn w Poznaniu",
+      agendaUrl: "https://ceea.org.pl/program",
+      subject,
+      preheader,
+    };
+
+    const rendered = renderTemplate(templateKey, data, bodyHtml);
+    res.json({ ok: true, html: rendered.html, text: rendered.text, subject: rendered.subject });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+// ── API: Dodaj do kolejki ──
+router.post("/maile", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { courseId, templateKey, subject, bodyHtml, preheader } = req.body;
+    const queue = req.app.get("emailQueue");
+
+    if (!queue) {
+      throw new Error("Kolejka mailowa nie jest zainicjalizowana");
+    }
+
+    // TEST: wyślij tylko na testowy mail
+    if (courseId === "test") {
+      const data = {
+        courseTitle: req.body.courseTitle || "Kurs CEEA",
+        firstName: "Karol",
+        total: req.body.total || "",
+        orderNumber: req.body.orderNumber || "",
+        panelUrl: "https://panel.ceea.org.pl",
+        date: req.body.date || "",
+        location: req.body.location || "",
+        agendaUrl: req.body.agendaUrl || "",
+        subject,
+        preheader,
+      };
+      const rendered = renderTemplate(templateKey, data, bodyHtml);
+      await queue.enqueue({
+        recipientEmail: "karol.znojkiewicz@outlook.com",
+        recipientName: "Karol Znojkiewicz",
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        courseId: null,
+        templateKey,
+      });
+      return res.redirect(`${ADMIN_PREFIX}/maile?sent=1`);
+    }
+
+    // Normalna wysyłka
+    let query = supabase
+      .from("enrollments")
+      .select("id, status, users(email, name, surname)")
+      .or("status.eq.paid,status.eq.active");
+
+    if (courseId && courseId !== "all") {
+      query = query.eq("course_id", courseId);
+    }
+
+    const { data: enrollments, error: enrollError } = await query;
+
+    if (enrollError) throw enrollError;
+    if (!enrollments || enrollments.length === 0) {
+      return res.redirect(`${ADMIN_PREFIX}/maile?error=${encodeURIComponent("Brak odbiorców dla wybranych kryteriów")}`);
+    }
+
+    let enqueued = 0;
+    for (const enrollment of enrollments) {
+      const user = enrollment.users;
+      if (!user || !user.email) continue;
+
+      const data = {
+        courseTitle: req.body.courseTitle || "Kurs CEEA",
+        courseNumber: req.body.courseNumber || "6",
+        firstName: user.name || "",
+        lastName: user.surname || "",
+        total: req.body.total || "",
+        orderNumber: req.body.orderNumber || "",
+        panelUrl: "https://panel.ceea.org.pl",
+        date: req.body.date || "",
+        location: req.body.location || "",
+        agendaUrl: req.body.agendaUrl || "",
+        subject,
+        preheader,
+      };
+
+      const rendered = renderTemplate(templateKey, data, bodyHtml);
+
+      await queue.enqueue({
+        recipientEmail: user.email,
+        recipientName: `${user.name || ""} ${user.surname || ""}`.trim(),
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        courseId: courseId === "all" ? null : parseInt(courseId),
+        templateKey,
+      });
+      enqueued++;
+    }
+
+    res.redirect(`${ADMIN_PREFIX}/maile?sent=${enqueued}`);
+  } catch (err) {
+    console.error("[POST /maile] Błąd:", err);
+    res.redirect(`${ADMIN_PREFIX}/maile?error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+// ── API: Status kolejki (dla AJAX) ──
+router.get("/maile/stats", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const queue = req.app.get("emailQueue");
+    if (!queue) return res.json({ pending: 0, sentToday: 0, failed: 0, limit: 50 });
+    res.json(await queue.getStats());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

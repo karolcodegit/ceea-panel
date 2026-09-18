@@ -3,12 +3,26 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
+const { createClient } = require("@supabase/supabase-js");
+const WebSocket = require("ws");
+
 const { initializeAdmins } = require("./config/admins");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const userRoutes = require("./routes/user");
 const { ADMIN_PREFIX, setAdminPathFlag } = require("./middleware/auth");
+const EmailQueue = require("./services/emailQueue");
 
+// ===== SUPABASE =====
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY,
+  {
+    realtime: { transport: WebSocket },
+  }
+);
+
+// ===== EXPRESS =====
 const app = express();
 app.set("trust proxy", 1);
 
@@ -33,25 +47,20 @@ app.use(
 app.use(express.static(path.join(__dirname, "public")));
 app.use(setAdminPathFlag);
 
-// ===== INICJALIZACJA TOTP ADMINÓW =====
+// ===== INICJALIZACJA =====
 app.locals.admins = new Map();
 app.locals.sessions = new Map();
 
-initializeAdmins()
-  .then((admins) => {
-    app.locals.admins = admins;
-    console.log("Admini TOTP zainicjalizowani:", admins.size);
-  })
-  .catch((err) => {
-    console.error("❌ Błąd inicjalizacji adminów:", err.message);
-  });
+// ===== EMAIL QUEUE =====
+const emailQueue = new EmailQueue(supabase);
+app.set("emailQueue", emailQueue);
 
 // ===== ROUTERY =====
 app.use("/api/auth", authRoutes);
 app.use(ADMIN_PREFIX, adminRoutes);
 app.use("/", userRoutes);
 
-// ===== 404 (musi być PO routerach) =====
+// ===== 404 =====
 app.use((req, res) => {
   res.status(404).render("error", {
     title: "404 — Nie znaleziono",
@@ -61,6 +70,7 @@ app.use((req, res) => {
 
 // ===== START =====
 const PORT = process.env.PORT || 3000;
+let server;
 
 async function start() {
   try {
@@ -69,14 +79,23 @@ async function start() {
     console.log("Admini TOTP zainicjalizowani:", admins.size);
   } catch (err) {
     console.error("❌ Błąd inicjalizacji adminów:", err.message);
-    process.exit(1); // Northflank sam zrestartuje kontener i spróbuje ponownie
+    process.exit(1);
   }
 
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`✅ Panel działa na http://localhost:${PORT}`);
     console.log(`📅 Data uruchomienia: ${new Date().toISOString()}`);
   });
 }
+
+// Graceful shutdown — POZA start(), rejestrowane raz
+const shutdown = () => {
+  emailQueue.stop();
+  if (server) server.close(() => process.exit(0));
+  else process.exit(0);
+};
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 if (require.main === module) {
   start();
