@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Faktury — Panel CEEA</title>
+    <style>
+      .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+      .ksef-not_sent { @apply bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-300; }
+      .ksef-sent { @apply bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300; }
+      .ksef-delivered { @apply bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300; }
+      .ksef-rejected { @apply bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300; }
+      @media print {
+        .no-print { display: none !important; }
+        body { background: white; }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'faktury' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'faktury') || { name: 'Faktury', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <% if (ksefEnabled) { %>
+              <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">KSeF: aktywny</span>
+            <% } else { %>
+              <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300" title="Integracja przygotowana – włączenie po konfiguracji certyfikatu">KSeF: wkrótce</span>
+            <% } %>
+          </div>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error || locals.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+        <% } %>
+
+        <!-- Filtry -->
+        <div class="no-print bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
+            <div>
+              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                <input type="text" id="search" placeholder="nazwa firmy, NIP, email, nazwisko..."
+                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+              </div>
+            </div>
+            <div>
+              <label for="fStatus" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status faktury</label>
+              <select id="fStatus" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie</option>
+                <option value="missing">Nie wystawiona</option>
+                <option value="pdf">Wystawiona (PDF)</option>
+                <option value="ksef">W KSeF</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela (komponent DataTable) -->
+        <div id="invoicesTable"></div>
+
+        <!-- Modal faktury -->
+        <div id="invoiceModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dane do faktury</h3>
+            <form id="invoiceForm" method="POST" class="space-y-3">
+              <input type="hidden" name="paymentId" id="mPaymentId" />
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa / Firma</label>
+                <input type="text" name="buyerName" id="mName" required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Adres</label>
+                <textarea name="buyerAddress" id="mAddress" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP</label>
+                <input type="text" name="buyerNip" id="mNip"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Generuj fakturę PDF</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <script>
+      const DATA = <%- JSON.stringify(invoices) %>;
+      const COURSES = <%- JSON.stringify(courseTitles || {}) %>;
+      const KSEF_ENABLED = <%- JSON.stringify(ksefEnabled) %>;
+
+      const ksefLabel = { not_sent: 'Nie wysłana', sent: 'Wysłana', delivered: 'Doręczona', rejected: 'Odrzucona' };
+
+      function fmtMoney(n) {
+        return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
+      }
+
+      function address(d) {
+        const parts = [d.street, d.numberHome].filter(Boolean).join(' ');
+        const city = [d.zipCode, d.city].filter(Boolean).join(' ');
+        return [parts, city].filter(Boolean).join(', ') || '—';
+      }
+
+      // ── Komponent tabeli ──
+      const table = new DataTable('#invoicesTable', {
+        csvFilename: 'faktury.csv',
+        pageSize: 10,
+        emptyText: 'Brak osób z danymi faktury dla wybranych filtrów.',
+        columns: [
+          { key: '_user', label: 'Uczestnik',
+            sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
+            csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
+            render: p => `
+              <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
+          { key: '_buyer', label: 'Nabywca (dane z formularza)',
+            sortValue: r => (r.invoiceData?.name || '').toLowerCase(),
+            csvValue: r => `${r.invoiceData?.name || ''};${r.invoiceData?.nip || ''}`,
+            render: p => `
+              <div class="text-gray-900 dark:text-white">${p.invoiceData?.name || '<span class="text-red-500 text-xs">BRAK NAZWY</span>'}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-400">NIP: ${p.invoiceData?.nip || '—'}</div>` },
+          { key: '_address', label: 'Adres', sortable: false,
+            csvValue: r => address(r.invoiceData || {}),
+            render: p => `<span class="text-gray-700 dark:text-slate-300 text-xs">${address(p.invoiceData || {})}</span>` },
+          { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
+            render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
+          { key: 'course_id', label: 'Kurs',
+            sortValue: r => COURSES[r.course_id] || r.course_id,
+            render: p => `<span class="text-xs text-gray-700 dark:text-slate-300">${COURSES[p.course_id] || p.course_id}</span>` },
+          { key: 'invoice', label: 'Faktura', sortable: false,
+            csvValue: r => r.invoices?.invoice_number || '',
+            render: p => p.invoices
+              ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
+              : '<span class="text-gray-400 text-xs">—</span>' },
+          { key: 'ksef', label: 'KSeF', sortable: false,
+            render: p => p.invoices
+              ? `<span class="badge ksef-${p.invoices.ksef_status || 'not_sent'}">${ksefLabel[p.invoices.ksef_status] || 'Nie wysłana'}</span>`
+              : '<span class="text-gray-400 text-xs">—</span>' },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: p => p.invoices
+              ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">PDF</a>`
+              : `<button onclick="openModal('${p.id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700">Generuj</button>` },
+        ],
+      });
+
+      // ── Filtrowanie ──
+      function render() {
+        const s = document.getElementById('search').value.toLowerCase();
+        const fs = document.getElementById('fStatus').value;
+
+        const rows = DATA.filter(p => {
+          const d = p.invoiceData || {};
+          const matchS = !s
+            || (d.name || '').toLowerCase().includes(s)
+            || (d.nip || '').includes(s)
+            || (p.users?.email || '').toLowerCase().includes(s)
+            || `${p.users?.name||''} ${p.users?.surname||''}`.toLowerCase().includes(s);
+          const ksef = p.invoices?.ksef_status || 'not_sent';
+          const hasPdf = !!p.invoices;
+          const matchF = fs === 'all'
+            || (fs === 'missing' && !hasPdf)
+            || (fs === 'pdf' && hasPdf && ksef === 'not_sent')
+            || (fs === 'ksef' && ksef !== 'not_sent');
+          return matchS && matchF;
+        });
+
+        table.setRows(rows);
+      }
+
+      // ── Modal (prefill z danych formularza) ──
+      function openModal(paymentId) {
+        const p = DATA.find(x => x.id === paymentId);
+        const d = p?.invoiceData || {};
+        document.getElementById('mPaymentId').value = paymentId;
+        document.getElementById('mName').value = d.name || '';
+        document.getElementById('mNip').value = d.nip || '';
+        document.getElementById('mAddress').value = [
+          [d.street, d.numberHome].filter(Boolean).join(' '),
+          [d.zipCode, d.city].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n');
+        document.getElementById('invoiceForm').action = `<%= adminPrefix %>/platnosci/${paymentId}/faktura`;
+        document.getElementById('invoiceModal').classList.remove('hidden');
+        document.getElementById('invoiceModal').classList.add('flex');
+      }
+      function closeModal() {
+        document.getElementById('invoiceModal').classList.add('hidden');
+        document.getElementById('invoiceModal').classList.remove('flex');
+      }
+
+      ['search', 'fStatus'].forEach(id => document.getElementById(id).addEventListener('input', render));
+      render();
+    </script>
+  </body>
+</html>

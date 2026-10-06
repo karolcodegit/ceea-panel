@@ -3,7 +3,6 @@ const speakeasy = require("speakeasy");
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
-const { persistAdmin } = require("../config/admins");
 
 const router = express.Router();
 
@@ -19,13 +18,10 @@ const loginLimiter = rateLimit({
 router.post("/start", loginLimiter, async (req, res) => {
   const { email } = req.body;
   const admins = req.app.locals.admins;
-  const admin = admins.get(email);
+  const admin = admins.get((email || "").trim().toLowerCase());
 
   if (!admin) {
-    return res.status(400).json({
-      error: "Nieprawidłowy email",
-      exists: false,
-    });
+    return res.status(400).json({ error: "Nieprawidłowy email", exists: false });
   }
 
   if (!admin.qrSetup) {
@@ -42,17 +38,14 @@ router.post("/start", loginLimiter, async (req, res) => {
     });
   }
 
-  res.json({
-    step: "verify",
-    message: "Wpisz kod z aplikacji",
-  });
+  res.json({ step: "verify", message: "Wpisz kod z aplikacji" });
 });
 
 // KROK 2a: Potwierdź QR (pierwszy raz)
 router.post("/verify-setup", loginLimiter, async (req, res) => {
   const { email, token } = req.body;
   const admins = req.app.locals.admins;
-  const admin = admins.get(email);
+  const admin = admins.get((email || "").trim().toLowerCase());
 
   if (!admin) return res.status(400).json({ error: "Nieprawidłowe dane" });
 
@@ -63,12 +56,9 @@ router.post("/verify-setup", loginLimiter, async (req, res) => {
     window: 2,
   });
 
-  if (!verified) {
-    return res.status(400).json({ error: "Nieprawidłowy kod" });
-  }
+  if (!verified) return res.status(400).json({ error: "Nieprawidłowy kod" });
 
   admin.qrSetup = true;
-  delete admin._plainCodes;
   await persistAdmin(admin);
 
   const sessionToken = crypto.randomBytes(32).toString("hex");
@@ -84,17 +74,14 @@ router.post("/verify-setup", loginLimiter, async (req, res) => {
     path: "/",
   });
 
-  res.json({
-    success: true,
-    admin: { email: admin.email, name: admin.name },
-  });
+  res.json({ success: true, admin: { email: admin.email, name: admin.name } });
 });
 
-// KROK 2b: Standardowe logowanie
+// KROK 2b: Standardowe logowanie (kod TOTP lub backup)
 router.post("/verify", loginLimiter, async (req, res) => {
   const { email, token } = req.body;
   const admins = req.app.locals.admins;
-  const admin = admins.get(email);
+  const admin = admins.get((email || "").trim().toLowerCase());
 
   if (!admin || !admin.qrSetup) {
     return res.status(400).json({ error: "Nieprawidłowe dane" });
@@ -107,11 +94,10 @@ router.post("/verify", loginLimiter, async (req, res) => {
     window: 1,
   });
 
-  if (!verified) {
+  if (!verified && Array.isArray(admin.backupCodes)) {
     const backupIndex = admin.backupCodes.findIndex(
       (bc) => !bc.used && bcrypt.compareSync(token, bc.code)
     );
-
     if (backupIndex !== -1) {
       admin.backupCodes[backupIndex].used = true;
       await persistAdmin(admin);
@@ -119,9 +105,7 @@ router.post("/verify", loginLimiter, async (req, res) => {
     }
   }
 
-  if (!verified) {
-    return res.status(400).json({ error: "Nieprawidłowy kod" });
-  }
+  if (!verified) return res.status(400).json({ error: "Nieprawidłowy kod" });
 
   const sessionToken = crypto.randomBytes(32).toString("hex");
   req.app.locals.sessions.set(sessionToken, {
@@ -136,10 +120,7 @@ router.post("/verify", loginLimiter, async (req, res) => {
     path: "/",
   });
 
-  res.json({
-    success: true,
-    admin: { email: admin.email, name: admin.name },
-  });
+  res.json({ success: true, admin: { email: admin.email, name: admin.name } });
 });
 
 // Wylogowanie
@@ -153,3 +134,19 @@ router.post("/wyloguj", (req, res) => {
 });
 
 module.exports = router;
+
+// ── Zapis admina do bazy (dawniej config/admins.js) ──
+const supabase = require("../config/supabase");
+async function persistAdmin(admin) {
+  const { error } = await supabase
+    .from("admin_users")
+    .update({
+      name: admin.name,
+      totp_secret: admin.secret,
+      qr_setup: admin.qrSetup,
+      backup_codes: admin.backupCodes || [],
+      updated_at: new Date().toISOString(),
+    })
+    .eq("email", admin.email);
+  if (error) console.error("persistAdmin:", error.message);
+}

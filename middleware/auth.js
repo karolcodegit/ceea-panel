@@ -1,14 +1,20 @@
 const ADMIN_PREFIX = "/ceea-poznan-admin";
 
+const crypto = require("crypto");
+
+// Flaga: czy żądanie dotyczy panelu admina
 const setAdminPathFlag = (req, res, next) => {
-  req.isAdminPath = req.originalUrl.startsWith(ADMIN_PREFIX);process.on("SIGTERM", () => emailQueue.stop());
+  req.isAdminPath = req.originalUrl.startsWith(ADMIN_PREFIX);
   next();
 };
+
+// Uwierzytelnienie zwykłego użytkownika (panel kursanta) – bez zmian
 const requireAuth = (req, res, next) => {
   if (req.session.user) return next();
   res.redirect("/");
 };
 
+// Wymaga zalogowanego admina; ustawia res.locals.adminUser
 const requireAdmin = (req, res, next) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
@@ -17,8 +23,10 @@ const requireAdmin = (req, res, next) => {
   const session = req.app.locals.sessions.get(token);
 
   if (session && session.expires > Date.now()) {
-    req.admin = req.app.locals.admins.get(session.email);
-    req.session.isAdmin = true;
+    res.locals.adminUser = req.app.locals.admins.get(session.email) || {
+      email: session.email,
+    };
+    req.admin = res.locals.adminUser;
     return next();
   }
 
@@ -35,6 +43,19 @@ const userOnly = (req, res, next) => {
   next();
 };
 
+// ── Sesje ────────────────────────────────────────────────
+function destroySession(app, token) {
+  const s = app.locals.sessions.get(token);
+  if (s) app.locals.admins.delete(s.email);
+  app.locals.sessions.delete(token);
+}
+function currentSession(req, app) {
+  const token = req.cookies?.adminToken;
+  const s = token && app.locals.sessions.get(token);
+  if (s && s.expires > Date.now()) return { token, ...s };
+  return null;
+}
+
 module.exports = {
   ADMIN_PREFIX,
   setAdminPathFlag,
@@ -42,4 +63,6 @@ module.exports = {
   requireAdmin,
   adminOnly,
   userOnly,
+  destroySession,
+  currentSession,
 };

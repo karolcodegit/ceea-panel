@@ -27,6 +27,8 @@
     "graphql-request": "^7.4.0",
     "markdown-it": "^14.3.0",
     "nodemailer": "^6.10.0",
+    "numeral": "^2.0.6",
+    "puppeteer": "^24.43.1",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "ws": "^8.18.0"

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Płatności — Panel CEEA</title>
+    <style>
+      .status-badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+      .status-paid { @apply bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300; }
+      .status-pending { @apply bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300; }
+      .status-failed { @apply bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300; }
+      .status-refunded { @apply bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-300; }
+      @media print {
+        .no-print { display: none !important; }
+        body { background: white; }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'platnosci' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'platnosci') || { name: 'Płatności', desc: '' }; %>
+
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const query = locals.query || {}; %>
+
+        <!-- Nagłówek -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <button onclick="window.print()"
+            class="no-print px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 text-sm font-medium transition w-fit">
+            🖨 Drukuj widok
+          </button>
+        </div>
+
+        <% if (query.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= query.success %></div>
+        <% } %>
+        <% if (query.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= query.error %></div>
+        <% } %>
+
+        <!-- FILTRY -->
+        <div class="no-print bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6 transition-colors">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">Filtry</h2>
+            <button type="button" onclick="clearFilters()"
+              class="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+              Wyczyść filtry ✕
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4">
+            <div class="sm:col-span-2">
+              <label for="searchInput" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                <input type="text" id="searchInput" placeholder="email, nazwisko, nr zamówienia..."
+                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20" />
+              </div>
+            </div>
+
+            <div>
+              <label for="courseFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Kurs</label>
+              <select id="courseFilter"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie kursy</option>
+                <% courses.forEach(c => { %>
+                <option value="<%= c.id %>"><%= c.nameCourse %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div>
+              <label for="statusFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status płatności</label>
+              <select id="statusFilter"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie statusy</option>
+                <option value="awaiting_transfer">⏳ Oczekuje na przelew</option>
+                <option value="awaiting_payment">⏳ Oczekuje online</option>
+                <option value="paid">✅ Zapłacone</option>
+                <option value="canceled">❌ Anulowane</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="invoiceFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Faktura</label>
+              <select id="invoiceFilter"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie</option>
+                <option value="with">Tylko z fakturą</option>
+                <option value="without">Bez faktury</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="dateFrom" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data od</label>
+              <input type="date" id="dateFrom"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+            </div>
+
+            <div>
+              <label for="dateTo" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data do</label>
+              <input type="date" id="dateTo"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+            </div>
+          </div>
+        </div>
+
+        <!-- TABELA (komponent DataTable) -->
+        <div id="paymentsTable"></div>
+
+        <!-- Modal faktury -->
+        <div id="invoiceModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dane do faktury</h3>
+            <form id="invoiceForm" method="POST" class="space-y-3">
+              <input type="hidden" name="paymentId" id="modalPaymentId" />
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa / Firma</label>
+                <input type="text" name="buyerName" id="mName" required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Adres</label>
+                <textarea name="buyerAddress" id="mAddress" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP (opcjonalnie)</label>
+                <input type="text" name="buyerNip" id="mNip"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Generuj fakturę</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <script>
+      let allPayments = <%- JSON.stringify(payments) %>;
+      const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null) %>;
+
+      const courseName = p =>
+        (p.courses && (p.courses.title || p.courses.nameCourse)) || p.course_id || '-';
+
+      const statusClass = {
+        paid: 'status-paid',
+        awaiting_transfer: 'status-pending',
+        awaiting_payment: 'status-pending',
+        canceled: 'status-failed',
+        expired: 'status-failed',
+      };
+      const statusLabel = {
+        paid: 'Zapłacone',
+        awaiting_transfer: 'Oczekuje na przelew',
+        awaiting_payment: 'Oczekuje online',
+        canceled: 'Anulowane',
+        expired: 'Wygasło',
+      };
+      const methodLabel = { transfer: 'Przelew', tpay: 'Online (tpay)' };
+
+      function fmtDate(d) {
+        if (!d) return '-';
+        return new Date(d).toLocaleString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+      }
+      function fmtMoney(n) {
+        return new Intl.NumberFormat('pl-PL', { style:'currency', currency:'PLN' }).format(n);
+      }
+
+      // ── Dane nabywcy z payload (dwie konwencje pól) ──
+      function invoiceData(p) {
+        const pl = p.payload || {};
+        return {
+          name: (pl.InvoiceName || pl.invoiceName || '').toString().trim(),
+          street: (pl.InvoiceStreet || pl.invoiceStreet || '').toString().trim(),
+          numberHome: (pl.InvoiceNumberHome || pl.invoiceNumberHome || '').toString().trim(),
+          zipCode: (pl.InvoiceZipCode || pl.invoiceZipCode || '').toString().trim(),
+          city: (pl.InvoiceCity || pl.invoiceCity || '').toString().trim(),
+          nip: (pl.InvoiceNip || pl.invoiceNip || '').toString().trim(),
+        };
+      }
+
+      // ── Komponent tabeli ──
+      const table = new DataTable('#paymentsTable', {
+        csvFilename: 'platnosci.csv',
+        pageSize: 10,
+        columns: [
+          { key: 'created_at', label: 'Data', sortable: true,
+            sortValue: r => new Date(r.created_at),
+            render: p => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap">${fmtDate(p.created_at)}</span>` },
+          { key: '_user', label: 'Uczestnik',
+            sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
+            csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
+            render: p => `
+              <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
+          { key: 'course_id', label: 'Kurs',
+            sortValue: r => courseName(r),
+            render: p => `<span class="text-gray-700 dark:text-slate-300">${courseName(p)}</span>` },
+          { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
+            render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
+          { key: 'status', label: 'Status', sortable: true,
+            sortValue: r => r.status,
+            render: p => `<span class="${statusClass[p.status]||'status-pending'}">${statusLabel[p.status]||p.status}</span>` },
+          { key: 'method', label: 'Metoda',
+            render: p => `<span class="text-xs text-gray-600 dark:text-slate-400">${methodLabel[p.method]||p.method}</span>` },
+          { key: 'invoice', label: 'Faktura', sortable: false,
+            render: p => p.invoices
+              ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
+              : '<span class="text-gray-400 text-xs">—</span>' },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: p => `
+              ${p.status !== 'paid' ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded text-xs font-medium hover:bg-green-200">Zapłacono</button></form>` : ''}
+              ${!p.invoices
+                ? `<button onclick="openInvoiceModal('${p.id}')" class="px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded text-xs font-medium hover:bg-gray-200">Faktura</button>`
+                : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">PDF</a>`}` },
+        ],
+      });
+
+      // ── Filtrowanie (Twoje kryteria → komponent) ──
+      function render() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const invoice = document.getElementById('invoiceFilter').value;
+        const course = document.getElementById('courseFilter').value;
+        const from = document.getElementById('dateFrom').value;
+        const to = document.getElementById('dateTo').value;
+
+        const filtered = allPayments.filter(p => {
+          const u = p.users || {};
+          const matchSearch = !search
+            || (u.email||'').toLowerCase().includes(search)
+            || (u.name||'').toLowerCase().includes(search)
+            || (u.surname||'').toLowerCase().includes(search)
+            || (p.order_number||'').toLowerCase().includes(search);
+          const matchStatus = status === 'all' || p.status === status;
+          const matchCourse = course === 'all' || String(p.course_id) === course;
+          const matchInvoice = invoice === 'all'
+            || (invoice === 'with' ? !!p.invoice_id : !p.invoice_id);
+          const matchFrom = !from || new Date(p.created_at) >= new Date(from);
+          const matchTo = !to || new Date(p.created_at) <= new Date(to + 'T23:59:59');
+          return matchSearch && matchStatus && matchCourse && matchInvoice && matchFrom && matchTo;
+        });
+
+        table.setRows(filtered);
+      }
+
+      // ── Modal faktury (prefill z danych formularza) ──
+      function openInvoiceModal(paymentId) {
+        const p = allPayments.find(x => x.id === paymentId);
+        const d = p ? invoiceData(p) : {};
+        document.getElementById('modalPaymentId').value = paymentId;
+        document.getElementById('mName').value = d.name || '';
+        document.getElementById('mNip').value = d.nip || '';
+        document.getElementById('mAddress').value = [
+          [d.street, d.numberHome].filter(Boolean).join(' '),
+          [d.zipCode, d.city].filter(Boolean).join(' '),
+        ].filter(Boolean).join('\n');
+        document.getElementById('invoiceForm').action = `<%= adminPrefix %>/platnosci/${paymentId}/faktura`;
+        document.getElementById('invoiceModal').classList.remove('hidden');
+        document.getElementById('invoiceModal').classList.add('flex');
+      }
+      function closeModal() {
+        document.getElementById('invoiceModal').classList.add('hidden');
+        document.getElementById('invoiceModal').classList.remove('flex');
+      }
+
+      // ── Domyślny filtr = aktywny kurs ──
+      if (ACTIVE_COURSE) {
+        document.getElementById('courseFilter').value = ACTIVE_COURSE;
+      }
+
+      ['searchInput','statusFilter','invoiceFilter','courseFilter','dateFrom','dateTo']
+        .forEach(id => document.getElementById(id).addEventListener('input', render));
+
+      function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('invoiceFilter').value = 'all';
+        document.getElementById('courseFilter').value = ACTIVE_COURSE || 'all';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        render();
+      }
+
+      render();
+    </script>
+  </body>
+</html>
