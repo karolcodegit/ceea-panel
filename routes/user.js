@@ -97,16 +97,17 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
     if (userErr) console.error("sprawdz/users:", userErr);
     if (!user) return sent();
 
-    const { data: enrollment, error: enrErr } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
-
-    if (enrErr) console.error("sprawdz/enrollments:", enrErr);
-    if (!enrollment) return sent();
+       // Dostęp = OPŁACONA płatność (nowy model; enrollments = stary kurs)
+       const { data: paidPayment, error: payErr } = await supabase
+       .from("payments")
+       .select("id")
+       .eq("user_id", user.id)
+       .eq("status", "paid")
+       .limit(1)
+       .maybeSingle();
+ 
+     if (payErr) console.error("sprawdz/payments:", payErr);
+     if (!paidPayment) return sent();
 
     // ma już hasło i nie prosi o reset → widok hasła
     if (user.password_hash && !reset) {
@@ -181,13 +182,22 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
       .from("users").select("id, name, email")
       .eq("email", req.session.user.email).maybeSingle();
 
-    const { data: enrollments } = user
+      const { data: enrollments } = user
       ? await supabase
           .from("enrollments").select("course_id")
           .eq("user_id", user.id).eq("status", "active")
       : { data: [] };
 
-    const ids = (enrollments || []).map((e) => e.course_id);
+    const { data: paidPayments } = user
+      ? await supabase
+          .from("payments").select("course_id")
+          .eq("user_id", user.id).eq("status", "paid")
+      : { data: [] };
+
+    const ids = [...new Set([
+      ...(enrollments || []).map((e) => e.course_id),
+      ...(paidPayments || []).map((p) => p.course_id),
+    ])];
 
     const [datoCourses, { data: materials }] = await Promise.all([
       fetchAllCourses(),

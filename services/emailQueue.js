@@ -1,17 +1,10 @@
-const nodemailer = require("nodemailer");
+// services/emailQueue.js — kolejka wysyłki maili (dławienie: 1 mail / 45 s, limit dzienny)
+// Transport: services/mailer.js (Zoho ZeptoMail EU -> MailerSend fallback) – NIE SMTP.
+// Schemat bez zmian: email_queue (recipient_email, subject, body_html, body_text, status,
+// attempts, scheduled_at, error_message, sent_at), email_logs, email_daily_stats.
+const { sendMail } = require("./mailer");
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.zoho.eu",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.ZOHO_USER,
-    pass: process.env.ZOHO_PASS,
-  },
-  pool: false,
-});
-
-const DAILY_LIMIT = 50;
+const DAILY_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT || 50);
 const DELAY_MS = 45000;
 
 class EmailQueue {
@@ -79,8 +72,8 @@ class EmailQueue {
 
       mail = rows[0];
 
-      await transporter.sendMail({
-        from: `"CEEA Poznań" <${process.env.ZOHO_USER}>`,
+      // ── TRANSPORT przez mailer.js (ZeptoMail EU -> MailerSend fallback) ──
+      await sendMail({
         to: mail.recipient_email,
         subject: mail.subject,
         text: mail.body_text,

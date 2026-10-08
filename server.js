@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const { createClient } = require("@supabase/supabase-js");
 const WebSocket = require("ws");
 
-const { initializeAdmins } = require("./config/admins");
+const { loadAdminsIntoMemory } = require("./services/admins");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const userRoutes = require("./routes/user");
@@ -17,15 +17,12 @@ const EmailQueue = require("./services/emailQueue");
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY,
-  {
-    realtime: { transport: WebSocket },
-  }
+  { realtime: { transport: WebSocket } }
 );
 
 // ===== EXPRESS =====
 const app = express();
 app.set("trust proxy", 1);
-
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
@@ -37,21 +34,16 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    },
+    cookie: { secure: process.env.NODE_ENV === "production", httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 },
   })
 );
 app.use(express.static(path.join(__dirname, "public")));
 app.use(setAdminPathFlag);
 
-// ===== INICJALIZACJA =====
+// ===== INICJALIZACJA (najpierw Mapy, potem reszta) =====
 app.locals.admins = new Map();
 app.locals.sessions = new Map();
 
-// ===== EMAIL QUEUE =====
 const emailQueue = new EmailQueue(supabase);
 app.set("emailQueue", emailQueue);
 
@@ -74,23 +66,21 @@ let server;
 
 async function start() {
   try {
-    const admins = await initializeAdmins();
-    app.locals.admins = admins;
-    console.log("Admini TOTP zainicjalizowani:", admins.size);
+    await loadAdminsIntoMemory(app);          // ✅ admin_users -> app.locals.admins
+    console.log("Admini TOTP załadowani z bazy:", app.locals.admins.size);
   } catch (err) {
-    console.error("❌ Błąd inicjalizacji adminów:", err.message);
+    console.error("❌ Błąd ładowania adminów:", err.message);
     process.exit(1);
   }
 
   server = app.listen(PORT, () => {
     console.log(`✅ Panel działa na http://localhost:${PORT}`);
-    console.log(`📅 Data uruchomienia: ${new Date().toISOString()}`);
   });
 }
 
-// Graceful shutdown — POZA start(), rejestrowane raz
+// Graceful shutdown
 const shutdown = () => {
-  emailQueue.stop();
+  if (typeof emailQueue.stop === "function") emailQueue.stop();
   if (server) server.close(() => process.exit(0));
   else process.exit(0);
 };
