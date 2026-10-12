@@ -2,6 +2,10 @@
 // Transport: services/mailer.js (Zoho ZeptoMail EU -> MailerSend fallback) – NIE SMTP.
 // Schemat bez zmian: email_queue (recipient_email, subject, body_html, body_text, status,
 // attempts, scheduled_at, error_message, sent_at), email_logs, email_daily_stats.
+//
+// POPRAWKA: zapytania na email_daily_stats używają .limit(1) zamiast .single() —
+// pusty wynik daje 200 + [], a nie 406 (PostgREST zwraca 406 dla pojedynczego
+// selecta bez wierszy), więc logi Supabase przestają pokazywać false-warnings.
 const { sendMail } = require("./mailer");
 
 const DAILY_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT || 50);
@@ -40,10 +44,10 @@ class EmailQueue {
       .from("email_daily_stats")
       .select("count")
       .eq("date", today)
-      .single();
+      .limit(1);
 
-    if (error && error.code !== "PGRST116") throw error;
-    return data ? data.count : 0;
+    if (error) throw error;
+    return data?.[0]?.count ?? 0;
   }
 
   async process() {
@@ -75,6 +79,7 @@ class EmailQueue {
       // ── TRANSPORT przez mailer.js (ZeptoMail EU -> MailerSend fallback) ──
       await sendMail({
         to: mail.recipient_email,
+        toName: mail.recipient_name,
         subject: mail.subject,
         text: mail.body_text,
         html: mail.body_html,
@@ -89,11 +94,13 @@ class EmailQueue {
       const today = now.split("T")[0];
 
       // Inkrementacja licznika dziennego (bez RPC, bezpieczne przy 1 mailu co 45s)
-      const { data: existing } = await this.supabase
+      const { data: existingRows } = await this.supabase
         .from("email_daily_stats")
         .select("count")
         .eq("date", today)
-        .single();
+        .limit(1);
+
+      const existing = existingRows?.[0];
 
       if (existing) {
         await this.supabase
@@ -158,16 +165,16 @@ class EmailQueue {
       .eq("status", "failed");
 
     const today = new Date().toISOString().split("T")[0];
-    const { data: dailyRow } = await this.supabase
+    const { data: dailyRows } = await this.supabase
       .from("email_daily_stats")
       .select("count")
       .eq("date", today)
-      .single();
+      .limit(1);
 
     return {
       pending: pendingCount || 0,
       failed: failedCount || 0,
-      sentToday: dailyRow?.count || 0,
+      sentToday: dailyRows?.[0]?.count || 0,
       limit: DAILY_LIMIT,
     };
   }

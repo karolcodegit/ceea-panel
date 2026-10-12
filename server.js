@@ -3,8 +3,8 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
-const { createClient } = require("@supabase/supabase-js");
-const WebSocket = require("ws");
+
+const supabase = require("./config/supabase");
 
 const { loadAdminsIntoMemory } = require("./services/admins");
 const authRoutes = require("./routes/auth");
@@ -12,13 +12,6 @@ const adminRoutes = require("./routes/admin");
 const userRoutes = require("./routes/user");
 const { ADMIN_PREFIX, setAdminPathFlag } = require("./middleware/auth");
 const EmailQueue = require("./services/emailQueue");
-
-// ===== SUPABASE =====
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  { realtime: { transport: WebSocket } }
-);
 
 // ===== EXPRESS =====
 const app = express();

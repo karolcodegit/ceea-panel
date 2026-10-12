@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Sponsorzy — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'sponsorzy' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'sponsorzy') || { name: 'Sponsorzy', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <button onclick="openSponsorModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
+            + Dodaj sponsora
+          </button>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error || locals.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+        <% } %>
+
+        <!-- Filtry -->
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            <div>
+              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                <input type="text" id="search" placeholder="nazwa sponsora..."
+                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+              </div>
+            </div>
+            <div>
+              <label for="fActive" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status</label>
+              <select id="fActive" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszyscy</option>
+                <option value="active">Aktywni</option>
+                <option value="inactive">Ukryci</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="sponsorsTable"></div>
+
+        <!-- Modal: dodaj / edytuj -->
+        <div id="sponsorModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSponsorModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj sponsora</h3>
+            <form method="POST" action="<%= adminPrefix %>/sponsorzy" class="space-y-3">
+              <input type="hidden" name="id" id="fId" />
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa sponsora *</label>
+                <input type="text" name="name" id="fName" required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL logo (Cloudinary)</label>
+                <input type="text" name="logo_url" id="fLogoUrl" placeholder="https://res.cloudinary.com/…"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Logo wrzuć do folderu <code>ceea/sponsors</code> w Cloudinary.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Strona www (opcjonalnie)</label>
+                <input type="text" name="website_url" id="fWebsiteUrl" placeholder="https://…"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kolejność (mniejsza = wyżej)</label>
+                <input type="number" name="sort_order" id="fSortOrder" min="0" value="0"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+              </div>
+              <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer pt-1">
+                <input type="checkbox" name="is_active" id="fActive" value="1" class="w-4 h-4 accent-red-600" checked />
+                Widoczny na stronie
+              </label>
+
+              <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeSponsorModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Zapisz</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <script>
+      const DATA = <%- JSON.stringify(sponsors) %>;
+
+      function deleteSponsor(id, name) {
+        if (!confirm(`Usunąć sponsora „${name}"?`)) return;
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = `<%= adminPrefix %>/sponsorzy/${id}/usun`;
+        document.body.appendChild(f);
+        f.submit();
+      }
+
+      const table = new DataTable('#sponsorsTable', {
+        csvFilename: 'sponsorzy.csv',
+        pageSize: 10,
+        emptyText: 'Brak sponsorów w bazie.',
+        columns: [
+          { key: 'sort_order', label: '#', sortable: true, align: 'right',
+            render: p => `<span class="text-gray-500 dark:text-slate-400 font-medium">${p.sort_order}</span>` },
+          { key: '_logo', label: 'Logo', sortable: false,
+            csvValue: r => r.logo_url || '',
+            render: p => p.logo_url
+              ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" class="h-10 w-auto max-w-[140px] object-contain rounded" onerror="this.outerHTML='<span class=\\'text-gray-300 text-xs\\'>brak</span>'" />`
+              : '<span class="text-gray-300 dark:text-slate-600 text-xs">brak</span>' },
+          { key: 'name', label: 'Nazwa', sortable: true,
+            sortValue: r => (r.name || '').toLowerCase(),
+            render: p => `<span class="font-medium text-gray-900 dark:text-white">${p.name}</span>` },
+          { key: 'website_url', label: 'Strona www', sortable: false,
+            csvValue: r => r.website_url || '',
+            render: p => p.website_url
+              ? `<a href="${p.website_url}" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">${p.website_url.replace(/^https?:\/\//, '')}</a>`
+              : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'is_active', label: 'Status', sortable: true,
+            sortValue: r => r.is_active ? 1 : 0,
+            render: p => p.is_active
+              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">widoczny</span>'
+              : '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">ukryty</span>' },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: p => `
+              <button onclick="openSponsorModal('${p.id}')" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">Edytuj</button>
+              <button onclick="deleteSponsor('${p.id}', '${String(p.name).replace(/'/g, "\\'")}')" class="px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded text-xs font-medium hover:bg-red-200 ml-1">Usuń</button>` },
+        ],
+      });
+
+      function render() {
+        const s = document.getElementById('search').value.toLowerCase();
+        const fa = document.getElementById('fActive').value;
+
+        const rows = DATA.filter(p => {
+          const matchS = !s || (p.name || '').toLowerCase().includes(s);
+          const matchA = fa === 'all'
+            || (fa === 'active' && p.is_active)
+            || (fa === 'inactive' && !p.is_active);
+          return matchS && matchA;
+        });
+
+        table.setRows(rows);
+      }
+
+      function openSponsorModal(id) {
+        const form = document.querySelector('#sponsorModal form');
+        form.reset();
+        document.getElementById('fId').value = '';
+        document.getElementById('fActive').checked = true;
+
+        if (id) {
+          const p = DATA.find(x => x.id === id);
+          if (p) {
+            document.getElementById('modalTitle').textContent = 'Edytuj sponsora';
+            document.getElementById('fId').value = p.id;
+            document.getElementById('fName').value = p.name || '';
+            document.getElementById('fLogoUrl').value = p.logo_url || '';
+            document.getElementById('fWebsiteUrl').value = p.website_url || '';
+            document.getElementById('fSortOrder').value = p.sort_order ?? 0;
+            document.getElementById('fActive').checked = !!p.is_active;
+          }
+        } else {
+          document.getElementById('modalTitle').textContent = 'Dodaj sponsora';
+        }
+
+        document.getElementById('sponsorModal').classList.remove('hidden');
+        document.getElementById('sponsorModal').classList.add('flex');
+      }
+      function closeSponsorModal() {
+        document.getElementById('sponsorModal').classList.add('hidden');
+        document.getElementById('sponsorModal').classList.remove('flex');
+      }
+
+      ['search', 'fActive'].forEach(id => document.getElementById(id).addEventListener('input', render));
+      render();
+    </script>
+  </body>
+</html>

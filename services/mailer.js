@@ -22,7 +22,7 @@ const FROM_EMAIL = process.env.MAIL_FROM_EMAIL || "sekretariat@ceea.org.pl";
 const FROM_NAME = process.env.MAIL_FROM_NAME || "CEEA Panel";
 
 // ── ZeptoMail / Zoho CPaaS (EU) ──
-async function sendViaZepto({ to, subject, html, text }) {
+async function sendViaZepto({ to, toName, subject, html, text }) {
   if (!ZEPTO_API_KEY) throw new Error("Brak ZEPTOMAIL_API_KEY");
   // ⚠️ Centrum danych EU – endpoint MUSI być cpaas.zoho.eu (nie api.zeptomail.com!)
   const res = await fetch("https://cpaas.zoho.eu/v1.1/email", {
@@ -34,7 +34,8 @@ async function sendViaZepto({ to, subject, html, text }) {
     },
     body: JSON.stringify({
       from: { address: ZEPTO_FROM, name: FROM_NAME },
-      to: [{ email_address: { address: to, name: to } }],
+      to: [{ email_address: { address: to, name: toName || to } }],
+      reply_to: [{ address: ZEPTO_FROM }],
       subject,
       htmlbody: html,
       textbody: text || "",
@@ -48,7 +49,7 @@ async function sendViaZepto({ to, subject, html, text }) {
 }
 
 // ── MailerSend (fallback) ──
-async function sendViaMailerSend({ to, subject, html, text }) {
+async function sendViaMailerSend({ to, toName, subject, html, text }) {
   if (!MAILERSEND_API_KEY) throw new Error("Brak MAILERSEND_API_KEY");
   const res = await fetch("https://api.mailersend.com/v1/email", {
     method: "POST",
@@ -58,7 +59,8 @@ async function sendViaMailerSend({ to, subject, html, text }) {
     },
     body: JSON.stringify({
       from: { email: FROM_EMAIL, name: FROM_NAME },
-      to: [{ email: to }],
+      to: [{ email: to, name: toName || to }],
+      reply_to: [{ email: FROM_EMAIL }],
       subject,
       html,
       text,
@@ -89,7 +91,13 @@ const { getTemplate } = require("./email/templates");
 
 function sendPasswordEmail(to, password, extra = {}) {
   const tpl = getTemplate("password")({ password, ...extra });
-  return sendMail({ to, subject: tpl.subject, html: tpl.html, text: tpl.text });
+  return sendMail({
+    to,
+    toName: extra.firstName ? `${extra.firstName} ${extra.surname || ""}`.trim() : undefined,
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
+  });
 }
 
 module.exports = { sendMail, sendPasswordEmail, sendViaZepto, sendViaMailerSend };

@@ -1,0 +1,192 @@
+const express = require("express");
+const router = express.Router();
+const supabase = require("../config/supabase");
+const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
+const { fetchAllCourses, fetchCourseById } = require("../config/datocms");
+const { grantAccess } = require("../services/access");
+
+// ===== KURSY =====
+router.get("/kursy", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const courses = await fetchAllCourses();
+    const ids = courses.map((c) => c.id);
+
+    const [{ data: materials }, { data: enrollments }] = await Promise.all([
+      supabase.from("materials").select("course_id").in("course_id", ids),
+      supabase.from("enrollments").select("course_id").in("course_id", ids),
+    ]);
+    const count = (arr, id) =>
+      (arr || []).filter((x) => x.course_id === id).length;
+
+    res.render("admin-kursy", {
+      isAdmin: true,
+      adminPrefix: ADMIN_PREFIX,
+      courses: courses.map((c) => ({
+        ...c,
+        materialsCount: count(materials, c.id),
+        participantsCount: count(enrollments, c.id),
+      })),
+    });
+  } catch (err) {
+    console.error("Błąd serwera (kursy):", err);
+    res.status(500).render("error", { message: "Błąd pobierania kursów" });
+  }
+});
+
+// ===== MATERIALY =====
+router.get(
+  "/kursy/:id/materials",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const course = await fetchCourseById(req.params.id);
+      if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
+
+      const { data: materials, error: materialsError } = await supabase
+        .from("materials")
+        .select("*")
+        .eq("course_id", req.params.id)
+        .order("order_num");
+
+      if (materialsError)
+        console.error("Błąd pobierania materiałów:", materialsError);
+
+      res.render("admin-materials", {
+        isAdmin: true,
+        adminPrefix: ADMIN_PREFIX,
+        course,
+        materials: materials || [],
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
+      });
+    } catch (err) {
+      console.error("Błąd serwera (materiały):", err);
+      res.redirect(ADMIN_PREFIX + "/kursy");
+    }
+  }
+);
+
+router.post(
+  "/kursy/:id/materials",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    const { title, type, url } = req.body;
+    try {
+      if (!title || !url) {
+        return res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
+      }
+
+      const { data: last } = await supabase
+        .from("materials")
+        .select("order_num")
+        .eq("course_id", req.params.id)
+        .order("order_num", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { error } = await supabase.from("materials").insert([
+        {
+          course_id: req.params.id,
+          title,
+          type: type || "link",
+          url,
+          order_num: (last?.order_num || 0) + 1,
+        },
+      ]);
+      if (error) console.error("Błąd dodawania materiału:", error);
+      res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
+    } catch (err) {
+      console.error("Błąd serwera (dodawanie materiału):", err);
+      res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/materials`);
+    }
+  }
+);
+
+router.post(
+  "/materials/:id/delete",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { data: material, error: fetchError } = await supabase
+        .from("materials")
+        .select("course_id")
+        .eq("id", req.params.id)
+        .single();
+
+      if (fetchError) {
+        console.error("Błąd pobierania materiału:", fetchError);
+        return res.redirect(ADMIN_PREFIX + "/kursy");
+      }
+
+      const { error: deleteError } = await supabase
+        .from("materials")
+        .delete()
+        .eq("id", req.params.id);
+
+      if (deleteError) console.error("Błąd usuwania materiału:", deleteError);
+      res.redirect(`${ADMIN_PREFIX}/kursy/${material.course_id}/materials`);
+    } catch (err) {
+      console.error("Błąd serwera (usuwanie materiału):", err);
+      res.redirect(ADMIN_PREFIX + "/kursy");
+    }
+  }
+);
+
+// ===== UCZESTNICY =====
+router.get(
+  "/kursy/:id/uczestnicy",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const course = await fetchCourseById(req.params.id);
+      if (!course) return res.redirect(ADMIN_PREFIX + "/kursy");
+
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from("enrollments")
+        .select("id, status, created_at, users(email, name, surname)")
+        .eq("course_id", req.params.id);
+
+      if (enrollmentsError)
+        console.error("Błąd pobierania uczestników:", enrollmentsError);
+
+      const participants = (enrollments || []).map((e) => ({
+        id: e.id,
+        status: e.status,
+        created_at: e.created_at,
+        email: e.users?.email || "",
+        name: e.users?.name || "",
+        surname: e.users?.surname || "",
+      }));
+
+      res.render("admin-uczestnicy", {
+        isAdmin: true,
+        adminPrefix: ADMIN_PREFIX,
+        course,
+        enrollments: participants,
+      });
+    } catch (err) {
+      console.error("Błąd serwera (uczestnicy):", err);
+      res.redirect(ADMIN_PREFIX + "/kursy");
+    }
+  }
+);
+
+router.post(
+  "/kursy/:id/uczestnicy",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await grantAccess({ email: req.body.email, courseId: req.params.id });
+    } catch (err) {
+      console.error("Błąd dodawania uczestnika:", err);
+    }
+    res.redirect(`${ADMIN_PREFIX}/kursy/${req.params.id}/uczestnicy`);
+  }
+);
+
+module.exports = router;

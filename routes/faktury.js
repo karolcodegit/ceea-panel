@@ -1,8 +1,7 @@
-// ═══════════════════════════════════════════════════════════════
-// ===== FAKTURY (widok: kto potrzebuje faktury + dane z formularza) =====
-// ═══════════════════════════════════════════════════════════════
-// Wklej do routera panelu (np. pod sekcją PŁATNOŚCI). Wymaga widoku admin-faktury.ejs.
-
+const express = require("express");
+const router = express.Router();
+const supabase = require("../config/supabase");
+const { requireAdmin, adminOnly } = require("../middleware/auth");
 const ksef = require("../services/ksef");
 
 // Czy płatność ma dane faktury? (dwie konwencje pól: nowa forma + migracja z Airtable)
@@ -21,6 +20,10 @@ const extractInvoice = p => ({
   city:      (p.InvoiceCity      || p.invoiceCity      || "").toString().trim(),
   nip:       (p.InvoiceNip       || p.invoiceNip       || "").toString().trim(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// ===== FAKTURY (widok: kto potrzebuje faktury + dane z formularza) =====
+// ═══════════════════════════════════════════════════════════════
 
 router.get("/faktury", adminOnly, requireAdmin, async (req, res) => {
   try {
@@ -55,3 +58,5 @@ router.get("/faktury", adminOnly, requireAdmin, async (req, res) => {
     });
   }
 });
+
+module.exports = router;

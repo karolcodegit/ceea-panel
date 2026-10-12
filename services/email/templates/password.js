@@ -8,18 +8,24 @@ module.exports = function passwordTemplate({ password, panelUrl }) {
     title: "Panel uczestnika CEEA",
     content: `
       <p>Wygenerowaliśmy Twoje hasło do logowania:</p>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:8px">
+        Dla bezpieczeństwa: nikt z zespołu CEEA nigdy nie poprosi Cię o podanie tego hasła.
+      </p>
       ${infoBox(`<div style="text-align:center">
         <span style="font-family:monospace;font-size:26px;letter-spacing:2px;color:#111">
           <strong>${esc(password)}</strong></span>
       </div>`)}
       ${button("Zaloguj się do panelu", url)}
       <p style="font-size:13px;color:#6b7280">Jeśli nie prosiłeś o hasło, zignoruj tę wiadomość.</p>
+
+      <p style="margin-top:24px">Pozdrawiamy,<br /><strong>Zespół CEEA Poznań</strong></p>
+
     `,
   });
 
   return {
     subject: "Twoje hasło do Panelu CEEA",
     html,
-    text: `Twoje hasło do Panelu CEEA: ${password}\n\nZaloguj się: ${url}\n\nJeśli nie prosiłeś o hasło, zignoruj tę wiadomość.`,
+    text: `Twoje hasło do Panelu CEEA: ${password}\n\nZaloguj się: ${url}\n\nPozdrawiamy,\nZespół CEEA Poznań\n\nJeśli nie prosiłeś o hasło, zignoruj tę wiadomość.`,
   };
 };

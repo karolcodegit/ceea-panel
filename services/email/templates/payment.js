@@ -11,6 +11,9 @@ const success = function paymentSuccessTemplate({ firstName, amount, courseTitle
       <p>Twoje miejsce na kursie jest zarezerwowane. Faktura zostanie przesłana na koniec
          miesiąca, w którym nastąpiła płatność.</p>
       <p>Do zobaczenia na kursie!</p>
+
+      <p style="margin-top:24px">Pozdrawiamy,<br /><strong>Zespół CEEA Poznań</strong></p>
+
     `,
   });
 

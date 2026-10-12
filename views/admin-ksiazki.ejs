@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Książki — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'ksiazki' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'ksiazki') || { name: 'Książki', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <button onclick="openBookModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
+            + Dodaj książkę
+          </button>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error || locals.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+        <% } %>
+
+        <!-- Filtry -->
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
+            <div>
+              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                <input type="text" id="search" placeholder="tytuł, autor, wydawnictwo..."
+                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+              </div>
+            </div>
+            <div>
+              <label for="fAvail" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Dostępność</label>
+              <select id="fAvail" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie</option>
+                <option value="available">Dostępne w sprzedaży</option>
+                <option value="unavailable">Niedostępne</option>
+              </select>
+            </div>
+            <div>
+              <label for="fStock" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Stan magazynowy</label>
+              <select id="fStock" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <option value="all">Wszystkie</option>
+                <option value="zero">Stan: 0</option>
+                <option value="low">Stan &lt; 5</option>
+                <option value="ok">Stan ≥ 5</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela (komponent DataTable) -->
+        <div id="booksTable"></div>
+
+        <!-- Modal: dodaj / edytuj książkę -->
+        <div id="bookModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeBookModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj książkę</h3>
+            <form method="POST" action="<%= adminPrefix %>/ksiazki" class="space-y-3">
+              <input type="hidden" name="id" id="fId" />
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tytuł *</label>
+                  <input type="text" name="name" id="fName" required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Autor / Autorzy *</label>
+                  <input type="text" name="author" id="fAuthor" required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cena (zł) *</label>
+                  <input type="text" name="price" id="fPrice" required inputmode="decimal" placeholder="np. 180"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rok wydania</label>
+                  <input type="number" name="year" id="fYear" min="1900" max="2040"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wydawnictwo</label>
+                  <input type="text" name="publisher" id="fPublisher"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rodzaj okładki</label>
+                  <select name="cover_type" id="fCover"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none cursor-pointer">
+                    <option value="">—</option>
+                    <option value="Miękka">Miękka</option>
+                    <option value="Twarda">Twarda</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ilość sztuk</label>
+                  <input type="number" name="stock_quantity" id="fStockQty" min="0"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL okładki</label>
+                  <input type="text" name="image_url" id="fImageUrl" placeholder="https://…"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Dodatkowe informacje</label>
+                  <textarea name="additional_info" id="fInfo" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"></textarea>
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-3 pt-1">
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" name="available" id="fAvailable" value="1" class="w-4 h-4 accent-red-600" checked />
+                  Dostępna w sprzedaży
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" name="reprint" id="fReprint" value="1" class="w-4 h-4 accent-red-600" />
+                  Czeka na dodruk
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" name="print_on_demand" id="fPod" value="1" class="w-4 h-4 accent-red-600" />
+                  Druk na żądanie
+                </label>
+              </div>
+
+              <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeBookModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Zapisz</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <script>
+      const DATA = <%- JSON.stringify(products) %>;
+      const fmtMoney = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
+
+      function stockBadge(q) {
+        if (q <= 0) return `<span class="text-red-600 dark:text-red-400 font-semibold">${q}</span>`;
+        if (q < 5) return `<span class="text-amber-600 dark:text-amber-400 font-semibold">${q}</span>`;
+        return `<span class="text-gray-900 dark:text-white">${q}</span>`;
+      }
+
+      function flags(p) {
+        const f = [];
+        if (p.print_on_demand) f.push('<span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300">druk na żądanie</span>');
+        if (p.reprint) f.push('<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">dodruk</span>');
+        return f.join(' ') || '<span class="text-gray-300 dark:text-slate-600">—</span>';
+      }
+
+      const table = new DataTable('#booksTable', {
+        csvFilename: 'ksiazki.csv',
+        pageSize: 10,
+        emptyText: 'Brak książek w bazie.',
+        columns: [
+          { key: '_cover', label: 'Okładka', sortable: false,
+            csvValue: r => r.image_url || '',
+            render: p => p.image_url
+              ? `<img src="${p.image_url}" alt="" loading="lazy" class="w-10 h-14 object-cover rounded shadow-sm" onerror="this.outerHTML='<span class=\\'text-gray-300 text-xs\\'>brak</span>'" />`
+              : '<span class="text-gray-300 dark:text-slate-600 text-xs">brak</span>' },
+          { key: '_title', label: 'Tytuł / Autor',
+            sortValue: r => (r.name || '').toLowerCase(),
+            csvValue: r => `${r.name};${r.author}`,
+            render: p => `
+              <div class="font-medium text-gray-900 dark:text-white">${p.name}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-500">${p.author}</div>` },
+          { key: 'price', label: 'Cena', align: 'right', sortable: true, summary: 'sum',
+            render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.price)}</span>` },
+          { key: 'year', label: 'Rok', sortable: true, align: 'right',
+            render: p => p.year || '—' },
+          { key: 'publisher', label: 'Wydawnictwo',
+            sortValue: r => (r.publisher || '').toLowerCase(),
+            render: p => p.publisher || '—' },
+          { key: 'cover_type', label: 'Okładka (typ)',
+            render: p => p.cover_type || '—' },
+          { key: 'stock_quantity', label: 'Stan', align: 'right', sortable: true,
+            render: p => stockBadge(Number(p.stock_quantity) || 0) },
+          { key: 'available', label: 'Dostępność', sortable: true,
+            sortValue: r => r.available ? 1 : 0,
+            render: p => p.available
+              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">w sprzedaży</span>'
+              : '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">niedostępna</span>' },
+          { key: '_flags', label: 'Flagi', sortable: false, render: p => flags(p) },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: p => `<button onclick="openBookModal('${p.id}')" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">Edytuj</button>` },
+        ],
+      });
+
+      // ── Filtrowanie ──
+      function render() {
+        const s = document.getElementById('search').value.toLowerCase();
+        const fa = document.getElementById('fAvail').value;
+        const fs = document.getElementById('fStock').value;
+
+        const rows = DATA.filter(p => {
+          const matchS = !s
+            || (p.name || '').toLowerCase().includes(s)
+            || (p.author || '').toLowerCase().includes(s)
+            || (p.publisher || '').toLowerCase().includes(s);
+          const matchA = fa === 'all'
+            || (fa === 'available' && p.available)
+            || (fa === 'unavailable' && !p.available);
+          const q = Number(p.stock_quantity) || 0;
+          const matchF = fs === 'all'
+            || (fs === 'zero' && q === 0)
+            || (fs === 'low' && q > 0 && q < 5)
+            || (fs === 'ok' && q >= 5);
+          return matchS && matchA && matchF;
+        });
+
+        table.setRows(rows);
+      }
+
+      // ── Modal: dodaj (pusty) / edytuj (prefill) ──
+      function openBookModal(id) {
+        const form = document.querySelector('#bookModal form');
+        form.reset();
+        document.getElementById('fId').value = '';
+
+        if (id) {
+          const p = DATA.find(x => x.id === id);
+          if (p) {
+            document.getElementById('modalTitle').textContent = 'Edytuj książkę';
+            document.getElementById('fId').value = p.id;
+            document.getElementById('fName').value = p.name || '';
+            document.getElementById('fAuthor').value = p.author || '';
+            document.getElementById('fPrice').value = p.price ?? '';
+            document.getElementById('fYear').value = p.year ?? '';
+            document.getElementById('fPublisher').value = p.publisher || '';
+            document.getElementById('fCover').value = p.cover_type || '';
+            document.getElementById('fStockQty').value = p.stock_quantity ?? 0;
+            document.getElementById('fImageUrl').value = p.image_url || '';
+            document.getElementById('fInfo').value = p.additional_info || '';
+            document.getElementById('fAvailable').checked = !!p.available;
+            document.getElementById('fReprint').checked = !!p.reprint;
+            document.getElementById('fPod').checked = !!p.print_on_demand;
+          }
+        } else {
+          document.getElementById('modalTitle').textContent = 'Dodaj książkę';
+        }
+
+        document.getElementById('bookModal').classList.remove('hidden');
+        document.getElementById('bookModal').classList.add('flex');
+      }
+      function closeBookModal() {
+        document.getElementById('bookModal').classList.add('hidden');
+        document.getElementById('bookModal').classList.remove('flex');
+      }
+
+      ['search', 'fAvail', 'fStock'].forEach(id => document.getElementById(id).addEventListener('input', render));
+      render();
+    </script>
+  </body>
+</html>

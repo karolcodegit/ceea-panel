@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Powiadomienia — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'powiadomienia' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'powiadomienia') || { name: 'Powiadomienia', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <button id="markAllRead" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-slate-600">
+            Oznacz wszystkie jako przeczytane
+          </button>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error || locals.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+        <% } %>
+
+        <!-- Filtry -->
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap items-center gap-2">
+          <button data-filter="all" class="fbtn px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white">Wszystkie</button>
+          <button data-filter="unread" class="fbtn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Nieprzeczytane</button>
+        </div>
+
+        <div id="notifTable"></div>
+      </main>
+    </div>
+
+    <script>
+      const PREFIX = '<%= adminPrefix %>';
+      const DATA = <%- JSON.stringify(notifications) %>;
+      let filter = 'all';
+
+      const fmtDate = d => new Date(d).toLocaleString('pl-PL');
+
+      // Link: link w bazie może już zawierać prefix — normalizujemy
+      function notifLink(n) {
+        if (!n.link) return null;
+        return n.link.startsWith(PREFIX) ? n.link : PREFIX + n.link;
+      }
+
+      const table = new DataTable('#notifTable', {
+        csvFilename: 'powiadomienia.csv',
+        pageSize: 15,
+        emptyText: 'Brak powiadomień.',
+        columns: [
+          { key: '_status', label: '', sortable: false,
+            render: p => p.read_at
+              ? '<span class="inline-block w-2 h-2 rounded-full bg-transparent"></span>'
+              : '<span class="inline-block w-2 h-2 rounded-full bg-red-500" title="Nieprzeczytane"></span>' },
+          { key: 'title', label: 'Tytuł',
+            sortValue: r => (r.title || '').toLowerCase(),
+            csvValue: r => `${r.title || ''} | ${r.body || ''}`,
+            render: p => `
+              <div class="font-medium text-gray-900 dark:text-white leading-snug">${p.title || ''}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">${p.body || ''}</div>` },
+          { key: '_link', label: 'Link', sortable: false,
+            csvValue: r => notifLink(r) || '',
+            render: p => {
+              const l = notifLink(p);
+              return l
+                ? `<a href="${l}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">otwórz</a>`
+                : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>';
+            } },
+          { key: 'created_at', label: 'Data', sortable: true,
+            sortValue: r => new Date(r.created_at).getTime(),
+            render: p => `<span class="text-xs text-gray-500 dark:text-slate-400">${fmtDate(p.created_at)}</span>` },
+        ],
+      });
+
+      function render() {
+        const rows = filter === 'all' ? DATA : DATA.filter(n => !n.read_at);
+        table.setRows(rows);
+      }
+
+      // Klik w wiersz: oznacz jako przeczytane
+      document.getElementById('notifTable').addEventListener('click', async (e) => {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        const idx = Array.from(tr.parentNode.children).indexOf(tr);
+        const page = table.page, size = table.pageSize;
+        const visible = (filter === 'all' ? DATA : DATA.filter(n => !n.read_at));
+        const item = table.filtered[(page - 1) * size + idx];
+        if (!item || item.read_at) return;
+        await fetch(`${PREFIX}/api/notifications/${item.id}/read`, { method: 'POST' });
+        item.read_at = new Date().toISOString();
+        render();
+      });
+
+      document.getElementById('markAllRead').addEventListener('click', async () => {
+        await fetch(`${PREFIX}/api/notifications/read`, { method: 'POST' });
+        const now = new Date().toISOString();
+        DATA.forEach(n => { if (!n.read_at) n.read_at = now; });
+        render();
+      });
+
+      document.querySelectorAll('.fbtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          filter = btn.dataset.filter;
+          document.querySelectorAll('.fbtn').forEach(b => {
+            const active = b === btn;
+            b.className = 'fbtn px-4 py-2 rounded-lg text-sm font-medium ' + (active
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200');
+          });
+          render();
+        });
+      });
+
+      render();
+    </script>
+  </body>
+</html>

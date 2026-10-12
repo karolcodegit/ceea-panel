@@ -9,6 +9,13 @@ module.exports = [
     desc: "Materiały do pobrania i listy uczestników",
   },
   {
+    key: "ksiazki",
+    name: "Książki",
+    path: "/ksiazki",
+    icon: "books",
+    desc: "Ksiązki do wyświtlenia i edycji",
+  },
+  {
     key: "maile",
     name: "Maile",
     path: "/maile",
@@ -33,14 +40,21 @@ module.exports = [
     key: "faktury",
     name: "Faktury",
     path: "/faktury",
-    icon: "invoice",  
+    icon: "invoice",
+    desc: "Osoby, które poprosiły o fakturę VAT"
+  },
+  {
+    key: "sponsorzy",
+    name: "Sponsorzy",
+    path: "/sponsorzy",
+    icon: "sponsors",
     desc: "Osoby, które poprosiły o fakturę VAT"
   },
   {
     key: "administratorzy",
     name: "Administratorzy",
     path: "/admini",
-    icon: "admins",  
+    icon: "admins",
     desc: "Zarządzanie kontami - Administracja"
   },
   

@@ -103,6 +103,7 @@ function renderEmail({ preheader = "", title = "", content = "", footerNote = ""
 
     <div class="footer">
       ${footerNote ? `<p>${footerNote}</p>` : ""}
+      <p style="color:#9ca3af">Ta wiadomość została wygenerowana automatycznie. W sprawach kursu pisz na <a href="mailto:${ORG.email}">${ORG.email}</a>.</p>
       <p>W razie pytań: <a href="mailto:${ORG.email}">${ORG.email}</a> &nbsp;|&nbsp; tel. ${ORG.phone}</p>
       <p>${ORG.name}<br />${ORG.address}<br />NIP: ${ORG.nip} &nbsp;·&nbsp; REGON: ${ORG.regon} &nbsp;·&nbsp; KRS: ${ORG.krs}</p>
       <p>Otrzymujesz tę wiadomość, ponieważ korzystasz z usług ${ORG.site.replace("https://", "www.")}.</p>

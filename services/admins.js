@@ -11,6 +11,7 @@ const rowToAdmin = (r) => ({
   secret: r.totp_secret,          // wymagane przez Twój auth.js
   qrSetup: !!r.qr_setup,
   backupCodes: r.backup_codes || [],
+  isSuper: !!r.is_super, 
 });
 const adminToRow = (a) => ({
   email: a.email,
