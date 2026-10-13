@@ -122,7 +122,7 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">3. Dodatkowe informacje o kursie</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie</label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie hotelu</label>
                 <input type="text" name="info_image_url" value="<%= c.info_image_url || '' %>"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
               </div>
@@ -170,7 +170,7 @@
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Warunek uczestnictwa *</label>
                 <textarea name="participation_condition" rows="6"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.participation_condition || '' %></textarea>
+                  class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.participation_condition || '' %></textarea>
               </div>
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie hotelu</label>
@@ -269,7 +269,7 @@
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Wydarzenia (jedno na linię)</label>
             <textarea name="program[${idx}][events]" rows="8"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
+              class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
           </div>`;
         div.querySelector('.rmDay').addEventListener('click', () => { div.remove(); reindexDays(); });
         return div;
@@ -296,46 +296,68 @@
       // ── Ceny hotelowe ──
       const pricesContainer = document.getElementById('pricesContainer');
 
+      function reindexPrices() {
+        [...pricesContainer.children].forEach((div, i) => {
+          div.querySelector('input').name = `price_option[${i}][price]`;
+          div.querySelectorAll('input')[1].name = `price_option[${i}][room]`;
+        });
+      }
+
       function priceRow(p) {
         const div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         div.innerHTML = `
-          <input type="text" name="price_option[][price]" value="${p.price ?? ''}" placeholder="Cena (zł)" inputmode="numeric"
+          <input type="text" name="price_option[0][price]" value="${p.price ?? ''}" placeholder="Cena (zł)" inputmode="numeric"
             class="w-32 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-          <input type="text" name="price_option[][room]" value="${p.room || ''}" placeholder="pokój jednoosobowy"
+          <input type="text" name="price_option[0][room]" value="${p.room || ''}" placeholder="pokój jednoosobowy"
             class="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
           <button type="button" class="rmPrice px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
-        div.querySelector('.rmPrice').addEventListener('click', () => div.remove());
+        div.querySelector('.rmPrice').addEventListener('click', () => { div.remove(); reindexPrices(); });
         return div;
       }
-
       (EXISTING_PRICES.length ? EXISTING_PRICES : []).forEach(p => pricesContainer.appendChild(priceRow(p)));
-      document.getElementById('addPriceBtn').addEventListener('click', () => {
-        pricesContainer.appendChild(priceRow({}));
-      });
+        reindexPrices();
+        document.getElementById('addPriceBtn').addEventListener('click', () => {
+          pricesContainer.appendChild(priceRow({}));
+          reindexPrices();
+        });
 
       // ── Dane istniejące: posiłki i dania ──
       const EXISTING_MEALS = <%- JSON.stringify(Array.isArray(c.meal_options) ? c.meal_options : []) %>;
       const EXISTING_DISHES = <%- JSON.stringify(Array.isArray(c.dishes) ? c.dishes : []) %>;
 
       const mealsContainer = document.getElementById('mealsContainer');
+
+      function reindexMeals() {
+        [...mealsContainer.children].forEach((div, i) => {
+          const inputs = div.querySelectorAll('input');
+          inputs[0].name = `meal_option[${i}][label]`;
+          inputs[1].name = `meal_option[${i}][price]`;
+          inputs[2].name = `meal_option[${i}][available]`;
+        });
+      }
+
       function mealRow(m) {
         const div = document.createElement('div');
         div.className = 'flex flex-wrap items-center gap-2';
         div.innerHTML = `
-          <input type="text" name="meal_option[][label]" value="${m.label || ''}" placeholder="Obiad (zupa i danie główne) - dwa dni"
+          <input type="text" name="meal_option[0][label]" value="${m.label || ''}" placeholder="Obiad (zupa i danie główne) - dwa dni"
             class="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-          <input type="text" name="meal_option[][price]" value="${m.price ?? ''}" placeholder="180" inputmode="numeric"
+          <input type="text" name="meal_option[0][price]" value="${m.price ?? ''}" placeholder="180" inputmode="numeric"
             class="w-28 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
           <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-slate-400 cursor-pointer">
-            <input type="checkbox" name="meal_option[][available]" value="1" class="w-4 h-4 accent-red-600" ${m.available ? 'checked' : ''}> dostępne
+            <input type="checkbox" name="meal_option[0][available]" value="1" class="w-4 h-4 accent-red-600" ${m.available ? 'checked' : ''}> dostępne
           </label>
           <button type="button" class="rmMeal px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
-        div.querySelector('.rmMeal').addEventListener('click', () => div.remove());
+        div.querySelector('.rmMeal').addEventListener('click', () => { div.remove(); reindexMeals(); });
         return div;
       }
       (EXISTING_MEALS.length ? EXISTING_MEALS : []).forEach(m => mealsContainer.appendChild(mealRow(m)));
-      document.getElementById('addMealBtn').addEventListener('click', () => mealsContainer.appendChild(mealRow({})));
+        reindexMeals();
+        document.getElementById('addMealBtn').addEventListener('click', () => {
+          mealsContainer.appendChild(mealRow({}));
+          reindexMeals();
+        });
 
       const dishesContainer = document.getElementById('dishesContainer');
       function dishRow(d) {
@@ -351,7 +373,7 @@
       (EXISTING_DISHES.length ? EXISTING_DISHES : []).forEach(d => dishesContainer.appendChild(dishRow(d)));
       document.getElementById('addDishBtn').addEventListener('click', () => dishesContainer.appendChild(dishRow({})));
     </script>
-  
+
 <%
   const cdnCloud = locals.cloudName || "";
   const cdnPreset = locals.uploadPreset || "";

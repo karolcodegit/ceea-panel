@@ -215,6 +215,11 @@
     <% mods.forEach(m => { %>
       <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>" data-tip="<%= m.name %>">
         <%- icon(m.icon) %> <span class="nav-label"><%= m.name %></span>
+        <% if (m.status === "beta") { %>
+          <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">test</span>
+        <% } else if (m.status === "wip") { %>
+          <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">w budowie</span>
+        <% } %>
       </a>
     <% }) %>
 

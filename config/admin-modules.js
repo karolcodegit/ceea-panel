@@ -1,19 +1,22 @@
 // Rejestr modułów panelu admina.
 // Nowy moduł = nowy wpis tutaj + route w routes/admin.js + widok w views/
+// status: "ready" (gotowe) | "beta" (testowo) | "wip" (w budowie – ukrywa się przed zwykłymi adminami)
 module.exports = [
   {
     key: "kursy",
     name: "Kursy",
     path: "/kursy",
     icon: "academic-cap",
-    desc: "Materiały do pobrania i listy uczestników",
+    desc: "Definicje kursów, program, materiały i uczestnicy",
+    status: "beta",
   },
   {
     key: "ksiazki",
     name: "Książki",
     path: "/ksiazki",
     icon: "books",
-    desc: "Ksiązki do wyświtlenia i edycji",
+    desc: "Katalog książek, stany magazynowe",
+    status: "ready",
   },
   {
     key: "pracownicy",
@@ -21,6 +24,7 @@ module.exports = [
     path: "/pracownicy",
     icon: "employees",
     desc: "Pracownicy zarządzający organizacją",
+    status: "ready",
   },
   {
     key: "maile",
@@ -28,48 +32,54 @@ module.exports = [
     path: "/maile",
     icon: "envelope",
     desc: "Wysyłka wiadomości do uczestników kursów",
+    status: "beta", // wysyłka działa, planowana rozbudowa (masówki, automatyzacje)
   },
   {
     key: "certyfikaty",
     name: "Certyfikaty",
     path: "/certyfikaty",
     icon: "certificate",
-    desc: "Generowanie certifikatów",
+    desc: "Generowanie certyfikatów",
+    status: "wip",
   },
   {
     key: "platnosci",
     name: "Płatności",
     path: "/platnosci",
     icon: "payments",
-    desc: "Przelewy i statusy płatności",
+    desc: "Przelewy i statusy płatności (tpay w trybie testowym)",
+    status: "beta",
   },
   {
     key: "faktury",
     name: "Faktury",
     path: "/faktury",
     icon: "invoice",
-    desc: "Osoby, które poprosiły o fakturę VAT"
+    desc: "Osoby, które poprosiły o fakturę VAT (KSeF testowo)",
+    status: "beta",
   },
   {
     key: "sponsorzy",
     name: "Sponsorzy",
     path: "/sponsorzy",
     icon: "sponsors",
-    desc: "Lista wszystkich sponsorów"
+    desc: "Lista wszystkich sponsorów",
+    status: "ready",
   },
   {
     key: "faq",
-    name: "Faq",
+    name: "FAQ",
     path: "/faq",
     icon: "faq",
-    desc: "Lista wszystkich popularnych pytań"
+    desc: "Lista wszystkich popularnych pytań",
+    status: "ready",
   },
   {
     key: "administratorzy",
     name: "Administratorzy",
     path: "/admini",
     icon: "admins",
-    desc: "Zarządzanie kontami - Administracja"
+    desc: "Zarządzanie kontami – Administracja",
+    status: "ready",
   },
-  
 ];
