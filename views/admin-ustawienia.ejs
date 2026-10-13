@@ -11,11 +11,24 @@
     <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
       <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">Ustawienia</h1>
-      <p class="text-gray-500 dark:text-slate-400 mb-6 sm:mb-8">Konfiguracja i stan panelu administratora</p>
+      <p class="text-gray-500 dark:text-slate-400 mb-6 sm:mb-8">Konfiguracja panelu administratora i dane firmy</p>
+
+      <% const q = locals.query || {}; %>
+      <% if (q.success) { %>
+        <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+      <% } %>
+      <% if (q.error || locals.error) { %>
+        <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+      <% } %>
+
+      <!-- ══════════ SEKCJA 1: USTAWIENIA PANELU ══════════ -->
+      <div class="mb-2">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">Panel administratora</h2>
+      </div>
 
       <!-- Motyw -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Motyw panelu</h2>
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Motyw panelu</h3>
         <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Wybór jest wspólny z panelem uczestnika.</p>
         <div class="flex flex-wrap gap-2">
           <button type="button" data-theme-choice="light">Jasny</button>
@@ -25,8 +38,8 @@
       </section>
 
       <!-- Status integracji -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status integracji</h2>
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status integracji</h3>
         <%
           const integrations = [
             { name: 'Supabase', desc: 'Baza danych — użytkownicy, zapisy, materiały', ok: status.supabase },
@@ -52,8 +65,8 @@
       </section>
 
       <!-- Kopia zapasowa -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Kopia zapasowa</h2>
+      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-10">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Kopia zapasowa</h3>
         <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
           Eksport JSON: użytkownicy (bez haseł), zapisy na kursy i materiały. Przydatne do archiwum i wniosków RODO.
         </p>
@@ -65,6 +78,129 @@
           Pobierz kopię danych
         </a>
       </section>
+
+      <!-- ══════════ SEKCJA 2: DANE FIRMY (ceea.org.pl) ══════════ -->
+      <div class="mb-2 mt-10">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">Dane firmy — strona ceea.org.pl</h2>
+      </div>
+
+      <% const c = locals.company || {}; %>
+      <form method="POST" action="<%= adminPrefix %>/ustawienia/firma" class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 space-y-5">
+
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Podstawowe</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa firmy *</label>
+              <input type="text" name="name_company" required value="<%= c.name_company || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis (o firmie)</label>
+              <textarea name="description" rows="3"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.description || '' %></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
+              <input type="text" name="email" value="<%= c.email || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Godziny otwarcia</label>
+              <input type="text" name="opening_hours" value="<%= c.opening_hours || '' %>" placeholder="Pn–Pt, 9.00–17.00"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Adres</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ulica</label>
+              <input type="text" name="street" value="<%= c.street || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer</label>
+              <input type="text" name="number_home" value="<%= c.number_home || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kod pocztowy</label>
+              <input type="text" name="zip_code" value="<%= c.zip_code || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Miasto</label>
+              <input type="text" name="city" value="<%= c.city || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rejestrowe</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP</label>
+              <input type="text" name="nip" value="<%= c.nip || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">REGON</label>
+              <input type="text" name="regon" value="<%= c.regon || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">KRS</label>
+              <input type="text" name="krs" value="<%= c.krs || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bank</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa banku</label>
+              <input type="text" name="bank_account_name" value="<%= c.bank_account_name || '' %>" placeholder="Santander Bank Polska S.A."
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer konta</label>
+              <input type="text" name="bank_account" value="<%= c.bank_account || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media społecznościowe</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Facebook</label>
+              <input type="text" name="facebook" value="<%= c.facebook || '' %>" placeholder="ceea.poznan"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">YouTube</label>
+              <input type="text" name="youtube" value="<%= c.youtube || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <p class="text-xs text-gray-400 dark:text-slate-500">
+            <% if (c.updated_at) { %>Ostatnia aktualizacja: <%= new Date(c.updated_at).toLocaleString('pl-PL') %><% } %>
+          </p>
+          <button type="submit" class="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+            Zapisz dane firmy
+          </button>
+        </div>
+      </form>
 
     </main>
   </div>

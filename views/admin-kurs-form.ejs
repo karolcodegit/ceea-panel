@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title><%= course ? 'Edytuj kurs' : 'Nowy kurs' %> — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'kursy' }) %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+        <% const c = locals.course || {}; %>
+        <% const program = Array.isArray(c.program) ? c.program : []; %>
+        <% const prices = Array.isArray(c.info_prices) ? c.info_prices : []; %>
+
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= course ? 'Edytuj kurs' : 'Nowy kurs' %></h1>
+            <p class="text-gray-500 dark:text-slate-400">
+              <% if (course) %><span class="font-mono text-xs"><%= c.course_id %></span>
+            </p>
+          </div>
+          <a href="<%= adminPrefix %>/kursy" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm hover:bg-gray-200">← Lista kursów</a>
+        </div>
+
+        <% if (q.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error %></div>
+        <% } %>
+
+        <form method="POST" action="<%= adminPrefix %>/kursy/zapis" class="space-y-6">
+
+          <% if (course) { %>
+            <input type="hidden" name="course_id" value="<%= c.course_id %>" />
+          <% } %>
+
+          <!-- ══════ SEKCJA 1: PODSTAWOWE ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">1. Podstawowe dane kursu</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <% if (!course) { %>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Identyfikator kursu (course_id) *</label>
+                  <input type="text" name="new_course_id" required placeholder="np. CEEA-7"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  <p class="text-xs text-gray-400 mt-1">Łączy kurs z płatnościami i zapisami. Po zapisaniu niezmienny.</p>
+                </div>
+              <% } %>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa kursu *</label>
+                <input type="text" name="title" required value="<%= c.title || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer kursu</label>
+                <input type="number" name="course_number" value="<%= c.course_number ?? '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Data (etykieta)</label>
+                <input type="text" name="date_label" value="<%= c.date_label || '' %>" placeholder="22-24.10.2026"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Data rozpoczęcia</label>
+                <input type="date" name="start_date" value="<%= c.start_date || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Data zakończenia</label>
+                <input type="date" name="end_date" value="<%= c.end_date || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cena kursu (zł)</label>
+                <input type="text" name="price" inputmode="decimal" value="<%= c.price ?? '' %>" placeholder="1800"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ilość punktów</label>
+                <input type="number" name="points" value="<%= c.points ?? '' %>" placeholder="19"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Język</label>
+                <select name="language"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 cursor-pointer">
+                  <option value="pl" <%= (c.language || 'pl') === 'pl' ? 'selected' : '' %>>Polski</option>
+                  <option value="en" <%= c.language === 'en' ? 'selected' : '' %>>Angielski</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL zdjęcia kursu (Cloudinary)</label>
+                <input type="text" name="image_url" value="<%= c.image_url || '' %>" placeholder="https://res.cloudinary.com/…"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis kursu (markdown)</label>
+                <textarea name="description" rows="8"
+                  class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.description || '' %></textarea>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis na stronę główną</label>
+                <textarea name="home_description" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.home_description || '' %></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════ SEKCJA 2: PROGRAM KURSU (do 3 dni) ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">2. Program kursu</h2>
+              <button type="button" id="addDayBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj dzień</button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Maksymalnie 3 dni. Wydarzenia: jedno na linię, pogrubienia <code>**tekst**</code> (jak w DatoCMS).</p>
+            <div id="daysContainer" class="space-y-4"></div>
+          </section>
+
+          <!-- ══════ SEKCJA 3: DODATKOWE INFORMACJE O KURSIE ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">3. Dodatkowe informacje o kursie</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie</label>
+                <input type="text" name="info_image_url" value="<%= c.info_image_url || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis *</label>
+                <textarea name="info_description" rows="6"
+                  class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.info_description || '' %></textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Hasło</label>
+                <input type="text" name="info_password" value="<%= c.info_password || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Telefon</label>
+                <input type="text" name="info_phone" value="<%= c.info_phone || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
+                <input type="text" name="info_email" value="<%= c.info_email || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700/60">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Ceny hotelowe (HotelPrice)</h3>
+                <button type="button" id="addPriceBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj cenę</button>
+              </div>
+              <div id="pricesContainer" class="space-y-2"></div>
+            </div>
+
+            <div class="mt-4">
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Dodatkowe informacje</label>
+              <textarea name="info_additional" rows="3"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.info_additional || '' %></textarea>
+            </div>
+          </section>
+
+          <!-- ══════ SEKCJA 4: DODATKOWE INFORMACJE O HOTELU ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">4. Dodatkowe informacje o hotelu</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Warunek uczestnictwa *</label>
+                <textarea name="participation_condition" rows="6"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.participation_condition || '' %></textarea>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie hotelu</label>
+                <input type="text" name="hotel_image_url" value="<%= c.hotel_image_url || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Informacja dodatkowa</label>
+                <textarea name="hotel_extra" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.hotel_extra || '' %></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════ SEKCJA 5: USTAWIENIA KURSU ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">5. Ustawienia kursu</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="available" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.available ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Aktywny</span><span class="block text-xs text-gray-500 dark:text-slate-400">Kurs aktywny, rejestracja uruchomiona</span></span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_active" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.is_active ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Właściwy kurs (płatności)</span><span class="block text-xs text-gray-500 dark:text-slate-400">Używany przez moduł płatności – zazwyczaj 1 kurs naraz</span></span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_next" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.is_next ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Następny kurs</span><span class="block text-xs text-gray-500 dark:text-slate-400">Pokaże się na stronie głównej jako następny kurs</span></span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_archive" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.is_archive ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Archiwum</span><span class="block text-xs text-gray-500 dark:text-slate-400">Kurs archiwalny – strona archiwum kursów</span></span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_new" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.is_new ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Nowy kurs</span><span class="block text-xs text-gray-500 dark:text-slate-400">Oznaczenie „pierwszy raz dostępny"</span></span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_online" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.is_online ? 'checked' : '' %>>
+                <span><span class="block text-sm font-medium text-gray-900 dark:text-white">Online</span><span class="block text-xs text-gray-500 dark:text-slate-400">Kurs przeprowadzany online</span></span>
+              </label>
+            </div>
+            <% if (!course) { %>
+              <p class="text-xs text-gray-400 dark:text-slate-500 mt-3">Pole „Właściwy kurs" przy tworzeniu zostanie zapisane w kolejnym kroku – najpierw utwórz kurs, potem zaznacz go jako właściwy w edycji.</p>
+            <% } %>
+          </section>
+
+
+          <!-- ══════ SEKCJA 6: OPCJE FORMULARZA (POSIŁKI / DODATKI) ══════ -->
+          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">6. Opcje formularza (posiłki i dodatki)</h2>
+              <button type="button" id="addMealBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj opcję</button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Dodatkowe opcje rejestracji (obiady, warsztaty itp.) – różna liczba. Każda: etykieta, cena, dostępność.</p>
+            <div id="mealsContainer" class="space-y-2 mb-6"></div>
+
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Dania do wyboru</h3>
+              <button type="button" id="addDishBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj danie</button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mb-3">Pojawiają się w select „Proszę wybrać dania" w formularzu zapisu.</p>
+            <div id="dishesContainer" class="space-y-2"></div>
+          </section>
+
+          <div class="flex gap-2">
+            <a href="<%= adminPrefix %>/kursy" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm text-center">Anuluj</a>
+            <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Zapisz kurs</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      // ── Dane istniejące (z serwera) ──
+      const EXISTING_PROGRAM = <%- JSON.stringify(program) %>;
+      const EXISTING_PRICES = <%- JSON.stringify(prices) %>;
+
+      // ── Program: dni kursu (max 3) ──
+      const daysContainer = document.getElementById('daysContainer');
+
+      function dayBlock(day, idx) {
+        const div = document.createElement('div');
+        div.className = 'border border-gray-200 dark:border-slate-700 rounded-lg p-4 space-y-3';
+        div.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-gray-700 dark:text-slate-300">Dzień ${idx + 1}</span>
+            <button type="button" class="rmDay text-xs text-red-600 dark:text-red-400 hover:underline">Usuń dzień</button>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Data</label>
+            <input type="date" name="program[${idx}][date]" value="${day.date || ''}"
+              class="w-full sm:w-56 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Wydarzenia (jedno na linię)</label>
+            <textarea name="program[${idx}][events]" rows="8"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
+          </div>`;
+        div.querySelector('.rmDay').addEventListener('click', () => { div.remove(); reindexDays(); });
+        return div;
+      }
+
+      function reindexDays() {
+        [...daysContainer.children].forEach((div, i) => {
+          div.querySelector('span').textContent = `Dzień ${i + 1}`;
+          div.querySelector('input[type=date]').name = `program[${i}][date]`;
+          div.querySelector('textarea').name = `program[${i}][events]`;
+        });
+        document.getElementById('addDayBtn').disabled = daysContainer.children.length >= 3;
+      }
+
+      (EXISTING_PROGRAM.length ? EXISTING_PROGRAM : [{}]).forEach((d, i) => {
+        if (i < 3) daysContainer.appendChild(dayBlock(d, i));
+      });
+      document.getElementById('addDayBtn').addEventListener('click', () => {
+        if (daysContainer.children.length >= 3) return;
+        daysContainer.appendChild(dayBlock({}, daysContainer.children.length));
+        reindexDays();
+      });
+
+      // ── Ceny hotelowe ──
+      const pricesContainer = document.getElementById('pricesContainer');
+
+      function priceRow(p) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = `
+          <input type="text" name="price_option[][price]" value="${p.price ?? ''}" placeholder="Cena (zł)" inputmode="numeric"
+            class="w-32 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <input type="text" name="price_option[][room]" value="${p.room || ''}" placeholder="pokój jednoosobowy"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <button type="button" class="rmPrice px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
+        div.querySelector('.rmPrice').addEventListener('click', () => div.remove());
+        return div;
+      }
+
+      (EXISTING_PRICES.length ? EXISTING_PRICES : []).forEach(p => pricesContainer.appendChild(priceRow(p)));
+      document.getElementById('addPriceBtn').addEventListener('click', () => {
+        pricesContainer.appendChild(priceRow({}));
+      });
+
+      // ── Dane istniejące: posiłki i dania ──
+      const EXISTING_MEALS = <%- JSON.stringify(Array.isArray(c.meal_options) ? c.meal_options : []) %>;
+      const EXISTING_DISHES = <%- JSON.stringify(Array.isArray(c.dishes) ? c.dishes : []) %>;
+
+      const mealsContainer = document.getElementById('mealsContainer');
+      function mealRow(m) {
+        const div = document.createElement('div');
+        div.className = 'flex flex-wrap items-center gap-2';
+        div.innerHTML = `
+          <input type="text" name="meal_option[][label]" value="${m.label || ''}" placeholder="Obiad (zupa i danie główne) - dwa dni"
+            class="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <input type="text" name="meal_option[][price]" value="${m.price ?? ''}" placeholder="180" inputmode="numeric"
+            class="w-28 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-slate-400 cursor-pointer">
+            <input type="checkbox" name="meal_option[][available]" value="1" class="w-4 h-4 accent-red-600" ${m.available ? 'checked' : ''}> dostępne
+          </label>
+          <button type="button" class="rmMeal px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
+        div.querySelector('.rmMeal').addEventListener('click', () => div.remove());
+        return div;
+      }
+      (EXISTING_MEALS.length ? EXISTING_MEALS : []).forEach(m => mealsContainer.appendChild(mealRow(m)));
+      document.getElementById('addMealBtn').addEventListener('click', () => mealsContainer.appendChild(mealRow({})));
+
+      const dishesContainer = document.getElementById('dishesContainer');
+      function dishRow(d) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = `
+          <input type="text" name="dish[][name]" value="${d.name || ''}" placeholder="Danie wegetariańskie"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <button type="button" class="rmDish px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
+        div.querySelector('.rmDish').addEventListener('click', () => div.remove());
+        return div;
+      }
+      (EXISTING_DISHES.length ? EXISTING_DISHES : []).forEach(d => dishesContainer.appendChild(dishRow(d)));
+      document.getElementById('addDishBtn').addEventListener('click', () => dishesContainer.appendChild(dishRow({})));
+    </script>
+  
+<%
+  const cdnCloud = locals.cloudName || "";
+  const cdnPreset = locals.uploadPreset || "";
+%>
+
+<% if (cdnCloud && cdnPreset) { %>
+<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+<% } %>
+<script>
+(function () {
+  // ══════════ 1) Upload zdjęć do Cloudinary (folder ceea/courses) ══════════
+  var CDN_CLOUD = '<%= locals.cloudName || "" %>';
+  var CDN_PRESET = '<%= locals.uploadPreset || "" %>';
+
+  function makeUploader(input) {
+    return function () {
+      if (!window.cloudinary) { alert('Widget Cloudinary niedostępny (brak cloudName/uploadPreset w env).'); return; }
+      cloudinary.createUploadWidget(
+        {
+          cloudName: CDN_CLOUD,
+          uploadPreset: CDN_PRESET,
+          folder: 'ceea/courses',
+          sources: ['local', 'url', 'camera'],
+          multiple: false,
+          maxFileSize: 5000000,
+          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+        },
+        function (error, result) {
+          if (!error && result && result.event === 'success') {
+            input.value = result.info.secure_url;
+            updatePreview(input);
+          }
+        }
+      ).open();
+    };
+  }
+
+  function updatePreview(input) {
+    var box = document.getElementById('preview-' + input.name);
+    if (!box) return;
+    box.innerHTML = input.value
+      ? '<img src="' + input.value + '" alt="podgląd" class="mt-2 h-28 rounded-lg object-cover border border-gray-200 dark:border-slate-700" />'
+      : '';
+  }
+
+  ['image_url', 'info_image_url', 'hotel_image_url'].forEach(function (name) {
+    var input = document.querySelector('input[name="' + name + '"]');
+    if (!input) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-2 mt-2';
+    wrap.innerHTML =
+      '<button type="button" class="upBtn px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj do Cloudinary</button>' +
+      '<button type="button" class="rmBtn px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium hover:bg-red-100">Usuń zdjęcie</button>';
+    input.parentNode.appendChild(wrap);
+    var prev = document.createElement('div');
+    prev.id = 'preview-' + name;
+    input.parentNode.appendChild(prev);
+    wrap.querySelector('.upBtn').addEventListener('click', makeUploader(input));
+    wrap.querySelector('.rmBtn').addEventListener('click', function () {
+      if (confirm('Usunąć zdjęcie z kursu? (Plik zostanie w Cloudinary – skasuj go ręcznie w Media Library, jeśli niepotrzebny.)')) {
+        input.value = ''; updatePreview(input);
+      }
+    });
+    input.addEventListener('input', function () { updatePreview(input); });
+    updatePreview(input);
+  });
+
+  // ══════════ 2) Lekki edytor markdown: pasek narzędzi + podgląd ══════════
+  function mdToHtml(src) {
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    var lines = esc(src).split('\n');
+    var html = '', list = null;
+    function inline(s) {
+      return s
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+        .replace(/\[([^\]]+)\]\((https?:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 underline">$1</a>');
+    }
+    function closeList() { if (list) { html += '</' + list + '>'; list = null; } }
+    lines.forEach(function (raw) {
+      var line = raw.trim();
+      var m;
+      if ((m = line.match(/^[-*]\s+(.+)/))) {
+        if (list !== 'ul') { closeList(); html += '<ul class="list-disc pl-5 my-2 space-y-1">'; list = 'ul'; }
+        html += '<li>' + inline(m[1]) + '</li>';
+      } else if ((m = line.match(/^\d+[.)]\s+(.+)/))) {
+        if (list !== 'ol') { closeList(); html += '<ol class="list-decimal pl-5 my-2 space-y-1">'; list = 'ol'; }
+        html += '<li>' + inline(m[1]) + '</li>';
+      } else {
+        closeList();
+        html += line ? '<p class="my-2">' + inline(line) + '</p>' : '';
+      }
+    });
+    closeList();
+    return html || '<p class="text-gray-400 italic">(pusto)</p>';
+  }
+
+  function wrapSelection(ta, before, after, placeholder) {
+    var s = ta.selectionStart, e = ta.selectionEnd;
+    var sel = ta.value.slice(s, e) || placeholder;
+    ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+    ta.focus();
+    ta.selectionStart = s + before.length;
+    ta.selectionEnd = s + before.length + sel.length;
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  document.querySelectorAll('textarea.md').forEach(function (ta) {
+    // pasek narzędzi
+    var bar = document.createElement('div');
+    bar.className = 'flex flex-wrap items-center gap-1 mb-1';
+    bar.innerHTML =
+      '<button type="button" data-md="b" class="px-2.5 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs font-bold hover:bg-gray-200" title="Pogrubienie"><strong>B</strong></button>' +
+      '<button type="button" data-md="i" class="px-2.5 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs italic hover:bg-gray-200" title="Kursywa"><em>I</em></button>' +
+      '<button type="button" data-md="s" class="px-2.5 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs line-through hover:bg-gray-200" title="Przekreślenie"><s>S</s></button>' +
+      '<button type="button" data-md="link" class="px-2.5 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs hover:bg-gray-200" title="Link">🔗 link</button>' +
+      '<button type="button" data-md="list" class="px-2.5 py-1 bg-gray-100 dark:bg-slate-700 rounded text-xs hover:bg-gray-200" title="Lista">≡ lista</button>' +
+      '<button type="button" data-md="prev" class="ml-auto px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-xs font-medium hover:bg-blue-100">Podgląd</button>';
+    ta.parentNode.insertBefore(bar, ta);
+
+    // podgląd
+    var prev = document.createElement('div');
+    prev.className = 'hidden mt-2 p-4 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-800 dark:text-slate-200';
+    ta.parentNode.insertBefore(prev, ta.nextSibling);
+
+    bar.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-md]');
+      if (!btn) return;
+      var mode = btn.dataset.md;
+      if (mode === 'prev') {
+        var show = prev.classList.toggle('hidden');
+        btn.textContent = show ? 'Podgląd' : 'Ukryj podgląd';
+        if (!show) prev.innerHTML = mdToHtml(ta.value);
+        return;
+      }
+      if (mode === 'b') wrapSelection(ta, '**', '**', 'pogrubiony tekst');
+      if (mode === 'i') wrapSelection(ta, '*', '*', 'kursywa');
+      if (mode === 's') wrapSelection(ta, '~~', '~~', 'przekreślenie');
+      if (mode === 'link') wrapSelection(ta, '[', '](https://)', 'tekst linku');
+      if (mode === 'list') {
+        var lineStart = ta.value.lastIndexOf('\n', ta.selectionStart - 1) + 1;
+        ta.value = ta.value.slice(0, lineStart) + '- ' + ta.value.slice(lineStart);
+        ta.dispatchEvent(new Event('input'));
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

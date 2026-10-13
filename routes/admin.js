@@ -5,6 +5,7 @@ const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
 const { fetchAllCourses } = require("../config/datocms");
 const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
+const companyRoutes = require("./firma");
 
 // ── Kontekst wspólny dla całego panelu (moduły montowane NIŻEJ też go dostają,
 //    bo przechodzą przez ten middleware przed własnymi route'ami) ──
@@ -116,6 +117,16 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
     mailer: false,
   };
 
+  let company = null;
+     try {
+       const { data: companyRow } = await supabase
+         .from("company_settings")
+         .select("*")
+         .eq("id", 1)
+         .maybeSingle();
+       company = companyRow;
+     } catch (e) { console.error("ustawienia/firma:", e.message); }
+
   try {
     const [u, e, m] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
@@ -145,6 +156,8 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
     isAdmin: true,
     active: "ustawienia",
     status,
+    company,
+    query: req.query,
   });
 });
 
@@ -198,5 +211,9 @@ router.use("/", require("./notifications"));  // powiadomienia API
 router.use("/", require("./faktury"));        // kto potrzebuje faktury (Twój plik)
 router.use("/", require("./ksiazki"));        // lista ksiązek
 router.use("/", require("./sponsorzy"));      // wszyscy sponsorzy
+router.use("/", require("./faq"));            // pytania i odpowiedzi
+router.use("/", require("./pracownicy"));     // Pracownicy zarządzający organizacją
+router.use("/", require("./firma"));          // Dane firmy CEEA Poznań
+
 
 module.exports = router;

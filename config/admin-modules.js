@@ -16,6 +16,13 @@ module.exports = [
     desc: "Ksiązki do wyświtlenia i edycji",
   },
   {
+    key: "pracownicy",
+    name: "Pracownicy",
+    path: "/pracownicy",
+    icon: "employees",
+    desc: "Pracownicy zarządzający organizacją",
+  },
+  {
     key: "maile",
     name: "Maile",
     path: "/maile",
@@ -48,7 +55,14 @@ module.exports = [
     name: "Sponsorzy",
     path: "/sponsorzy",
     icon: "sponsors",
-    desc: "Osoby, które poprosiły o fakturę VAT"
+    desc: "Lista wszystkich sponsorów"
+  },
+  {
+    key: "faq",
+    name: "Faq",
+    path: "/faq",
+    icon: "faq",
+    desc: "Lista wszystkich popularnych pytań"
   },
   {
     key: "administratorzy",

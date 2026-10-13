@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Pracownicy — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'pracownicy' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'pracownicy') || { name: 'Pracownicy', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <button onclick="openEmployeeModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
+            + Dodaj pracownika
+          </button>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error || locals.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
+        <% } %>
+
+        <!-- Filtry -->
+        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap items-center gap-2">
+          <div class="relative flex-1 min-w-[220px]">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+            <input type="text" id="search" placeholder="szukaj po imieniu, nazwisku, emailu..."
+              class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+          </div>
+          <button data-filter="all" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">Wszyscy</button>
+          <button data-filter="active" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Aktywni</button>
+          <button data-filter="inactive" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Ukryci</button>
+        </div>
+
+        <div id="empTable"></div>
+
+        <!-- Modal: dodaj / edytuj -->
+        <div id="empModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeEmployeeModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj pracownika</h3>
+            <form method="POST" action="<%= adminPrefix %>/pracownicy" class="space-y-3">
+              <input type="hidden" name="id" id="fId" />
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Imię *</label>
+                  <input type="text" name="name" id="fName" required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwisko *</label>
+                  <input type="text" name="surname" id="fSurname" required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tytuł (stopień)</label>
+                  <input type="text" name="degree" id="fDegree" placeholder="dr inż., lek., mgr…"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rola</label>
+                  <input type="text" name="role" id="fRole" value="Administracja"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Telefon</label>
+                  <input type="text" name="phone" id="fPhone"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Drugi telefon</label>
+                  <input type="text" name="second_phone" id="fSecondPhone"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
+                  <input type="text" name="email" id="fEmail"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kolejność</label>
+                  <input type="number" name="sort_order" id="fSortOrder" min="0" value="0"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                </div>
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer mt-5">
+                  <input type="checkbox" name="is_active" id="fActive" value="1" class="w-4 h-4 accent-red-600" checked />
+                  Widoczny na stronie
+                </label>
+              </div>
+
+              <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeEmployeeModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Zapisz</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <script>
+      const DATA = <%- JSON.stringify(employees) %>;
+      let filter = 'all';
+
+      function deleteEmployee(id, label) {
+        if (!confirm(`Usunąć pracownika:\n„${label}"?`)) return;
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = `<%= adminPrefix %>/pracownicy/${id}/usun`;
+        document.body.appendChild(f);
+        f.submit();
+      }
+
+      const table = new DataTable('#empTable', {
+        csvFilename: 'pracownicy.csv',
+        pageSize: 10,
+        emptyText: 'Brak pracowników w bazie.',
+        columns: [
+          { key: 'sort_order', label: '#', sortable: true, align: 'right',
+            render: p => `<span class="text-gray-500 dark:text-slate-400 font-medium">${p.sort_order}</span>` },
+          { key: '_name', label: 'Imię i nazwisko',
+            sortValue: r => `${r.surname} ${r.name}`.toLowerCase(),
+            csvValue: r => `${r.name} ${r.surname}`,
+            render: p => `
+              <div class="font-medium text-gray-900 dark:text-white">${p.name} ${p.surname}</div>
+              <div class="text-xs text-gray-500 dark:text-slate-500">${p.degree || ''}</div>` },
+          { key: 'role', label: 'Rola', sortable: true,
+            sortValue: r => (r.role || '').toLowerCase(),
+            render: p => `<span class="text-xs text-gray-700 dark:text-slate-300">${p.role || '—'}</span>` },
+          { key: 'phone', label: 'Telefon',
+            csvValue: r => [r.phone, r.second_phone].filter(Boolean).join(', '),
+            render: p => [p.phone, p.second_phone].filter(Boolean).map(t => `<div class="text-xs text-gray-700 dark:text-slate-300">${t}</div>`).join('') || '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'email', label: 'E-mail',
+            sortValue: r => (r.email || '').toLowerCase(),
+            render: p => p.email
+              ? `<a href="mailto:${p.email}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">${p.email}</a>`
+              : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'is_active', label: 'Status', sortable: true,
+            sortValue: r => r.is_active ? 1 : 0,
+            render: p => p.is_active
+              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">widoczny</span>'
+              : '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">ukryty</span>' },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: p => `
+              <button onclick="openEmployeeModal('${p.id}')" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">Edytuj</button>
+              <button onclick="deleteEmployee('${p.id}', '${String(p.name + ' ' + p.surname).replace(/'/g, "\\'")}')" class="px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded text-xs font-medium hover:bg-red-200 ml-1">Usuń</button>` },
+        ],
+      });
+
+      function render() {
+        const s = document.getElementById('search').value.toLowerCase();
+        const rows = DATA.filter(p => {
+          const matchS = !s
+            || `${p.name} ${p.surname}`.toLowerCase().includes(s)
+            || (p.email || '').toLowerCase().includes(s);
+          const matchF = filter === 'all'
+            || (filter === 'active' && p.is_active)
+            || (filter === 'inactive' && !p.is_active);
+          return matchS && matchF;
+        });
+        table.setRows(rows);
+      }
+
+      function openEmployeeModal(id) {
+        const form = document.querySelector('#empModal form');
+        form.reset();
+        document.getElementById('fId').value = '';
+        document.getElementById('fRole').value = 'Administracja';
+        document.getElementById('fSortOrder').value = 0;
+        document.getElementById('fActive').checked = true;
+
+        if (id) {
+          const p = DATA.find(x => x.id === id);
+          if (p) {
+            document.getElementById('modalTitle').textContent = 'Edytuj pracownika';
+            document.getElementById('fId').value = p.id;
+            document.getElementById('fName').value = p.name || '';
+            document.getElementById('fSurname').value = p.surname || '';
+            document.getElementById('fDegree').value = p.degree || '';
+            document.getElementById('fRole').value = p.role || 'Administracja';
+            document.getElementById('fPhone').value = p.phone || '';
+            document.getElementById('fSecondPhone').value = p.second_phone || '';
+            document.getElementById('fEmail').value = p.email || '';
+            document.getElementById('fSortOrder').value = p.sort_order ?? 0;
+            document.getElementById('fActive').checked = !!p.is_active;
+          }
+        } else {
+          document.getElementById('modalTitle').textContent = 'Dodaj pracownika';
+          const max = Math.max(0, ...DATA.map(d => Number(d.sort_order) || 0));
+          document.getElementById('fSortOrder').value = max + 10;
+        }
+
+        document.getElementById('empModal').classList.remove('hidden');
+        document.getElementById('empModal').classList.add('flex');
+      }
+      function closeEmployeeModal() {
+        document.getElementById('empModal').classList.add('hidden');
+        document.getElementById('empModal').classList.remove('flex');
+      }
+
+      document.getElementById('search').addEventListener('input', render);
+      document.querySelectorAll('.fbtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          filter = btn.dataset.filter;
+          document.querySelectorAll('.fbtn').forEach(b => {
+            const active = b === btn;
+            b.className = 'fbtn px-4 py-2.5 rounded-xl text-sm font-medium ' + (active
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200');
+          });
+          render();
+        });
+      });
+
+      render();
+    </script>
+  </body>
+</html>
