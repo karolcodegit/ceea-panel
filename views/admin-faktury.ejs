@@ -4,11 +4,6 @@
     <%- include('partials/head') %>
     <title>Faktury — Panel CEEA</title>
     <style>
-      .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-      .ksef-not_sent { @apply bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-300; }
-      .ksef-sent { @apply bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300; }
-      .ksef-delivered { @apply bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300; }
-      .ksef-rejected { @apply bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300; }
       @media print {
         .no-print { display: none !important; }
         body { background: white; }
@@ -30,9 +25,9 @@
           </div>
           <div class="flex items-center gap-2">
             <% if (ksefEnabled) { %>
-              <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">KSeF: aktywny</span>
+              <span class="badge badge-green">KSeF: aktywny</span>
             <% } else { %>
-              <span class="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300" title="Integracja przygotowana – włączenie po konfiguracji certyfikatu">KSeF: wkrótce</span>
+              <span class="badge badge-outline" title="Integracja przygotowana – włączenie po konfiguracji certyfikatu">KSeF: wkrótce</span>
             <% } %>
           </div>
         </div>
@@ -93,8 +88,8 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
               </div>
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Generuj fakturę PDF</button>
+                <button type="button" onclick="closeModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">Generuj fakturę PDF</button>
               </div>
             </form>
           </div>
@@ -109,6 +104,7 @@
       const KSEF_ENABLED = <%- JSON.stringify(ksefEnabled) %>;
 
       const ksefLabel = { not_sent: 'Nie wysłana', sent: 'Wysłana', delivered: 'Doręczona', rejected: 'Odrzucona' };
+      const ksefBadge = { not_sent: 'badge-gray', sent: 'badge-blue', delivered: 'badge-green', rejected: 'badge-red' };
 
       function fmtMoney(n) {
         return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
@@ -136,7 +132,7 @@
             sortValue: r => (r.invoiceData?.name || '').toLowerCase(),
             csvValue: r => `${r.invoiceData?.name || ''};${r.invoiceData?.nip || ''}`,
             render: p => `
-              <div class="text-gray-900 dark:text-white">${p.invoiceData?.name || '<span class="text-red-500 text-xs">BRAK NAZWY</span>'}</div>
+              <div class="text-gray-900 dark:text-white">${p.invoiceData?.name || '<span class="badge badge-red">BRAK NAZWY</span>'}</div>
               <div class="text-xs text-gray-500 dark:text-slate-400">NIP: ${p.invoiceData?.nip || '—'}</div>` },
           { key: '_address', label: 'Adres', sortable: false,
             csvValue: r => address(r.invoiceData || {}),
@@ -153,12 +149,14 @@
               : '<span class="text-gray-400 text-xs">—</span>' },
           { key: 'ksef', label: 'KSeF', sortable: false,
             render: p => p.invoices
-              ? `<span class="badge ksef-${p.invoices.ksef_status || 'not_sent'}">${ksefLabel[p.invoices.ksef_status] || 'Nie wysłana'}</span>`
+              ? `<span class="badge ${ksefBadge[p.invoices.ksef_status] || 'badge-gray'}">${ksefLabel[p.invoices.ksef_status] || 'Nie wysłana'}</span>`
               : '<span class="text-gray-400 text-xs">—</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => p.invoices
-              ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">PDF</a>`
-              : `<button onclick="openModal('${p.id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700">Generuj</button>` },
+            render: p => `<div class="btn-group">` + (
+              p.invoices
+                ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`
+                : `<button onclick="openModal('${p.id}')" class="btn btn-xs btn-primary">Generuj</button>`
+            ) + `</div>` },
         ],
       });
 

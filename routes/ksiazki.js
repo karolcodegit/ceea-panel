@@ -22,6 +22,8 @@ router.get("/ksiazki", adminOnly, requireAdmin, async (req, res) => {
       active: "ksiazki",
       products: products || [],
       query: req.query,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
     });
   } catch (err) {
     console.error("[GET /ksiazki]", err);

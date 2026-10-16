@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Media — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'media' }) %>
+    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'media') || { name: 'Media', desc: '' }; %>
+
+    <div class="lg:pl-64">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
+            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="testBtn" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200">Testuj połączenie</button>
+            <% if (cloudName && uploadPreset) { %>
+              <button id="uploadBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">+ Wgraj zdjęcie</button>
+            <% } %>
+          </div>
+        </div>
+
+        <% if (!cloudName || !uploadPreset) { %>
+          <div class="mb-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 rounded-xl text-sm">
+            <strong>Brak CLOUDINARY_CLOUD_NAME lub CLOUDINARY_UPLOAD_PRESET w env panelu.</strong><br>
+            Uzupełnij zmienne w Northflank (ENV) i zrestartuj usługę. Preset musi być typu <em>unsigned</em>.
+          </div>
+        <% } %>
+        <% if (cloudName && uploadPreset && !hasAdminApi) { %>
+          <div class="mb-4 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 rounded-xl text-sm">
+            <strong>Galeria w trybie ograniczonym:</strong> dodaj <code>CLOUDINARY_API_KEY</code> i <code>CLOUDINARY_API_SECRET</code> w env (Settings → Access Keys w Cloudinary), żeby przeglądać i usuwać pliki. Upload działa bez nich.
+          </div>
+        <% } %>
+
+        <div id="testResult" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+        <!-- Foldery -->
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+          <% folders.forEach(f => { %>
+            <button data-folder="<%= f.id %>" class="fbtn px-4 py-2 rounded-lg text-sm font-medium <%= f.id === 'ceea' ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700' %>"><%= f.name %></button>
+          <% }) %>
+        </div>
+
+        <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+
+        <div class="mt-6 text-center">
+          <button id="moreBtn" class="hidden px-6 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200">Załaduj więcej</button>
+        </div>
+
+        <div id="empty" class="hidden text-center py-16 text-gray-400 dark:text-slate-500 text-sm">Brak zdjęć w tym folderze.</div>
+      </main>
+    </div>
+
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+    <script>
+      const CLOUD = <%- JSON.stringify(cloudName) %>;
+      const PRESET = <%- JSON.stringify(uploadPreset) %>;
+      const HAS_API = <%- JSON.stringify(hasAdminApi) %>;
+
+      let currentFolder = '';
+      let nextCursor = null;
+      const grid = document.getElementById('grid');
+      const moreBtn = document.getElementById('moreBtn');
+      const emptyEl = document.getElementById('empty');
+
+      function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      async function load(reset) {
+        if (reset) { grid.innerHTML = ''; nextCursor = null; emptyEl.classList.add('hidden'); }
+        if (!HAS_API) { emptyEl.textContent = 'Galeria wymaga CLOUDINARY_API_KEY i CLOUDINARY_API_SECRET w env.'; emptyEl.classList.remove('hidden'); return; }
+
+        const params = new URLSearchParams({ folder: currentFolder });
+        if (nextCursor) params.set('next_cursor', nextCursor);
+        const r = await fetch('<%- adminPrefix %>/api/media?' + params);
+        const j = await r.json();
+        if (!r.ok) { emptyEl.textContent = j.error || 'Błąd pobierania'; emptyEl.classList.remove('hidden'); return; }
+
+        nextCursor = j.next_cursor;
+        moreBtn.classList.toggle('hidden', !nextCursor);
+
+        if (reset && j.resources.length === 0) emptyEl.classList.remove('hidden');
+
+        j.resources.forEach(x => {
+          const card = document.createElement('div');
+          card.className = 'group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden';
+          card.innerHTML = `
+            <div class="aspect-[4/3] bg-gray-100 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+              <img src="${x.thumb}" alt="${esc(x.public_id)}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            </div>
+            <div class="p-2.5 space-y-1.5">
+              <p class="text-[11px] text-gray-500 dark:text-slate-400 truncate font-mono" title="${esc(x.public_id)}">${esc(x.public_id)}</p>
+              <div class="flex gap-1.5">
+                <button class="copyBtn flex-1 px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[11px] font-medium hover:bg-blue-100" data-url="${x.url}">Kopiuj URL</button>
+                <button class="delBtn flex-1 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded text-[11px] font-medium hover:bg-red-100">Usuń</button>
+              </div>
+            </div>`;
+          card.querySelector('.copyBtn').addEventListener('click', async (e) => {
+            await navigator.clipboard.writeText(e.target.dataset.url);
+            e.target.textContent = 'Skopiowano!';
+            setTimeout(() => { e.target.textContent = 'Kopiuj URL'; }, 1500);
+          });
+          card.querySelector('.delBtn').addEventListener('click', async (e) => {
+            if (!confirm(`Usunąć zdjęcie:\n${x.public_id}?`)) return;
+            const r = await fetch('<%- adminPrefix %>/api/media/usun', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ public_id: x.public_id }),
+            });
+            const j = await r.json();
+            if (j.ok) card.remove();
+            else alert(j.error || 'Błąd usuwania');
+          });
+          grid.appendChild(card);
+        });
+      }
+
+      document.querySelectorAll('.fbtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentFolder = btn.dataset.folder;
+          document.querySelectorAll('.fbtn').forEach(b => {
+            const active = b === btn;
+            b.className = 'fbtn px-4 py-2 rounded-lg text-sm font-medium ' + (active
+              ? 'bg-red-600 text-white'
+              : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700');
+          });
+          load(true);
+        });
+      });
+
+      moreBtn.addEventListener('click', () => load(false));
+
+      // Upload widget → do folderu wg wybraniej zakładki
+      document.getElementById('uploadBtn')?.addEventListener('click', () => {
+        if (!window.cloudinary) return alert('Widget Cloudinary nie załadował się.');
+        cloudinary.createUploadWidget(
+          {
+            cloudName: CLOUD,
+            uploadPreset: PRESET,
+            folder: currentFolder === '' ? 'ogolne' : currentFolder,
+            sources: ['local', 'url', 'camera'],
+            multiple: true,
+            maxFileSize: 8000000,
+            clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'pdf'],
+          },
+          (error, result) => {
+            if (!error && result && result.event === 'success') {
+              setTimeout(() => load(true), 800); // odśwież po propagacji
+            }
+          }
+        ).open();
+      });
+
+      // Test połączenia
+      document.getElementById('testBtn').addEventListener('click', async () => {
+        const box = document.getElementById('testResult');
+        box.classList.remove('hidden');
+        box.textContent = 'Testowanie…';
+        box.className = 'mb-4 p-3 rounded-lg text-sm bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300';
+        const r = await fetch('<%- adminPrefix %>/api/media/test');
+        const j = await r.json();
+        const check = (ok, label) => `${ok ? '✅' : '❌'} ${label}`;
+        box.innerHTML =
+          `<div class="font-semibold mb-1">${j.ok ? '✅ Cloudinary działa poprawnie' : '❌ Problem z Cloudinary'}</div>` +
+          check(j.checks.cloudName, 'CLOUDINARY_CLOUD_NAME') + '<br>' +
+          check(j.checks.uploadPreset, 'CLOUDINARY_UPLOAD_PRESET (unsigned)') + '<br>' +
+          check(j.checks.apiKey, 'CLOUDINARY_API_KEY') + '<br>' +
+          check(j.checks.apiSecret, 'CLOUDINARY_API_SECRET') + '<br>' +
+          check(j.checks.adminApi, 'Admin API (usage)') +
+          (j.message ? `<div class="mt-1 text-xs opacity-70">${esc(j.message)}</div>` : '');
+        box.className = 'mb-4 p-3 rounded-lg text-sm ' + (j.ok
+          ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300'
+          : 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300');
+      });
+
+      load(true);
+    </script>
+  </body>
+</html>

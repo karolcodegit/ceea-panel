@@ -17,9 +17,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
             <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
           </div>
-          <button onclick="openBookModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
-            + Dodaj książkę
-          </button>
+          <button onclick="openBookModal()" class="btn btn-sm btn-primary">+ Dodaj książkę</button>
         </div>
 
         <% if (q.success) { %>
@@ -139,8 +137,8 @@
               </div>
 
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeBookModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Zapisz</button>
+                <button type="button" onclick="closeBookModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz</button>
               </div>
             </form>
           </div>
@@ -149,7 +147,16 @@
       </main>
     </div>
 
+    <%
+      const cdnCloud = locals.cloudName || "";
+      const cdnPreset = locals.uploadPreset || "";
+    %>
+    <% if (cdnCloud && cdnPreset) { %>
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+    <% } %>
     <script>
+      const CDN_CLOUD = <%- JSON.stringify(cdnCloud) %>;
+      const CDN_PRESET = <%- JSON.stringify(cdnPreset) %>;
       const DATA = <%- JSON.stringify(products) %>;
       const fmtMoney = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
 
@@ -161,8 +168,8 @@
 
       function flags(p) {
         const f = [];
-        if (p.print_on_demand) f.push('<span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300">druk na żądanie</span>');
-        if (p.reprint) f.push('<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">dodruk</span>');
+        if (p.print_on_demand) f.push('<span class="badge badge-purple">druk na żądanie</span>');
+        if (p.reprint) f.push('<span class="badge badge-amber">dodruk</span>');
         return f.join(' ') || '<span class="text-gray-300 dark:text-slate-600">—</span>';
       }
 
@@ -196,11 +203,11 @@
           { key: 'available', label: 'Dostępność', sortable: true,
             sortValue: r => r.available ? 1 : 0,
             render: p => p.available
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">w sprzedaży</span>'
-              : '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">niedostępna</span>' },
+              ? '<span class="badge badge-green">w sprzedaży</span>'
+              : '<span class="badge badge-gray">niedostępna</span>' },
           { key: '_flags', label: 'Flagi', sortable: false, render: p => flags(p) },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `<button onclick="openBookModal('${p.id}')" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">Edytuj</button>` },
+            render: p => `<div class="btn-group"><button onclick="openBookModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button></div>` },
         ],
       });
 
@@ -267,6 +274,32 @@
 
       ['search', 'fAvail', 'fStock'].forEach(id => document.getElementById(id).addEventListener('input', render));
       render();
+    </script>
+<script>
+      // Upload okładki do Cloudinary (folder: books)
+      (function () {
+        var input = document.getElementById('fImageUrl');
+        if (!input || !window.cloudinary) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'flex items-center gap-2 mt-2';
+        wrap.innerHTML =
+          '<button type="button" id="upCover" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj do Cloudinary</button>' +
+          '<span id="coverPrev" class="text-xs text-gray-400"></span>';
+        input.parentNode.appendChild(wrap);
+        var prev = wrap.querySelector('#coverPrev');
+        function show() { prev.innerHTML = input.value ? '<img src="' + input.value + '" class="h-16 rounded border border-gray-200 dark:border-slate-700" />' : ''; }
+        document.getElementById('upCover').addEventListener('click', function () {
+          cloudinary.createUploadWidget(
+            { cloudName: CDN_CLOUD, uploadPreset: CDN_PRESET, folder: 'books', multiple: false,
+              maxFileSize: 5000000, clientAllowedFormats: ['jpg','jpeg','png','webp'] },
+            function (err, res) {
+              if (!err && res && res.event === 'success') { input.value = res.info.secure_url; show(); }
+            }
+          ).open();
+        });
+        input.addEventListener('input', show);
+        show();
+      })();
     </script>
   </body>
 </html>

@@ -4,11 +4,6 @@
     <%- include('partials/head') %>
     <title>Płatności — Panel CEEA</title>
     <style>
-      .status-badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-      .status-paid { @apply bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300; }
-      .status-pending { @apply bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300; }
-      .status-failed { @apply bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300; }
-      .status-refunded { @apply bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-300; }
       @media print {
         .no-print { display: none !important; }
         body { background: white; }
@@ -30,10 +25,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
             <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
           </div>
-          <button onclick="window.print()"
-            class="no-print px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 text-sm font-medium transition w-fit">
-            🖨 Drukuj widok
-          </button>
+          <button onclick="window.print()" class="btn btn-sm btn-neutral no-print w-fit">🖨 Drukuj widok</button>
         </div>
 
         <% if (query.success) { %>
@@ -47,10 +39,7 @@
         <div class="no-print bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6 transition-colors">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">Filtry</h2>
-            <button type="button" onclick="clearFilters()"
-              class="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-              Wyczyść filtry ✕
-            </button>
+            <button type="button" onclick="clearFilters()" class="btn btn-xs btn-ghost">Wyczyść filtry ✕</button>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4">
@@ -136,8 +125,8 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
               </div>
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Generuj fakturę</button>
+                <button type="button" onclick="closeModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">Generuj fakturę</button>
               </div>
             </form>
           </div>
@@ -153,12 +142,13 @@
       const courseName = p =>
         (p.courses && (p.courses.title || p.courses.nameCourse)) || p.course_id || '-';
 
-      const statusClass = {
-        paid: 'status-paid',
-        awaiting_transfer: 'status-pending',
-        awaiting_payment: 'status-pending',
-        canceled: 'status-failed',
-        expired: 'status-failed',
+      // ── UI kit: statusy i metody jako badge ──
+      const statusBadge = {
+        paid: 'badge-green',
+        awaiting_transfer: 'badge-amber',
+        awaiting_payment: 'badge-amber',
+        canceled: 'badge-red',
+        expired: 'badge-red',
       };
       const statusLabel = {
         paid: 'Zapłacone',
@@ -167,6 +157,7 @@
         canceled: 'Anulowane',
         expired: 'Wygasło',
       };
+      const methodBadge = { transfer: 'badge-outline', tpay: 'badge-blue' };
       const methodLabel = { transfer: 'Przelew', tpay: 'Online (tpay)' };
 
       function fmtDate(d) {
@@ -197,7 +188,7 @@
         columns: [
           { key: 'created_at', label: 'Data', sortable: true,
             sortValue: r => new Date(r.created_at),
-            render: p => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap">${fmtDate(p.created_at)}</span>` },
+            render: p => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap text-xs">${fmtDate(p.created_at)}</span>` },
           { key: '_user', label: 'Uczestnik',
             sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
             csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
@@ -211,19 +202,22 @@
             render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
           { key: 'status', label: 'Status', sortable: true,
             sortValue: r => r.status,
-            render: p => `<span class="${statusClass[p.status]||'status-pending'}">${statusLabel[p.status]||p.status}</span>` },
+            render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${statusLabel[p.status]||p.status}</span>` },
           { key: 'method', label: 'Metoda',
-            render: p => `<span class="text-xs text-gray-600 dark:text-slate-400">${methodLabel[p.method]||p.method}</span>` },
+            render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${methodLabel[p.method]||p.method}</span>` },
           { key: 'invoice', label: 'Faktura', sortable: false,
             render: p => p.invoices
               ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
               : '<span class="text-gray-400 text-xs">—</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `
-              ${p.status !== 'paid' ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded text-xs font-medium hover:bg-green-200">Zapłacono</button></form>` : ''}
-              ${!p.invoices
-                ? `<button onclick="openInvoiceModal('${p.id}')" class="px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded text-xs font-medium hover:bg-gray-200">Faktura</button>`
-                : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">PDF</a>`}` },
+            render: p => `<div class="btn-group">` +
+              (p.status !== 'paid'
+                ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="btn btn-xs btn-success">Zapłacono</button></form>`
+                : '') +
+              (!p.invoices
+                ? `<button onclick="openInvoiceModal('${p.id}')" class="btn btn-xs btn-neutral">Faktura</button>`
+                : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`) +
+              `</div>` },
         ],
       });
 

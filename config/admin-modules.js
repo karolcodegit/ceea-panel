@@ -82,4 +82,12 @@ module.exports = [
     desc: "Zarządzanie kontami – Administracja",
     status: "ready",
   },
+  {
+    key: "media",
+    name: "Media",
+    path: "/media",
+    icon: "media",
+    desc: "Galeria cloudinary",
+    status: "test",
+  },
 ];

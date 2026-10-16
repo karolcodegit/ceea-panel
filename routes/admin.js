@@ -214,6 +214,7 @@ router.use("/", require("./sponsorzy"));      // wszyscy sponsorzy
 router.use("/", require("./faq"));            // pytania i odpowiedzi
 router.use("/", require("./pracownicy"));     // Pracownicy zarządzający organizacją
 router.use("/", require("./firma"));          // Dane firmy CEEA Poznań
+router.use("/", require("./media"));          // Galeria z Cloudinary
 
 
 module.exports = router;

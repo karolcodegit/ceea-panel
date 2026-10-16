@@ -1,0 +1,115 @@
+/* ═══════════════════════════════════════════════════════════════
+   CEEA Panel — UI kit: przyciski i badge (jednolite style wszystkich
+   modułów). Dołączony w partials/head. W widokach używaj klas:
+     <button class="btn btn-xs btn-edit">Edytuj</button>
+     <button class="btn btn-xs btn-delete">Usuń</button>
+     <span class="badge badge-green">w sprzedaży</span>
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── PRZYCISKI ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .375rem;
+  font-weight: 500;
+  border-radius: .5rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+  line-height: 1.25;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* rozmiary */
+.btn-xs  { padding: .3rem .65rem; font-size: .72rem; }
+.btn-sm  { padding: .45rem .9rem;  font-size: .8rem; }
+.btn-md  { padding: .6rem 1.15rem; font-size: .875rem; }
+.btn-lg  { padding: .75rem 1.5rem; font-size: .95rem; }
+.btn-block { width: 100%; }
+
+/* warianty kolorystyczne */
+.btn-edit    { background: #eff6ff; color: #1d4ed8; border-color: #dbeafe; }
+.btn-edit:hover   { background: #dbeafe; }
+.dark .btn-edit    { background: rgba(59,130,246,.12); color: #93c5fd; border-color: rgba(59,130,246,.25); }
+.dark .btn-edit:hover { background: rgba(59,130,246,.22); }
+
+.btn-delete  { background: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
+.btn-delete:hover { background: #fee2e2; }
+.dark .btn-delete  { background: rgba(239,68,68,.12); color: #fca5a5; border-color: rgba(239,68,68,.25); }
+.dark .btn-delete:hover { background: rgba(239,68,68,.22); }
+
+.btn-primary { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
+
+.btn-neutral { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+.btn-neutral:hover { background: #e5e7eb; }
+.dark .btn-neutral { background: #334155; color: #e2e8f0; border-color: #475569; }
+.dark .btn-neutral:hover { background: #475569; }
+
+.btn-success { background: #f0fdf4; color: #15803d; border-color: #dcfce7; }
+.btn-success:hover { background: #dcfce7; }
+.dark .btn-success { background: rgba(34,197,94,.12); color: #86efac; border-color: rgba(34,197,94,.25); }
+.dark .btn-success:hover { background: rgba(34,197,94,.22); }
+
+.btn-ghost   { background: transparent; color: #6b7280; border-color: transparent; }
+.btn-ghost:hover { background: #f3f4f6; color: #111827; }
+.dark .btn-ghost { color: #94a3b8; }
+.dark .btn-ghost:hover { background: #1e293b; color: #e2e8f0; }
+
+/* ── GRUPA PRZYCISKÓW (odstępy w tabelach) ── */
+.btn-group { display: inline-flex; align-items: center; gap: .375rem; flex-wrap: wrap; }
+.actions-cell .btn-group { justify-content: flex-end; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .15rem .55rem;
+  border-radius: 9999px;
+  font-size: .68rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+.badge-green  { background: #dcfce7; color: #166534; }
+.dark .badge-green  { background: rgba(34,197,94,.14); color: #86efac; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.dark .badge-red    { background: rgba(239,68,68,.14); color: #fca5a5; }
+.badge-amber  { background: #fef3c7; color: #92400e; }
+.dark .badge-amber  { background: rgba(245,158,11,.14); color: #fcd34d; }
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+.dark .badge-blue   { background: rgba(59,130,246,.14); color: #93c5fd; }
+.badge-purple { background: #f3e8ff; color: #6b21a8; }
+.dark .badge-purple { background: rgba(168,85,247,.14); color: #d8b4fe; }
+.badge-gray   { background: #f3f4f6; color: #4b5563; }
+.dark .badge-gray   { background: rgba(148,163,184,.15); color: #cbd5e1; }
+
+
+/* metoda płatności / dane neutralne — wyróżnione obrysem */
+.badge-outline {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+.dark .badge-outline { border-color: #475569; color: #cbd5e1; }
+
+/* formularze w grupach przycisków (np. POST Zapłacono obok Faktura)
+.btn-group > form { display: inline-flex; margin: 0; }
+ */
+
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
+/* akcje w jednej linii, przyklejone do prawej */
+.btn-group { flex-wrap: wrap; }
+.btn-group > form { display: inline-flex; margin: 0; }
+#paymentsTable td:last-child { text-align: right; }
+#paymentsTable td:last-child .btn-group { justify-content: flex-end; width: 100%; }

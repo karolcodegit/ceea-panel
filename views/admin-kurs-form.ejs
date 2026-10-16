@@ -41,9 +41,10 @@
               <% if (!course) { %>
                 <div class="sm:col-span-2">
                   <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Identyfikator kursu (course_id) *</label>
-                  <input type="text" name="new_course_id" required placeholder="np. CEEA-7"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-                  <p class="text-xs text-gray-400 mt-1">Łączy kurs z płatnościami i zapisami. Po zapisaniu niezmienny.</p>
+                  <% function genId() { const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; let s = ''; for (let i = 0; i < 22; i++) s += c[Math.floor(Math.random() * c.length)]; return s; } %>
+                  <input type="text" name="new_course_id" required value="<%= genId() %>"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">
+                  <p class="text-xs text-gray-400 mt-1">Wygenerowano automatycznie (format jak DatoCMS) – możesz wpisać własny, np. ID z DatoCMS przy uzupełnianiu starych kursów. Po zapisaniu niezmienny.</p>
                 </div>
               <% } %>
               <div class="sm:col-span-2">
@@ -95,7 +96,7 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis kursu (markdown)</label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis kursu</label>
                 <textarea name="description" rows="8"
                   class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.description || '' %></textarea>
               </div>
@@ -122,7 +123,7 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">3. Dodatkowe informacje o kursie</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie hotelu</label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie</label>
                 <input type="text" name="info_image_url" value="<%= c.info_image_url || '' %>"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
               </div>
@@ -170,7 +171,7 @@
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Warunek uczestnictwa *</label>
                 <textarea name="participation_condition" rows="6"
-                  class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.participation_condition || '' %></textarea>
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.participation_condition || '' %></textarea>
               </div>
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie hotelu</label>
@@ -269,7 +270,7 @@
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Wydarzenia (jedno na linię)</label>
             <textarea name="program[${idx}][events]" rows="8"
-              class="md w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
+              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
           </div>`;
         div.querySelector('.rmDay').addEventListener('click', () => { div.remove(); reindexDays(); });
         return div;
@@ -298,7 +299,7 @@
 
       function reindexPrices() {
         [...pricesContainer.children].forEach((div, i) => {
-          div.querySelector('input').name = `price_option[${i}][price]`;
+          div.querySelectorAll('input')[0].name = `price_option[${i}][price]`;
           div.querySelectorAll('input')[1].name = `price_option[${i}][room]`;
         });
       }
@@ -315,18 +316,21 @@
         div.querySelector('.rmPrice').addEventListener('click', () => { div.remove(); reindexPrices(); });
         return div;
       }
+
       (EXISTING_PRICES.length ? EXISTING_PRICES : []).forEach(p => pricesContainer.appendChild(priceRow(p)));
+      reindexPrices();
+      document.getElementById('addPriceBtn').addEventListener('click', () => {
+        pricesContainer.appendChild(priceRow({}));
         reindexPrices();
-        document.getElementById('addPriceBtn').addEventListener('click', () => {
-          pricesContainer.appendChild(priceRow({}));
-          reindexPrices();
-        });
+      });
+
 
       // ── Dane istniejące: posiłki i dania ──
       const EXISTING_MEALS = <%- JSON.stringify(Array.isArray(c.meal_options) ? c.meal_options : []) %>;
       const EXISTING_DISHES = <%- JSON.stringify(Array.isArray(c.dishes) ? c.dishes : []) %>;
 
       const mealsContainer = document.getElementById('mealsContainer');
+
 
       function reindexMeals() {
         [...mealsContainer.children].forEach((div, i) => {
@@ -336,6 +340,7 @@
           inputs[2].name = `meal_option[${i}][available]`;
         });
       }
+
 
       function mealRow(m) {
         const div = document.createElement('div');
@@ -352,28 +357,40 @@
         div.querySelector('.rmMeal').addEventListener('click', () => { div.remove(); reindexMeals(); });
         return div;
       }
+
+
       (EXISTING_MEALS.length ? EXISTING_MEALS : []).forEach(m => mealsContainer.appendChild(mealRow(m)));
+      reindexMeals();
+      document.getElementById('addMealBtn').addEventListener('click', () => {
+        mealsContainer.appendChild(mealRow({}));
         reindexMeals();
-        document.getElementById('addMealBtn').addEventListener('click', () => {
-          mealsContainer.appendChild(mealRow({}));
-          reindexMeals();
+      });
+
+      function reindexDishes() {
+        [...dishesContainer.children].forEach((div, i) => {
+          div.querySelector('input').name = `dish[${i}][name]`;
         });
+      }
 
       const dishesContainer = document.getElementById('dishesContainer');
       function dishRow(d) {
         const div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         div.innerHTML = `
-          <input type="text" name="dish[][name]" value="${d.name || ''}" placeholder="Danie wegetariańskie"
+          <input type="text" name="dish[0][name]" value="${d.name || ''}" placeholder="Danie wegetariańskie"
             class="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
           <button type="button" class="rmDish px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs">✕</button>`;
-        div.querySelector('.rmDish').addEventListener('click', () => div.remove());
+        div.querySelector('.rmDish').addEventListener('click', () => { div.remove(); reindexDishes(); });
         return div;
       }
       (EXISTING_DISHES.length ? EXISTING_DISHES : []).forEach(d => dishesContainer.appendChild(dishRow(d)));
-      document.getElementById('addDishBtn').addEventListener('click', () => dishesContainer.appendChild(dishRow({})));
+      reindexDishes();
+      document.getElementById('addDishBtn').addEventListener('click', () => {
+        dishesContainer.appendChild(dishRow({}));
+        reindexDishes();
+      });
     </script>
-
+  
 <%
   const cdnCloud = locals.cloudName || "";
   const cdnPreset = locals.uploadPreset || "";
@@ -385,8 +402,8 @@
 <script>
 (function () {
   // ══════════ 1) Upload zdjęć do Cloudinary (folder ceea/courses) ══════════
-  var CDN_CLOUD = '<%= locals.cloudName || "" %>';
-  var CDN_PRESET = '<%= locals.uploadPreset || "" %>';
+  var CDN_CLOUD = <%- JSON.stringify(cdnCloud) %>;
+  var CDN_PRESET = <%- JSON.stringify(cdnPreset) %>;
 
   function makeUploader(input) {
     return function () {
