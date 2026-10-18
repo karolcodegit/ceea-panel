@@ -43,8 +43,8 @@
         <%
           const integrations = [
             { name: 'Supabase', desc: 'Baza danych — użytkownicy, zapisy, materiały', ok: status.supabase },
-            { name: 'DatoCMS', desc: 'Treści i definicje kursów', ok: status.datocms },
-            { name: 'Cloudinary', desc: 'Przesyłanie i serwowanie plików', ok: status.cloudinary },
+            { name: 'DatoCMS', desc: 'Treści i definicje kursów (wygaszane)', ok: status.datocms },
+            { name: 'Cloudinary', desc: 'Przesyłanie i serwowanie plików', ok: status.cloudinary, test: true },
             { name: 'MailerSend', desc: 'Wysyłka e-maili z hasłami', ok: status.mailer },
           ];
         %>
@@ -55,8 +55,14 @@
               <div class="flex-1 min-w-0">
                 <p class="font-medium text-gray-900 dark:text-slate-100"><%= i.name %></p>
                 <p class="text-sm text-gray-500 dark:text-slate-400 truncate"><%= i.desc %></p>
+                <% if (i.test) { %>
+                  <div id="cloudinaryTestResult" class="hidden mt-2 p-3 rounded-lg text-xs leading-relaxed"></div>
+                <% } %>
               </div>
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium shrink-0 <%= i.ok ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' %>">
+              <% if (i.test) { %>
+                <button type="button" id="cloudinaryTestBtn" class="btn btn-xs btn-neutral shrink-0">Testuj połączenie</button>
+              <% } %>
+              <span class="badge <%= i.ok ? 'badge-green' : 'badge-red' %> shrink-0">
                 <%= i.ok ? 'Skonfigurowano' : 'Brak konfiguracji' %>
               </span>
             </li>
@@ -236,6 +242,41 @@
         if (current() === 'system') apply('system');
       });
       paint();
+    })();
+  </script>
+
+  <script>
+    // ── Test połączenia Cloudinary (realny ping do Admin API) ──
+    (function () {
+      var btn = document.getElementById('cloudinaryTestBtn');
+      var box = document.getElementById('cloudinaryTestResult');
+      if (!btn || !box) return;
+      btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        box.classList.remove('hidden');
+        box.textContent = 'Testowanie…';
+        box.className = 'mt-2 p-3 rounded-lg text-xs leading-relaxed bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400';
+        try {
+          var r = await fetch('<%= adminPrefix %>/api/media/test');
+          var j = await r.json();
+          var check = function (ok, label) { return (ok ? '✅ ' : '❌ ') + label; };
+          box.innerHTML =
+            '<div class="font-semibold mb-1">' + (j.ok ? '✅ Cloudinary działa poprawnie' : '❌ Problem z Cloudinary') + '</div>' +
+            check(j.checks.cloudName, 'CLOUDINARY_CLOUD_NAME') + '<br>' +
+            check(j.checks.uploadPreset, 'CLOUDINARY_UPLOAD_PRESET (unsigned)') + '<br>' +
+            check(j.checks.apiKey, 'CLOUDINARY_API_KEY') + '<br>' +
+            check(j.checks.apiSecret, 'CLOUDINARY_API_SECRET') + '<br>' +
+            check(j.checks.adminApi, 'Admin API (usage)') +
+            (j.message ? '<div class="mt-1 opacity-70">' + j.message + '</div>' : '');
+          box.className = 'mt-2 p-3 rounded-lg text-xs leading-relaxed ' + (j.ok
+            ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300'
+            : 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300');
+        } catch (e) {
+          box.textContent = 'Błąd: ' + e.message;
+          box.className = 'mt-2 p-3 rounded-lg text-xs bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300';
+        }
+        btn.disabled = false;
+      });
     })();
   </script>
 </body>

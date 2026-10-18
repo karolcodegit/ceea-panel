@@ -55,9 +55,7 @@
               <span data-dt-info>Wczytywanie…</span>
             </div>
             <div class="flex items-center gap-2">
-              <button data-dt-csv class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
-                ⬇ Eksport CSV
-              </button>
+              <button data-dt-csv class="btn btn-xs btn-neutral">⬇ Eksport CSV</button>
               <select data-dt-pagesize class="px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white outline-none cursor-pointer">
                 ${c.pageSizeOptions.map(n => `<option value="${n}"${n === this.pageSize ? ' selected' : ''}>${n} / str.</option>`).join('')}
               </select>
@@ -201,11 +199,7 @@
           const b = document.createElement('button');
           b.textContent = label;
           b.disabled = !!opts.disabled;
-          b.className = `min-w-[32px] px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-            opts.active
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600'
-          } ${b.disabled ? 'opacity-40 cursor-not-allowed' : ''}`;
+          b.className = `btn btn-xs min-w-[32px] ${opts.active ? 'btn-active' : 'btn-neutral'}`;
           if (!opts.disabled) b.addEventListener('click', () => { this.page = page; this._render(); });
           return b;
         };

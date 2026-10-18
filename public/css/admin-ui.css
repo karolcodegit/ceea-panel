@@ -89,8 +89,6 @@
 .dark .badge-purple { background: rgba(168,85,247,.14); color: #d8b4fe; }
 .badge-gray   { background: #f3f4f6; color: #4b5563; }
 .dark .badge-gray   { background: rgba(148,163,184,.15); color: #cbd5e1; }
-
-
 /* metoda płatności / dane neutralne — wyróżnione obrysem */
 .badge-outline {
   background: transparent;
@@ -99,17 +97,23 @@
 }
 .dark .badge-outline { border-color: #475569; color: #cbd5e1; }
 
-/* formularze w grupach przycisków (np. POST Zapłacono obok Faktura)
+/* formularze w grupach przycisków (np. POST Zapłacono obok Faktura) */
 .btn-group > form { display: inline-flex; margin: 0; }
- */
 
+/* aktywny element paginacji (DataTable) */
+.btn-active { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn-active:hover { background: #b91c1c; border-color: #b91c1c; }
+
+
+.btn-group { flex-wrap: wrap; }
+.btn-group > form { display: inline-flex; margin: 0; }
+#paymentsTable td:last-child { text-align: right; }
+#paymentsTable td:last-child .btn-group { justify-content: flex-end; width: 100%; }
+
+#faqTable td:last-child { text-align: right; }
+#faqTable td:last-child .btn-group { justify-content: flex-end; width: 100%; }
 
 @media print {
   .no-print { display: none !important; }
   body { background: white; }
 }
-/* akcje w jednej linii, przyklejone do prawej */
-.btn-group { flex-wrap: wrap; }
-.btn-group > form { display: inline-flex; margin: 0; }
-#paymentsTable td:last-child { text-align: right; }
-#paymentsTable td:last-child .btn-group { justify-content: flex-end; width: 100%; }

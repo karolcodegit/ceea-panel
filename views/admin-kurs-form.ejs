@@ -243,6 +243,53 @@
             <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Zapisz kurs</button>
           </div>
         </form>
+         <!-- Modal: link / obrazek (edytor markdown) -->
+         <div id="mdLinkModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeMdLink()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj link / obrazek</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tekst linku / alt obrazka</label>
+                <input type="text" id="mdlText" placeholder="np. Logo SOWE / Certyfikat do pobrania"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL</label>
+                <input type="text" id="mdlUrl" placeholder="https://…"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">
+                <div class="flex items-center gap-2 mt-2">
+                  <button type="button" id="mdlUpload" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj z Cloudinary</button>
+                  <button type="button" id="mdlPick" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">🖼 Wybierz z galerii</button>
+                </div>
+                <div id="mdlPrev" class="mt-2"></div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL strony (opcjonalnie – kliknięcie logo będzie kierować na tę stronę)</label>
+                <input type="text" id="mdlHref" placeholder="https://www.sobi.com/en"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button type="button" id="mdlCancel" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
+                <button type="button" id="mdlInsert" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Wstaw</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal: wybór z galerii (nasz moduł Media) -->
+        <div id="galleryModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeGallery()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-3xl p-5 max-h-[80vh] flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Wybierz z galerii</h3>
+              <button type="button" onclick="closeGallery()" class="px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs">✕ Zamknij</button>
+            </div>
+            <input type="text" id="galSearch" placeholder="szukaj po nazwie…"
+              class="w-full px-3 py-2 mb-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400" />
+            <div id="galGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 overflow-y-auto"></div>
+          </div>
+        </div>
       </main>
     </div>
 
@@ -253,6 +300,31 @@
 
       // ── Program: dni kursu (max 3) ──
       const daysContainer = document.getElementById('daysContainer');
+
+      
+
+      function eventRow(dayIdx, value) {
+        const div = document.createElement('div');
+        div.className = 'flex items-start gap-2';
+        div.innerHTML = `
+          <textarea name="program[${dayIdx}][events][0]" rows="2"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400"
+            placeholder="13:45 **otwarcie**">${value || ''}</textarea>
+          <button type="button" class="rmEvent px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-xs shrink-0">✕</button>`;
+        div.querySelector('.rmEvent').addEventListener('click', () => {
+          div.remove();
+          reindexEvents(dayIdx);
+        });
+        return div;
+      }
+
+      function reindexEvents(dayIdx) {
+        const dayDiv = daysContainer.children[dayIdx];
+        if (!dayDiv) return;
+        dayDiv.querySelectorAll('.space-y-2 textarea').forEach((ta, j) => {
+          ta.name = `program[${dayIdx}][events][${j}]`;
+        });
+      }
 
       function dayBlock(day, idx) {
         const div = document.createElement('div');
@@ -268,11 +340,26 @@
               class="w-full sm:w-56 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Wydarzenia (jedno na linię)</label>
-            <textarea name="program[${idx}][events]" rows="8"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">${day.events || ''}</textarea>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Wydarzenia</label>
+              <button type="button" class="addEvent px-2.5 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj wydarzenie</button>
+            </div>
+            <div class="space-y-2"></div>
           </div>`;
         div.querySelector('.rmDay').addEventListener('click', () => { div.remove(); reindexDays(); });
+        div.querySelector('.addEvent').addEventListener('click', () => {
+          div.querySelector('.space-y-2').appendChild(eventRow(idx, ''));
+          reindexEvents(idx);
+        });
+
+        // istniejące wydarzenia (tablica LUB stary string po liniach)
+        const list = div.querySelector('.space-y-2');
+        let existing = day.events;
+        if (typeof existing === 'string') existing = existing.split('\n');
+        (Array.isArray(existing) && existing.length ? existing : ['']).forEach(e => {
+          list.appendChild(eventRow(idx, (e || '').trim()));
+        });
+        reindexEvents(idx);
         return div;
       }
 
@@ -280,12 +367,12 @@
         [...daysContainer.children].forEach((div, i) => {
           div.querySelector('span').textContent = `Dzień ${i + 1}`;
           div.querySelector('input[type=date]').name = `program[${i}][date]`;
-          div.querySelector('textarea').name = `program[${i}][events]`;
+          reindexEvents(i);
         });
         document.getElementById('addDayBtn').disabled = daysContainer.children.length >= 3;
       }
 
-      (EXISTING_PROGRAM.length ? EXISTING_PROGRAM : [{}]).forEach((d, i) => {
+      (EXISTING_PROGRAM.length ? EXISTING_PROGRAM : [{ date: '', events: [] }]).forEach((d, i) => {
         if (i < 3) daysContainer.appendChild(dayBlock(d, i));
       });
       document.getElementById('addDayBtn').addEventListener('click', () => {
@@ -294,6 +381,7 @@
         reindexDays();
       });
 
+      
       // ── Ceny hotelowe ──
       const pricesContainer = document.getElementById('pricesContainer');
 
@@ -498,6 +586,102 @@
     ta.selectionEnd = s + before.length + sel.length;
     ta.dispatchEvent(new Event('input'));
   }
+  window.openMdLink = function (ta) {
+    window._mdTarget = ta;
+    document.getElementById('mdlText').value = '';
+    document.getElementById('mdlUrl').value = '';
+    document.getElementById('mdlHref').value = '';
+    document.getElementById('mdlPrev').innerHTML = '';
+    document.getElementById('mdLinkModal').classList.remove('hidden');
+    document.getElementById('mdLinkModal').classList.add('flex');
+    setTimeout(function () { document.getElementById('mdlText').focus(); }, 50);
+  };
+  window.closeMdLink = function () {
+    document.getElementById('mdLinkModal').classList.add('hidden');
+    document.getElementById('mdLinkModal').classList.remove('flex');
+  };
+  window.insertMdLink = function () {
+    var ta = window._mdTarget;
+    var text = document.getElementById('mdlText').value.trim();
+    var url = document.getElementById('mdlUrl').value.trim();
+    if (!url) { alert('Podaj adres URL.'); return; }
+    var href = (document.getElementById('mdlHref').value || '').trim();
+    var snippet = '![' + text + '](' + url + ')';
+    if (href) snippet = '[' + snippet + '](' + href + ')';
+    if (ta) {
+      var s = ta.selectionStart, e = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + snippet + ta.value.slice(e);
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = s + snippet.length;
+      ta.dispatchEvent(new Event('input'));
+    }
+    window.closeMdLink();
+  };
+  // ── Galeria: wybór istniejącego zdjęcia z modułu Media ──
+  window.openGallery = function () {
+    document.getElementById('galleryModal').classList.remove('hidden');
+    document.getElementById('galleryModal').classList.add('flex');
+    loadGal(document.getElementById('galSearch').value || '');
+  };
+  window.closeGallery = function () {
+    document.getElementById('galleryModal').classList.add('hidden');
+    document.getElementById('galleryModal').classList.remove('flex');
+  };
+  function loadGal(q) {
+    var grid = document.getElementById('galGrid');
+    grid.innerHTML = '<p class="col-span-full text-sm text-gray-400 py-8 text-center">Ładowanie…</p>';
+    fetch('<%= adminPrefix %>/api/media?max=100')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.resources) { grid.innerHTML = '<p class="col-span-full text-sm text-red-500 py-8 text-center">' + (j.error || 'Błąd') + '</p>'; return; }
+        var items = j.resources.filter(function (x) {
+          return !q || x.public_id.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+        });
+        if (!items.length) { grid.innerHTML = '<p class="col-span-full text-sm text-gray-400 py-8 text-center">Brak zdjęć.</p>'; return; }
+        grid.innerHTML = '';
+        items.forEach(function (x) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'group relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 hover:border-red-400 focus:outline-none';
+          b.innerHTML =
+            '<img src="' + x.thumb + '" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />' +
+            '<span class="absolute bottom-0 left-0 right-0 text-[10px] font-mono bg-black/50 text-white px-1 py-0.5 truncate">' + x.public_id + '</span>';
+          b.addEventListener('click', function () {
+            document.getElementById('mdlUrl').value = x.url;
+            document.getElementById('mdlPrev').innerHTML =
+              '<img src="' + x.thumb + '" class="h-10 rounded border border-gray-200 dark:border-slate-700" />';
+            window.closeGallery();
+          });
+          grid.appendChild(b);
+        });
+      })
+      .catch(function (e) {
+        grid.innerHTML = '<p class="col-span-full text-sm text-red-500 py-8 text-center">' + e.message + '</p>';
+      });
+  }
+  document.getElementById('galSearch').addEventListener('input', function () {
+    loadGal(this.value);
+  });
+  document.getElementById('mdlUpload').addEventListener('click', function () {
+    if (!window.cloudinary) { alert('Widget Cloudinary niedostępny.'); return; }
+    cloudinary.createUploadWidget(
+      { cloudName: CDN_CLOUD, uploadPreset: CDN_PRESET, folder: 'courses', multiple: false,
+        maxFileSize: 20000000, clientAllowedFormats: ['jpg','jpeg','png','webp','svg','gif','pdf','mp4','mov'] },
+      function (err, res) {
+        if (!err && res && res.event === 'success') {
+          document.getElementById('mdlUrl').value = res.info.secure_url;
+          document.getElementById('mdlPrev').innerHTML =
+            '<img src="' + res.info.secure_url.replace('/upload/', '/upload/w_160,h_80,c_fit/') +
+            '" class="h-14 rounded border border-gray-200 dark:border-slate-700" />';
+        }
+      }
+    ).open();
+  });
+  document.getElementById('mdlCancel').addEventListener('click', window.closeMdLink);
+  document.getElementById('mdlInsert').addEventListener('click', window.insertMdLink);
+  document.getElementById('mdlPick').addEventListener('click', function () {
+    window.openGallery();
+  });
 
   document.querySelectorAll('textarea.md').forEach(function (ta) {
     // pasek narzędzi
@@ -530,7 +714,7 @@
       if (mode === 'b') wrapSelection(ta, '**', '**', 'pogrubiony tekst');
       if (mode === 'i') wrapSelection(ta, '*', '*', 'kursywa');
       if (mode === 's') wrapSelection(ta, '~~', '~~', 'przekreślenie');
-      if (mode === 'link') wrapSelection(ta, '[', '](https://)', 'tekst linku');
+      if (mode === 'link') { openMdLink(ta); return; }
       if (mode === 'list') {
         var lineStart = ta.value.lastIndexOf('\n', ta.selectionStart - 1) + 1;
         ta.value = ta.value.slice(0, lineStart) + '- ' + ta.value.slice(lineStart);

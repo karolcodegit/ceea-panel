@@ -283,8 +283,9 @@
   // 🔹 iOS Safari lepiej radzi sobie z konkretnym endpointem niż /auto/
   let resourceType = 'auto';
   if (detectedType === 'jpg') resourceType = 'image';
+  else if (detectedType === 'pdf') resourceType = 'image'; // ← PDF to format typu image w Cloudinary! raw wymaga podpisanego uploadu
   else if (detectedType === 'video') resourceType = 'video';
-  else resourceType = 'raw'; // PDF i inne
+  else resourceType = 'raw';
 
   const formData = new FormData();
   formData.append('file', file);

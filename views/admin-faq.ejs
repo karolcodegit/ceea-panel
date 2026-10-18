@@ -17,9 +17,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
             <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
           </div>
-          <button onclick="openFaqModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
-            + Dodaj pytanie
-          </button>
+          <button onclick="openFaqModal()" class="btn btn-sm btn-primary">+ Dodaj pytanie</button>
         </div>
 
         <% if (q.success) { %>
@@ -75,8 +73,8 @@
               </div>
 
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeFaqModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm">Anuluj</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Zapisz</button>
+                <button type="button" onclick="closeFaqModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz</button>
               </div>
             </form>
           </div>
@@ -124,12 +122,13 @@
           { key: 'is_active', label: 'Status', sortable: true,
             sortValue: r => r.is_active ? 1 : 0,
             render: p => p.is_active
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300">widoczne</span>'
-              : '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">ukryte</span>' },
+              ? '<span class="badge badge-green">widoczne</span>'
+              : '<span class="badge badge-gray">ukryte</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `
-              <button onclick="openFaqModal('${p.id}')" class="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded text-xs font-medium hover:bg-blue-200">Edytuj</button>
-              <button onclick="deleteFaq('${p.id}', '${String(p.question).replace(/'/g, "\\'")}')" class="px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded text-xs font-medium hover:bg-red-200 ml-1">Usuń</button>` },
+            render: p => `<div class="btn-group">` +
+              `<button onclick="openFaqModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button>` +
+              `<button onclick="deleteFaq('${p.id}', '${String(p.question).replace(/'/g, "\\'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
+              `</div>` },
         ],
       });
 

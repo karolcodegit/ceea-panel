@@ -107,6 +107,22 @@ router.post("/api/media/usun", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
+// ── API: podpis dla Media Library widget (wybór z galerii) ──
+router.get("/api/media/sign", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const username = process.env.CLOUDINARY_ML_USER; // email konta Cloudinary
+    if (!CLOUD || !API_KEY || !API_SECRET || !username) {
+      return res.status(500).json({ error: "Brak CLOUDINARY_ML_USER (email konta Cloudinary) lub kluczy w env." });
+    }
+    const timestamp = Math.round(Date.now() / 1000);
+    const toSign = `cloud_name=${CLOUD}&timestamp=${timestamp}&username=${username}${API_SECRET}`;
+    const signature = crypto.createHash("sha1").update(toSign).digest("hex");
+    res.json({ cloudName: CLOUD, apiKey: API_KEY, username, timestamp, signature });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── API: test integracji (realny ping do Admin API) ──
 router.get("/api/media/test", adminOnly, requireAdmin, async (req, res) => {
   const checks = {
