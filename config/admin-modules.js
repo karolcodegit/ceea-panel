@@ -8,7 +8,7 @@ module.exports = [
     path: "/kursy",
     icon: "academic-cap",
     desc: "Definicje kursów, program, materiały i uczestnicy",
-    status: "beta",
+    status: "ready",
   },
   {
     key: "ksiazki",
@@ -34,14 +34,14 @@ module.exports = [
     desc: "Wysyłka wiadomości do uczestników kursów",
     status: "beta", // wysyłka działa, planowana rozbudowa (masówki, automatyzacje)
   },
-  {
-    key: "certyfikaty",
-    name: "Certyfikaty",
-    path: "/certyfikaty",
-    icon: "certificate",
-    desc: "Generowanie certyfikatów",
-    status: "wip",
-  },
+  // {
+  //   key: "certyfikaty",
+  //   name: "Certyfikaty",
+  //   path: "/certyfikaty",
+  //   icon: "certificate",
+  //   desc: "Generowanie certyfikatów",
+  //   status: "wip",
+  // },
   {
     key: "platnosci",
     name: "Płatności",
@@ -88,6 +88,6 @@ module.exports = [
     path: "/media",
     icon: "media",
     desc: "Galeria cloudinary",
-    status: "test",
+    status: "beta",
   },
 ];
