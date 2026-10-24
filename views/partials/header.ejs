@@ -1,187 +1,88 @@
 <%
-  const loggedUser = typeof user !== 'undefined' && user;
-  const loggedAdmin = !loggedUser && typeof isAdmin !== 'undefined' && isAdmin;
-  const fullName = loggedUser ? [user.name, user.surname].filter(Boolean).join(' ') : '';
-  const displayName = loggedAdmin ? 'Administrator' : (fullName || (loggedUser ? user.email : ''));
-  const initial = ((loggedUser && (user.name || user.email)) || (loggedAdmin ? 'A' : '?')).charAt(0).toUpperCase();
-  const logoutHref = loggedAdmin ? '/ceea-poznan-admin/wyloguj' : '/wyloguj';
+  /* ═══════════════════════════════════════════════════════════════
+     HEADER — wspólny pasek górny (uczestnik + admin).
+     Zaczyna się ZA sidebarem (offset w admin-nav.ejs).
 
-  // Dokładasz kolejne pozycje menu tutaj:
-  const menuItems = loggedAdmin ? [] : [
-    {
-      href: '/profil',
-      label: 'Profil',
-      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-    },
-    {
-      href: '/ustawienia',
-      label: 'Ustawienia',
-      icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
-    },
-  ];
+     Tytuł/ikona/opis wybierane AUTOMATYCZNIE po locals.active
+     (przekazywanym w każdym route) na podstawie config/admin-modules.js.
+     Nadpisanie ręczne opcjonalne: pageTitle / pageIcon / pageSubtitle.
+
+     Na stronie wystarczy: include('partials/admin-nav', { active: 'kursy' })
+     oraz goły include('partials/header') — bez przekazywania danych.
+
+     LEWA:  ikona + tytuł + opis · PRAWA: data · akcje · 🔔 (admin) · awatar
+     ═══════════════════════════════════════════════════════════════ */
+  const _prefix = locals.adminPrefix || '';
+  const _admin  = !!_prefix;
+  const _icon   = locals.adminIcon || (() => '');
+
+  // Automatyczne dopasowanie modułu z config/admin-modules.js po active z route'a
+  const _mods   = locals.adminModules || [];
+  const _active = locals.active || '';
+  const _mod    = _mods.find(m => m.key === _active) || null;
+
+  const _pageIcon = locals.pageIcon
+    || (_mod && _mod.icon)
+    || (_active === 'home' ? 'home' : '');
+  const _title = locals.pageTitle
+    || (_mod && _mod.name)
+    || (_active === 'home' ? 'Pulpit' : (locals.title || ''));
+  const _subtitle = locals.pageSubtitle
+    || (_mod && _mod.desc)
+    || '';
 %>
 
 <header
-  class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-50"
+  id="topHeader"
+  class="fixed top-0 inset-x-0 z-30 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 transition-[left] duration-300"
 >
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between items-center h-16 gap-3">
-      <!-- Logo -->
-      <a href="/" class="flex items-center gap-3 min-w-0">
-        <span
-          class="bg-white rounded-md px-1.5 py-1 shrink-0 flex items-center"
-        >
-          <img
-            src="/images/logo-header-color-black.jpg"
-            alt="CEEA Logo"
-            class="xl:h-8 h-6 w-auto"
-          />
-        </span>
-        <span class="text-gray-300 dark:text-slate-700">|</span>
-        <span class="text-sm text-gray-500 dark:text-slate-400 font-medium"
-          >Panel</span
-        >
-      </a>
+  <div class="flex items-center justify-between h-full gap-3 px-4 lg:px-6">
 
-      <!-- Prawa strona -->
-      <div class="shrink-0">
-        <% if (loggedUser || loggedAdmin) { %>
-        <div class="relative" id="userMenu">
-          <button
-            type="button"
-            id="userMenuBtn"
-            aria-haspopup="true"
-            aria-expanded="false"
-            class="flex items-center gap-2 rounded-full p-1 sm:pl-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <span
-              class="hidden sm:block text-sm text-gray-600 dark:text-slate-200 whitespace-nowrap"
-              ><%= displayName %></span
-            >
-            <span
-              class="w-9 h-9 <%= loggedAdmin ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300' %> rounded-full flex items-center justify-center text-sm font-semibold"
-            >
-              <%= initial %>
-            </span>
-            <svg
-              class="w-4 h-4 text-gray-400 dark:text-slate-500 hidden sm:block transition-transform"
-              id="userMenuChevron"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+    <%# ── LEWA: ikona + tytuł + opis ── %>
+    <div class="flex items-center gap-3 min-w-0">
+      <% if (_admin) { %>
+      <button
+        id="navOpen"
+        class="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+        aria-label="Otwórz menu"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
 
-          <div
-            id="userMenuDropdown"
-            class="hidden absolute right-0 top-full mt-2 w-60 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 py-2 z-50"
-          >
-            <div class="px-4 py-2">
-              <p class="text-xs text-gray-400 dark:text-slate-500">
-                Zalogowano jako
-              </p>
-              <p
-                class="text-sm font-medium text-gray-900 dark:text-slate-100 break-all"
-              >
-                <%= displayName %>
-              </p>
-            </div>
-
-            <% if (menuItems.length) { %>
-            <div
-              class="border-t border-gray-100 dark:border-slate-700 my-1"
-            ></div>
-            <% menuItems.forEach(item => { %>
-            <a
-              href="<%= item.href %>"
-              class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60"
-            >
-              <svg
-                class="w-4 h-4 text-gray-400 dark:text-slate-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="<%= item.icon %>"
-                />
-              </svg>
-              <%= item.label %>
-            </a>
-            <% }) %> <% } %>
-
-            <div
-              class="border-t border-gray-100 dark:border-slate-700 my-1"
-            ></div>
-            <a
-              href="<%= logoutHref %>"
-              class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Wyloguj
-            </a>
-          </div>
-        </div>
-        <% } else { %>
-        <a
-          href="/"
-          class="text-sm text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white font-medium"
-          >Logowanie</a
-        >
+      <% if (_pageIcon) { %>
+      <span class="hidden sm:flex w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">
+        <%- _icon(_pageIcon) %>
+      </span>
+      <% } %>
+      <div class="min-w-0">
+        <h1 class="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">
+          <%= _title %>
+        </h1>
+        <% if (_subtitle) { %>
+        <p class="text-xs text-gray-500 dark:text-slate-400 truncate"><%= _subtitle %></p>
         <% } %>
       </div>
+      <% } else { %>
+      <a href="/" class="flex items-center gap-3 min-w-0">
+        <span class="bg-white rounded-md px-1.5 py-1 shrink-0 flex items-center">
+          <img src="/images/logo-header-color-black.jpg" alt="CEEA Logo" class="xl:h-8 h-6 w-auto" />
+        </span>
+        <span class="text-gray-300 dark:text-slate-700">|</span>
+        <span class="text-sm text-gray-500 dark:text-slate-400 font-medium">Panel</span>
+      </a>
+      <% } %>
+    </div>
+
+    <%# ── PRAWA: moduły ── %>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <%- include('./header/date-chip') %>
+      <%- include('./header/header-actions') %>
+      <% if (_admin) { %>
+      <%- include('./header/notification-bell') %>
+      <% } %>
+      <%- include('./header/user-menu') %>
     </div>
   </div>
-
-  <script>
-    (function () {
-      var wrap = document.getElementById("userMenu");
-      if (!wrap) return;
-      var btn = document.getElementById("userMenuBtn");
-      var dd = document.getElementById("userMenuDropdown");
-      var chevron = document.getElementById("userMenuChevron");
-
-      function close() {
-        dd.classList.add("hidden");
-        btn.setAttribute("aria-expanded", "false");
-        chevron && chevron.classList.remove("rotate-180");
-      }
-
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var open = dd.classList.toggle("hidden") === false;
-        btn.setAttribute("aria-expanded", String(open));
-        chevron && chevron.classList.toggle("rotate-180", open);
-      });
-
-      document.addEventListener("click", function (e) {
-        if (!wrap.contains(e.target)) close();
-      });
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") close();
-      });
-    })();
-  </script>
 </header>

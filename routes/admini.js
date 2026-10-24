@@ -10,9 +10,12 @@ const adminsService = require("../services/admins");
 router.get("/admini", adminOnly, requireAdmin, async (req, res) => {
   try {
     const admins = await adminsService.listAdmins();
+
     res.render("admin-admini", {
       isAdmin: true,
-      active: "administratorzy",
+      active: 'administratorzy',
+      pageTitle: 'Administratorzy',
+      pageIcon: 'administratorzy',
       admins,
       currentEmail: res.locals.adminUser?.email || null,
       query: req.query,

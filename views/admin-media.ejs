@@ -6,17 +6,13 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'media' }) %>
-    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'media') || { name: 'Media', desc: '' }; %>
+    <%- include('partials/header', { pageTitle: 'Media', pageIcon: 'media' }) %>
 
-    <div class="lg:pl-64">
+    <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
 
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
-            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
-          </div>
+        <div class="flex items-center justify-end mb-6">
           <div class="flex items-center gap-2">
             <button id="testBtn" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200">Testuj połączenie</button>
             <% if (cloudName && uploadPreset) { %>

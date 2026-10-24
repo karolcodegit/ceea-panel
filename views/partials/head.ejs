@@ -2,19 +2,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="/images/Icon-logo.png">
 <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+
+<%# ── Inter: jedna czcionka dla całego panelu (usunięcie "różnicy czcionek") ── %>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap&subset=latin-ext" rel="stylesheet">
+
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/css/admin-ui.css">
+<link rel="stylesheet" href="/css/admin-header.css">
+
 <script>
   (function () {
     var t = localStorage.getItem('ceea-theme') || 'system';
     var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (dark) document.documentElement.classList.add('dark');
+
+    //Stan zwinięcia sidebara ustawiamy PRZED renderem, żeby nie było przeskoku
+    try {
+      if (localStorage.getItem('adminNavCollapsed') === '1') {
+        document.documentElement.classList.add('nav-collapsed');
+      }
+      if (localStorage.getItem('adminResourcesOpen') === '1') {
+        document.documentElement.classList.add('resources-open');
+      }
+    } catch (e) { /* tryb prywatny — ignorujemy */ }
   })();
 </script>
+
 <script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config = { darkMode: 'class' };</script>
-<script type="text/javascript" charset="UTF-8" 
-  src="https://cdn.cookie-script.com/s/fb8b0a0dc09c9f0d3e13eeb8cbd6fe9f.js" 
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+<script type="text/javascript" charset="UTF-8"
+  src="https://cdn.cookie-script.com/s/fb8b0a0dc09c9f0d3e13eeb8cbd6fe9f.js"
   async>
 </script>
 <script src="/js/data-table.js"></script>

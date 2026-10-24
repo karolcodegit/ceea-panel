@@ -6,17 +6,14 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'faq' }) %>
-    <% const mod = (typeof adminModules !== 'undefined' ? adminModules : []).find(m => m.key === 'faq') || { name: 'FAQ', desc: '' }; %>
+    <%- include('partials/header', { pageTitle: 'Faq', pageIcon: 'faq' }) %>
 
-    <div class="lg:pl-64">
+    <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
 
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= mod.name %></h1>
-            <p class="text-gray-500 dark:text-slate-400"><%= mod.desc %></p>
-          </div>
+        <div class="flex items-center justify-end mb-6">
+          
           <button onclick="openFaqModal()" class="btn btn-sm btn-primary">+ Dodaj pytanie</button>
         </div>
 

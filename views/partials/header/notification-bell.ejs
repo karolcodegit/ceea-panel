@@ -1,0 +1,97 @@
+<%#
+  MODUŁ: 🔔 powiadomienia admina.
+  Badge z licznikiem nieprzeczytanych, dropdown, auto-odświeżanie co 60 s,
+  oznaczanie jako przeczytane, link do pełnej listy.
+  Wymaga: locals.adminPrefix oraz endpointu GET <prefix>/api/notifications
+          i POST <prefix>/api/notifications/read.
+%><%
+  const _p = locals.adminPrefix || '';
+%>
+<div class="relative">
+  <button id="notifBell"
+          class="relative p-2 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm dark:shadow-none text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-slate-700 transition-colors"
+          aria-label="Powiadomienia">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+    </svg>
+    <span id="notifCount"
+          class="absolute -top-1 -right-1 hidden min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full items-center justify-center">0</span>
+  </button>
+
+  <div id="notifPanel"
+       class="hidden absolute right-0 top-12 w-[22rem] max-w-[calc(100vw-2rem)] max-h-[24rem] overflow-y-auto bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50">
+    <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between gap-2 sticky top-0 z-10 bg-white dark:bg-slate-900 rounded-t-2xl">
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Powiadomienia</span>
+      <div class="flex items-center gap-3">
+        <a href="<%= _p %>/powiadomienia" class="text-xs text-gray-500 dark:text-slate-400 hover:underline">Zobacz wszystkie</a>
+        <button id="notifRefresh" class="text-xs text-red-600 dark:text-red-400 hover:underline">Odśwież</button>
+      </div>
+    </div>
+    <div id="notifList"></div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var bell   = document.getElementById('notifBell');
+    var panel  = document.getElementById('notifPanel');
+    var list   = document.getElementById('notifList');
+    var count  = document.getElementById('notifCount');
+    var prefix = '<%= _p %>';
+    var notifs = [];
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Link w bazie może już zawierać prefix — nie doklejamy go drugi raz
+    function notifLink(n) {
+      if (!n.link) return '#';
+      return n.link.startsWith(prefix) ? n.link : prefix + n.link;
+    }
+
+    async function loadNotifs() {
+      try {
+        var r = await fetch(prefix + '/api/notifications');
+        var j = await r.json();
+        notifs = j.notifications || [];
+        var unread = notifs.filter(function (n) { return !n.read_at; }).length;
+        count.textContent = unread > 99 ? '99+' : unread;
+        count.classList.toggle('hidden', unread === 0);
+        count.classList.toggle('flex', unread > 0);
+
+        list.innerHTML = notifs.length ? notifs.map(function (n) {
+          return '<a href="' + notifLink(n) + '"' +
+            ' class="block px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors ' +
+            (n.read_at ? 'opacity-55' : '') + '">' +
+            '<div class="flex items-start gap-2">' +
+              '<span class="mt-1 w-1.5 h-1.5 rounded-full shrink-0 ' + (n.read_at ? 'bg-transparent' : 'bg-red-500') + '"></span>' +
+              '<div class="min-w-0">' +
+                '<div class="text-sm font-semibold text-gray-900 dark:text-white leading-snug">' + esc(n.title) + '</div>' +
+                (n.body ? '<div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">' + esc(n.body) + '</div>' : '') +
+                '<div class="text-[10px] text-gray-400 dark:text-slate-500 mt-1">' + new Date(n.created_at).toLocaleString('pl-PL') + '</div>' +
+              '</div>' +
+            '</div></a>';
+        }).join('')
+        : '<div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">Brak powiadomień</div>';
+      } catch (e) { /* offline – zostaje stan poprzedni */ }
+    }
+
+    bell && bell.addEventListener('click', async function () {
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden') && notifs.some(function (n) { return !n.read_at; })) {
+        await fetch(prefix + '/api/notifications/read', { method: 'POST' });
+        setTimeout(loadNotifs, 400);
+      }
+    });
+    document.getElementById('notifRefresh') && document.getElementById('notifRefresh').addEventListener('click', loadNotifs);
+    document.addEventListener('click', function (e) {
+      if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !bell.contains(e.target)) {
+        panel.classList.add('hidden');
+      }
+    });
+
+    loadNotifs();
+    setInterval(loadNotifs, 60000);
+  })();
+</script>

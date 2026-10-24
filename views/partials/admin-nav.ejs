@@ -1,138 +1,145 @@
-<% /* ═══════════════════════════════════════════════════════════════
-     ADMIN NAV — zwijany sidebar + 🔔 powiadomienia + sekcja „Zasoby"
-     · Powiadomienia: badge z licznikiem nieprzeczytanych, dropdown,
-       auto-odświeżanie co 60 s, oznaczanie jako przeczytane, link do pełnej listy
-     · Zasoby: lista usług (zewnętrzne linki), rozwijana sekcja;
-       pozycje oznaczone superOnly widzi tylko główny admin (is_super)
-     · stan zapamiętany w localStorage, mobile: akordeon + drawer
-     ═══════════════════════════════════════════════════════════════ */ %>
-<%
-  const mods = locals.adminModules || [];
-  const prefix = locals.adminPrefix || "";
-  const current = locals.active || "";
-  const icon = locals.adminIcon || (() => "");
-  const adminUser = locals.adminUser || null;
-  const adminName = adminUser ? (adminUser.name || adminUser.email) : '';
-  const adminInitial = (adminName || 'A').charAt(0).toUpperCase();
-  const isSuper = !!(adminUser && adminUser.isSuper);
+  <% /* ═══════════════════════════════════════════════════════════════
+      ADMIN NAV — sidebar w stylu FlowAI
+      · Jasny motyw: białe tło, szare pozycje, aktywna = jasnoszara pigułka
+      · Ciemny motyw: slate (klasa .dark na <html>)
+      · Górny rząd: LOGO (zależnie od motywu) + zwijanie / X
+      · Sekcje: Menu / Zasoby (rozwijane) / Konto
+      ═══════════════════════════════════════════════════════════════ */ %>
+  <%
+    const mods = locals.adminModules || [];
+    const prefix = locals.adminPrefix || "";
+    const current = locals.active || "";
+    const icon = locals.adminIcon || (() => "");
+    const adminUser = locals.adminUser || null;
+    const isSuper = !!(adminUser && adminUser.isSuper);
 
-  // ── Zasoby (zewnętrzne usługi) ──
-  const RESOURCES = [
-    { name: "DatoCMS",        url: "https://ceea.admin.datocms.com/",  icon: "resources", superOnly: false },
-    { name: "Zoho Mail",      url: "https://mail.zoho.eu",             icon: "resources", superOnly: false },
-    { name: "tpay panel",     url: "https://panel.tpay.com",           icon: "resources", superOnly: false },
-    { name: "Zoho CPaaS",     url: "https://www.zoho.com/cpaaS",       icon: "resources", superOnly: true  },
-    { name: "Google Cloud",   url: "https://console.cloud.google.com", icon: "resources", superOnly: true  },
-    { name: "Supabase",       url: "https://supabase.com/dashboard",   icon: "resources", superOnly: true  },
-    { name: "Northflank",     url: "https://app.northflank.com",       icon: "resources", superOnly: true  },
-    { name: "Cloudflare",     url: "https://dash.cloudflare.com",      icon: "resources", superOnly: true  },
-    { name: "OVH",            url: "https://www.ovh.com/manager",      icon: "resources", superOnly: true  },
-    { name: "MailerSend",     url: "https://app.mailersend.com",       icon: "resources", superOnly: true  },
-    { name: "Netlify",        url: "https://app.netlify.com",          icon: "resources", superOnly: true  },
-  ].filter(r => !r.superOnly || isSuper);
+    // ── Zasoby (zewnętrzne usługi) ──
+    const RESOURCES = [
+      { name: "DatoCMS",        url: "https://ceea.admin.datocms.com/",  superOnly: false },
+      { name: "Zoho Mail",      url: "https://mail.zoho.eu",             superOnly: false },
+      { name: "tpay panel",     url: "https://panel.tpay.com",           superOnly: false },
+      { name: "Zoho CPaaS",     url: "https://www.zoho.com/cpaaS",       superOnly: true  },
+      { name: "Google Cloud",   url: "https://console.cloud.google.com", superOnly: true  },
+      { name: "Supabase",       url: "https://supabase.com/dashboard",   superOnly: true  },
+      { name: "Northflank",     url: "https://app.northflank.com",       superOnly: true  },
+      { name: "Cloudflare",     url: "https://dash.cloudflare.com",      superOnly: true  },
+      { name: "OVH",            url: "https://www.ovh.com/manager",      superOnly: true  },
+      { name: "MailerSend",     url: "https://app.mailersend.com",       superOnly: true  },
+      { name: "Netlify",        url: "https://app.netlify.com",          superOnly: true  },
+    ].filter(r => !r.superOnly || isSuper);
 
-  const linkCls = (key) =>
-    "nav-link group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 " +
-    (current === key
-      ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
-      : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-0.5");
-%>
+    // Aktywna pozycja: jasna pigułka (FlowAI); w dark — podświetlenie slate
+    const linkCls = (key) =>
+      "nav-link group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 " +
+      (current === key
+        ? "bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white font-semibold"
+        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white");
+  %>
 
-<% /* Stan zwinięcia ustawiamy PRZED renderem, żeby nie było przeskoku */ %>
-<script>
-  (function () {
-    try {
-      if (localStorage.getItem('adminNavCollapsed') === '1') {
-        document.documentElement.classList.add('nav-collapsed');
+  <% /* Stan zwinięcia ustawiamy PRZED renderem, żeby nie było przeskoku */ %>
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('adminNavCollapsed') === '1') {
+          document.documentElement.classList.add('nav-collapsed');
+        }
+        if (localStorage.getItem('adminResourcesOpen') === '1') {
+          document.documentElement.classList.add('resources-open');
+        }
+      } catch (e) { /* tryb prywatny — ignorujemy */ }
+    })();
+  </script>
+
+  <style>
+    :root {
+      --admin-nav-w:           16rem;
+      --admin-nav-w-collapsed: 5.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      #topHeader { left: var(--admin-nav-w); }
+      html.nav-collapsed #topHeader { left: var(--admin-nav-w-collapsed); }
+
+      #adminNav {
+        width: var(--admin-nav-w);
+        overflow-x: hidden;
+        transition: width .3s cubic-bezier(.4, 0, .2, 1),
+                    transform .3s cubic-bezier(.4, 0, .2, 1);
       }
-      if (localStorage.getItem('adminResourcesOpen') === '1') {
-        document.documentElement.classList.add('resources-open');
+      html.nav-collapsed #adminNav { width: var(--admin-nav-w-collapsed); }
+
+      html.nav-collapsed #adminNav .nav-label,
+      html.nav-collapsed #adminNav .nav-section,
+      html.nav-collapsed #adminNav .nav-logo { display: none; }
+
+      html.nav-collapsed #adminNav .nav-link,
+      html.nav-collapsed #adminNav .nav-logo-row {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
       }
-    } catch (e) { /* tryb prywatny — ignorujemy */ }
-  })();
-</script>
 
-<style>
-  :root {
-    --admin-nav-w:           16rem;
-    --admin-nav-w-collapsed: 5.5rem;
-  }
+      html.nav-collapsed #adminNav .nav-link[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: calc(100% + .75rem);
+        top: 50%;
+        transform: translateY(-50%) translateX(-4px);
+        background: #0f172a;
+        color: #e2e8f0;
+        font-size: .75rem;
+        font-weight: 500;
+        white-space: nowrap;
+        padding: .375rem .625rem;
+        border-radius: .5rem;
+        border: 1px solid rgba(255,255,255,.1);
+        box-shadow: 0 8px 24px rgba(0,0,0,.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s ease, transform .15s ease;
+        z-index: 60;
+      }
+      html.nav-collapsed #adminNav .nav-link[data-tip]:hover::after,
+      html.nav-collapsed #adminNav .nav-link[data-tip]:focus-visible::after {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
 
-  @media (min-width: 1024px) {
-    #adminNav {
-      width: var(--admin-nav-w);
-      overflow-x: hidden;
-      transition: width .3s cubic-bezier(.4, 0, .2, 1);
+      html.nav-collapsed .lg\:pl-64 { padding-left: var(--admin-nav-w-collapsed) !important; }
     }
-    html.nav-collapsed #adminNav { width: var(--admin-nav-w-collapsed); }
 
-    html.nav-collapsed #adminNav .nav-label,
-    html.nav-collapsed #adminNav .nav-section,
-    html.nav-collapsed #adminNav .nav-logo { display: none; }
+    #navCollapse .icon-collapsed { display: none; }
+    html.nav-collapsed #navCollapse .icon-expanded { display: none; }
+    html.nav-collapsed #navCollapse .icon-collapsed { display: block; }
 
-    html.nav-collapsed #adminNav .nav-link {
-      justify-content: center;
-      padding-left: 0;
-      padding-right: 0;
+    .resources-body { display: none; }
+    html.resources-open .resources-body { display: block; }
+    html.resources-open #resourcesChevron { transform: rotate(90deg); }
+    #resourcesChevron { transition: transform .2s ease; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #adminNav, #adminNav .nav-link, #topHeader, .lg\:pl-64 { transition: none !important; }
     }
+  </style>
 
-    html.nav-collapsed #adminNav .nav-link[data-tip]::after {
-      content: attr(data-tip);
-      position: absolute;
-      left: calc(100% + .75rem);
-      top: 50%;
-      transform: translateY(-50%) translateX(-4px);
-      background: #0f172a;
-      color: #e2e8f0;
-      font-size: .75rem;
-      font-weight: 500;
-      white-space: nowrap;
-      padding: .375rem .625rem;
-      border-radius: .5rem;
-      border: 1px solid rgba(255,255,255,.1);
-      box-shadow: 0 8px 24px rgba(0,0,0,.45);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .15s ease, transform .15s ease;
-      z-index: 60;
-    }
-    html.nav-collapsed #adminNav .nav-link[data-tip]:hover::after,
-    html.nav-collapsed #adminNav .nav-link[data-tip]:focus-visible::after {
-      opacity: 1;
-      transform: translateY(-50%) translateX(0);
-    }
-  }
+  <div id="navBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
-  .lg\:pl-64 { transition: padding-left .3s cubic-bezier(.4, 0, .2, 1); }
-  html.nav-collapsed .lg\:pl-64 { padding-left: var(--admin-nav-w-collapsed); }
+  <!-- ═════ SIDEBAR ═════ -->
+  <aside id="adminNav"
+        class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gradient-to-b dark:from-[#0f172a] dark:via-[#0B1120] dark:to-[#020617] text-gray-600 dark:text-slate-300 border-r border-gray-200 dark:border-white/10 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-300 dark:shadow-2xl dark:shadow-black/40"
+        aria-label="Nawigacja panelu">
 
-  #navCollapse .icon-collapsed { display: none; }
-  html.nav-collapsed #navCollapse .icon-expanded { display: none; }
-  html.nav-collapsed #navCollapse .icon-collapsed { display: block; }
+    <!-- Górny rząd: LOGO + zwijanie / zamykanie -->
+    <div class="nav-logo-row flex items-center justify-between gap-2 h-16 px-4 border-b border-gray-200 dark:border-white/10 shrink-0">
+      <a href="<%= prefix %>/" class="nav-logo flex items-center min-w-0" aria-label="Pulpit">
+        <%# Jasny motyw: logo kolorowe; ciemny: białe %>
+        <img src="/images/logo-header-color-black.jpg" alt="CEEA" class="h-5 xl:h-6 w-auto dark:hidden" />
+        <img src="/images/logo-header.png" alt="CEEA" class="h-5 xl:h-6 w-auto hidden dark:block" />
+      </a>
 
-  /* ── Sekcja Zasoby (rozwijana) ── */
-  .resources-body { display: none; }
-  html.resources-open .resources-body { display: block; }
-  html.resources-open #resourcesChevron { transform: rotate(90deg); }
-  #resourcesChevron { transition: transform .2s ease; }
-
-  @media (prefers-reduced-motion: reduce) {
-    #adminNav, #adminNav .nav-link, .lg\:pl-64 { transition: none !important; }
-  }
-</style>
-
-<!-- ═════ GÓRNY PASEK ADMINA ═════ -->
-<header class="fixed top-0 left-0 right-0 z-30 h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 lg:pl-64 transition-[padding-left] duration-300">
-  <div class="flex items-center justify-between h-full px-4 lg:px-6">
-
-    <!-- Lewa strona -->
-    <div class="flex items-center gap-3">
-      <button id="navOpen" class="lg:hidden p-2 -ml-2 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors" aria-label="Otwórz menu">
-        <%- icon('menu') %>
-      </button>
-
+      <!-- Zwijanie (desktop) -->
       <button id="navCollapse"
-              class="hidden lg:inline-flex p-2 -ml-1 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+              class="hidden lg:inline-flex p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
               aria-label="Zwiń lub rozwiń menu boczne"
               aria-expanded="true"
               aria-controls="adminNav">
@@ -140,302 +147,184 @@
         <span class="icon-collapsed"><%- icon('chevron-right') %></span>
       </button>
 
-      <a href="<%= prefix %>/" class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-        <span class="text-lg tracking-tight">CEEA</span>
-        <span class="text-red-500">Panel</span>
-      </a>
-    </div>
-
-    <!-- Prawa strona: 🔔 + admin -->
-    <% if (adminUser) { %>
-      <div class="flex items-center gap-2 sm:gap-3">
-
-        <!-- DZWONEK POWIADOMIEŃ -->
-        <div class="relative">
-          <button id="notifBell"
-                  class="relative p-2 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  aria-label="Powiadomienia">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-            </svg>
-            <span id="notifCount"
-                  class="absolute -top-0.5 -right-0.5 hidden min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full items-center justify-center">0</span>
-          </button>
-
-          <!-- Dropdown -->
-          <div id="notifPanel"
-               class="hidden absolute right-0 top-11 w-[22rem] max-w-[calc(100vw-2rem)] max-h-[24rem] overflow-y-auto bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between gap-2 sticky top-0 z-10 bg-white dark:bg-slate-800 rounded-t-2xl">
-              <span class="text-sm font-semibold text-gray-900 dark:text-white">Powiadomienia</span>
-              <div class="flex items-center gap-3">
-                <a href="<%= prefix %>/powiadomienia" class="text-xs text-gray-500 dark:text-slate-400 hover:underline">Zobacz wszystkie</a>
-                <button id="notifRefresh" class="text-xs text-red-600 dark:text-red-400 hover:underline">Odśwież</button>
-              </div>
-            </div>
-            <div id="notifList"></div>
-          </div>
-        </div>
-
-        <span class="hidden sm:block text-sm text-gray-600 dark:text-slate-300 font-medium">
-          <%= adminName %>
-        </span>
-        <span class="w-9 h-9 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full flex items-center justify-center text-sm font-semibold">
-          <%= adminInitial %>
-        </span>
-      </div>
-    <% } %>
-  </div>
-</header>
-
-<div class="h-16 lg:pl-64 transition-[padding-left] duration-300"></div>
-
-<div id="navBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
-
-<!-- Sidebar -->
-<aside id="adminNav"
-       class="fixed inset-y-0 left-0 z-50 lg:w-64 w-64 bg-gradient-to-b from-[#0f172a] via-[#0B1120] to-[#020617] text-slate-200 border-r border-white/10 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-2xl shadow-black/40"
-       aria-label="Nawigacja panelu">
-
-  <div class="flex items-center justify-between h-16 px-5 border-b border-white/10 shrink-0 bg-white/5 backdrop-blur-sm">
-    <a href="<%= prefix %>/" class="nav-logo font-bold text-white flex items-center gap-2">
-      <img src="/images/logo-header.png" alt="CEEA" class="h-5 xl:h-7 w-auto" />
-    </a>
-    <button id="navClose" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" aria-label="Zamknij menu">
-      <%- icon('close') %>
-    </button>
-  </div>
-
-  <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-5 space-y-1" aria-label="Moduły">
-    <p class="nav-section px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Menu</p>
-
-    <a href="<%= prefix %>/" class="<%= linkCls('home') %>" data-tip="Pulpit">
-      <%- icon('home') %> <span class="nav-label">Pulpit</span>
-    </a>
-
-    <% mods.forEach(m => { %>
-      <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>" data-tip="<%= m.name %>">
-        <%- icon(m.icon) %> <span class="nav-label"><%= m.name %></span>
-        <% if (m.status === "beta") { %>
-          <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">test</span>
-        <% } else if (m.status === "wip") { %>
-          <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">w budowie</span>
-        <% } %>
-      </a>
-    <% }) %>
-
-    <!-- ── ZASOBY (rozwijane, linki zewnętrzne) ── -->
-    <div class="pt-3">
-      <p class="nav-section px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Zasoby</p>
-
-      <button id="resourcesToggle"
-              class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-200"
-              data-tip="Zasoby"
-              aria-expanded="false">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m-18.432 0A8.959 8.959 0 013 12c0-.778.099-1.533.284-2.253" />
-        </svg>
-        <span class="nav-label flex-1 text-left">Zasoby</span>
-        <span id="resourcesChevron" class="nav-label shrink-0 opacity-60">
-          <%- icon('chevron-right') %>
-        </span>
+      <!-- Zamykanie drawera (mobile) -->
+      <button id="navClose" class="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors" aria-label="Zamknij menu">
+        <%- icon('close') %>
       </button>
+    </div>
 
-      <div class="resources-body pl-4 space-y-0.5" id="resourcesBody">
-        <% RESOURCES.forEach(r => { %>
-          <a href="<%= r.url %>" target="_blank" rel="noopener noreferrer"
-             class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-500 hover:bg-white/5 hover:text-white transition-all duration-200"
-             data-tip="<%= r.name %>">
-            <svg class="w-3.5 h-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5-6L21 3m0 0l-3.75 3.75M21 3v6.75" />
-            </svg>
-            <span class="nav-label"><%= r.name %></span>
-          </a>
-        <% }) %>
+    <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-5 space-y-1" aria-label="Moduły">
+      <p class="nav-section px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-slate-500">Menu</p>
+
+      <a href="<%= prefix %>/" class="<%= linkCls('home') %>" data-tip="Pulpit">
+        <%- icon('home') %> <span class="nav-label">Pulpit</span>
+      </a>
+
+      <% mods.filter(m => !m.hidden).forEach(m => { %>
+        <a href="<%= prefix + m.path %>" class="<%= linkCls(m.key) %>" data-tip="<%= m.name %>">
+          <%- icon(m.icon) %> <span class="nav-label"><%= m.name %></span>
+          <% if (m.status === "beta") { %>
+            <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">test</span>
+          <% } else if (m.status === "wip") { %>
+            <span class="nav-label ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-300">w budowie</span>
+          <% } %>
+        </a>
+      <% }) %>
+
+      <!-- ── ZASOBY (rozwijane, linki zewnętrzne) ── -->
+      <div class="pt-3">
+        <p class="nav-section px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-slate-500">Zasoby</p>
+
+        <button id="resourcesToggle"
+                class="nav-link relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white transition-all duration-200"
+                data-tip="Zasoby"
+                aria-expanded="false">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m-18.432 0A8.959 8.959 0 013 12c0-.778.099-1.533.284-2.253" />
+          </svg>
+          <span class="nav-label flex-1 text-left">Zasoby</span>
+          <span id="resourcesChevron" class="nav-label shrink-0 opacity-60">
+            <%- icon('chevron-right') %>
+          </span>
+        </button>
+
+        <div class="resources-body pl-4 space-y-0.5" id="resourcesBody">
+          <% RESOURCES.forEach(r => { %>
+            <a href="<%= r.url %>" target="_blank" rel="noopener noreferrer"
+              class="nav-link relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-white transition-all duration-200"
+              data-tip="<%= r.name %>">
+              <svg class="w-3.5 h-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5-6L21 3m0 0l-3.75 3.75M21 3v6.75" />
+              </svg>
+              <span class="nav-label"><%= r.name %></span>
+            </a>
+          <% }) %>
+        </div>
+      </div>
+    </nav>
+
+    <div class="border-t border-gray-200 dark:border-white/10 p-3 shrink-0">
+      <p class="nav-section px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-slate-500">Konto</p>
+      <div class="space-y-1">
+        <a href="<%= prefix %>/ustawienia" class="<%= linkCls('ustawienia') %>" data-tip="Ustawienia">
+          <%- icon('settings') %> <span class="nav-label">Ustawienia</span>
+        </a>
+        <a href="<%= prefix %>/wyloguj"
+          class="nav-link relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-all duration-200"
+          data-tip="Wyloguj">
+          <%- icon('logout') %> <span class="nav-label">Wyloguj</span>
+        </a>
       </div>
     </div>
-  </nav>
+  </aside>
 
-  <div class="border-t border-white/10 p-3 shrink-0 bg-gradient-to-t from-black/20 to-transparent">
-    <p class="nav-section px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Konto</p>
-    <div class="space-y-1">
-      <a href="<%= prefix %>/ustawienia" class="<%= linkCls('ustawienia') %>" data-tip="Ustawienia">
-        <%- icon('settings') %> <span class="nav-label">Ustawienia</span>
-      </a>
-      <a href="<%= prefix %>/wyloguj" class="nav-link relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200" data-tip="Wyloguj">
-        <%- icon('logout') %> <span class="nav-label">Wyloguj</span>
-      </a>
-    </div>
-  </div>
-</aside>
+  <script>
+    (function () {
+      var nav = document.getElementById('adminNav');
+      var backdrop = document.getElementById('navBackdrop');
+      var collapseBtn = document.getElementById('navCollapse');
 
-<script>
-  (function () {
-    var nav = document.getElementById('adminNav');
-    var backdrop = document.getElementById('navBackdrop');
-    var collapseBtn = document.getElementById('navCollapse');
-
-    /* ── Mobile: drawer ── */
-    function open() {
-      nav.classList.remove('-translate-x-full');
-      backdrop.classList.remove('hidden');
-      requestAnimationFrame(function () { backdrop.classList.remove('opacity-0'); });
-    }
-    function close() {
-      nav.classList.add('-translate-x-full');
-      backdrop.classList.add('opacity-0');
-      setTimeout(function () { backdrop.classList.add('hidden'); }, 300);
-    }
-
-    document.getElementById('navOpen')?.addEventListener('click', open);
-    document.getElementById('navClose')?.addEventListener('click', close);
-    backdrop?.addEventListener('click', close);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-
-    /* ── Desktop: zwijanie sidebara ── */
-    function setCollapsed(collapsed) {
-      document.documentElement.classList.toggle('nav-collapsed', collapsed);
-      collapseBtn?.setAttribute('aria-expanded', String(!collapsed));
-      try { localStorage.setItem('adminNavCollapsed', collapsed ? '1' : '0'); } catch (e) {}
-    }
-    collapseBtn?.addEventListener('click', function () {
-      setCollapsed(!document.documentElement.classList.contains('nav-collapsed'));
-    });
-    if (document.documentElement.classList.contains('nav-collapsed')) {
-      collapseBtn?.setAttribute('aria-expanded', 'false');
-    }
-
-    /* ── Zasoby: rozwijanie (stan zapamiętany) ── */
-    var resToggle = document.getElementById('resourcesToggle');
-    resToggle?.addEventListener('click', function () {
-      var openRes = document.documentElement.classList.toggle('resources-open');
-      resToggle.setAttribute('aria-expanded', String(openRes));
-      try { localStorage.setItem('adminResourcesOpen', openRes ? '1' : '0'); } catch (e) {}
-    });
-    resToggle?.setAttribute('aria-expanded',
-      String(document.documentElement.classList.contains('resources-open')));
-
-    /* ── Powiadomienia: dzwonek ── */
-    var bell = document.getElementById('notifBell');
-    var panel = document.getElementById('notifPanel');
-    var list = document.getElementById('notifList');
-    var count = document.getElementById('notifCount');
-    var prefix = '<%= prefix %>';
-    var notifs = [];
-
-    function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    // Link w bazie może już zawierać prefix — nie doklejamy go drugi raz
-    function notifLink(n) {
-      if (!n.link) return '#';
-      return n.link.startsWith(prefix) ? n.link : prefix + n.link;
-    }
-
-    async function loadNotifs() {
-      try {
-        var r = await fetch(prefix + '/api/notifications');
-        var j = await r.json();
-        notifs = j.notifications || [];
-        var unread = notifs.filter(function (n) { return !n.read_at; }).length;
-        count.textContent = unread > 99 ? '99+' : unread;
-        count.classList.toggle('hidden', unread === 0);
-        count.classList.toggle('flex', unread > 0);
-
-        list.innerHTML = notifs.length ? notifs.map(function (n) {
-          return '<a href="' + notifLink(n) + '"' +
-            ' class="block px-4 py-3 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors ' +
-            (n.read_at ? 'opacity-55' : '') + '">' +
-            '<div class="flex items-start gap-2">' +
-              '<span class="mt-1 w-1.5 h-1.5 rounded-full shrink-0 ' + (n.read_at ? 'bg-transparent' : 'bg-red-500') + '"></span>' +
-              '<div class="min-w-0">' +
-                '<div class="text-sm font-semibold text-gray-900 dark:text-white leading-snug">' + esc(n.title) + '</div>' +
-                (n.body ? '<div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">' + esc(n.body) + '</div>' : '') +
-                '<div class="text-[10px] text-gray-400 mt-1">' + new Date(n.created_at).toLocaleString('pl-PL') + '</div>' +
-              '</div>' +
-            '</div></a>';
-        }).join('')
-        : '<div class="px-4 py-8 text-center text-sm text-gray-400">Brak powiadomień</div>';
-      } catch (e) { /* offline – zostaje stan poprzedni */ }
-    }
-
-    bell?.addEventListener('click', async function () {
-      panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden') && notifs.some(function (n) { return !n.read_at; })) {
-        await fetch(prefix + '/api/notifications/read', { method: 'POST' });
-        setTimeout(loadNotifs, 400);
+      function open() {
+        nav.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+        requestAnimationFrame(function () { backdrop.classList.remove('opacity-0'); });
       }
-    });
-    document.getElementById('notifRefresh')?.addEventListener('click', loadNotifs);
-    document.addEventListener('click', function (e) {
-      if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !bell.contains(e.target)) {
-        panel.classList.add('hidden');
+      function close() {
+        nav.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0');
+        setTimeout(function () { backdrop.classList.add('hidden'); }, 300);
       }
-    });
 
-    loadNotifs();
-    setInterval(loadNotifs, 60000);
-  })();
-</script>
-
-<!-- Modal potwierdzenia (bez zmian) -->
-<div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-  <div id="confirmBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-200"></div>
-  <div id="confirmCard" role="dialog" aria-modal="true"
-       class="relative bg-white dark:bg-slate-800 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-200">
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Potwierdzenie</h3>
-    <p id="confirmMessage" class="text-sm text-gray-500 dark:text-slate-400 mb-6"></p>
-    <div class="flex justify-end gap-2">
-      <button type="button" id="confirmCancel"
-        class="px-4 py-2 text-sm rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">Anuluj</button>
-      <button type="button" id="confirmOk"
-        class="px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all">Usuń</button>
-    </div>
-  </div>
-</div>
-
-<script>
-  (function () {
-    var modal = document.getElementById('confirmModal');
-    var cBackdrop = document.getElementById('confirmBackdrop');
-    var card = document.getElementById('confirmCard');
-    var msg = document.getElementById('confirmMessage');
-    var btnOk = document.getElementById('confirmOk');
-    var btnCancel = document.getElementById('confirmCancel');
-    var pendingForm = null;
-
-    function open(message, form) {
-      pendingForm = form;
-      msg.textContent = message;
-      btnOk.textContent = form.dataset.confirmOk || 'Usuń';
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      requestAnimationFrame(function () {
-        cBackdrop.classList.remove('opacity-0');
-        card.classList.remove('opacity-0', 'scale-95');
+      /* Delegacja: #navOpen żyje w header.ejs, który renderuje się PO admin-nav —
+        bezpośrednie podpięcie nie zadziałałoby */
+      document.addEventListener('click', function (e) {
+        if (e.target.closest('#navOpen')) { e.preventDefault(); open(); }
       });
-      btnOk.focus();
-    }
-    function close() {
-      cBackdrop.classList.add('opacity-0');
-      card.classList.add('opacity-0', 'scale-95');
-      setTimeout(function () {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        pendingForm = null;
-      }, 200);
-    }
-    document.addEventListener('submit', function (e) {
-      var form = e.target.closest('form.js-confirm');
-      if (!form) return;
-      e.preventDefault();
-      open(form.dataset.confirm || 'Czy na pewno?', form);
-    });
-    btnOk.addEventListener('click', function () { if (pendingForm) pendingForm.submit(); });
-    btnCancel.addEventListener('click', close);
-    cBackdrop.addEventListener('click', close);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
-    });
-  })();
-</script>
+      document.getElementById('navClose') && document.getElementById('navClose').addEventListener('click', close);
+      backdrop && backdrop.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+      function setCollapsed(collapsed) {
+        document.documentElement.classList.toggle('nav-collapsed', collapsed);
+        collapseBtn && collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+        try { localStorage.setItem('adminNavCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+      }
+      collapseBtn && collapseBtn.addEventListener('click', function () {
+        setCollapsed(!document.documentElement.classList.contains('nav-collapsed'));
+      });
+      if (document.documentElement.classList.contains('nav-collapsed')) {
+        collapseBtn && collapseBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      var resToggle = document.getElementById('resourcesToggle');
+      resToggle && resToggle.addEventListener('click', function () {
+        var openRes = document.documentElement.classList.toggle('resources-open');
+        resToggle.setAttribute('aria-expanded', String(openRes));
+        try { localStorage.setItem('adminResourcesOpen', openRes ? '1' : '0'); } catch (e) {}
+      });
+      resToggle && resToggle.setAttribute('aria-expanded',
+        String(document.documentElement.classList.contains('resources-open')));
+    })();
+  </script>
+
+  <!-- Modal potwierdzenia (formularze .js-confirm) -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div id="confirmBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-200"></div>
+    <div id="confirmCard" role="dialog" aria-modal="true"
+        class="relative bg-white dark:bg-slate-800 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-sm p-6 opacity-0 scale-95 transition-all duration-200">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Potwierdzenie</h3>
+      <p id="confirmMessage" class="text-sm text-gray-500 dark:text-slate-400 mb-6"></p>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="confirmCancel"
+          class="px-4 py-2 text-sm rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">Anuluj</button>
+        <button type="button" id="confirmOk"
+          class="px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all">Usuń</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var modal = document.getElementById('confirmModal');
+      var cBackdrop = document.getElementById('confirmBackdrop');
+      var card = document.getElementById('confirmCard');
+      var msg = document.getElementById('confirmMessage');
+      var btnOk = document.getElementById('confirmOk');
+      var btnCancel = document.getElementById('confirmCancel');
+      var pendingForm = null;
+
+      function open(message, form) {
+        pendingForm = form;
+        msg.textContent = message;
+        btnOk.textContent = form.dataset.confirmOk || 'Usuń';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        requestAnimationFrame(function () {
+          cBackdrop.classList.remove('opacity-0');
+          card.classList.remove('opacity-0', 'scale-95');
+        });
+        btnOk.focus();
+      }
+      function close() {
+        cBackdrop.classList.add('opacity-0');
+        card.classList.add('opacity-0', 'scale-95');
+        setTimeout(function () {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          pendingForm = null;
+        }, 200);
+      }
+      document.addEventListener('submit', function (e) {
+        var form = e.target.closest('form.js-confirm');
+        if (!form) return;
+        e.preventDefault();
+        open(form.dataset.confirm || 'Czy na pewno?', form);
+      });
+      btnOk.addEventListener('click', function () { if (pendingForm) pendingForm.submit(); });
+      btnCancel.addEventListener('click', close);
+      cBackdrop.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+      });
+    })();
+  </script>

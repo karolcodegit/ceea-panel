@@ -3,6 +3,24 @@
 // status: "ready" (gotowe) | "beta" (testowo) | "wip" (w budowie – ukrywa się przed zwykłymi adminami)
 module.exports = [
   {
+    key: "home",
+    name: "Pulpit",
+    path: "/",
+    icon: "home",
+    desc: "Przegląd systemu i odwiedzin strony",
+    status: "ready",
+    hidden: true,   // tylko dla headera — nie rysuj w menu ani na dashboardzie
+  },
+  {
+    key: "ustawienia",
+    name: "Ustawienia",
+    path: "/ustawienia",
+    icon: "settings",
+    desc: "Konfiguracja panelu administratora i dane firmy",
+    status: "ready",
+    hidden: true,
+  },
+  {
     key: "kursy",
     name: "Kursy",
     path: "/kursy",

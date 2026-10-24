@@ -29,16 +29,14 @@
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
   <%- include('partials/admin-nav', { active: 'maile' }) %>
+  <%- include('partials/header') %>
 
-  <div class="lg:pl-64">
+  <div class="lg:pl-64 pt-16">
     <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       
       <!-- Nagłówek + statystyki -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Moduł mailingowy</h1>
-          <p class="text-gray-500 dark:text-slate-400">Twórz, podglądaj i kolejkuj wiadomości do uczestników</p>
-        </div>
+      <div class="flex items-center justify-end mb-6">
+       
         <div class="flex flex-wrap gap-2" id="stats-bar">
           <span class="stat-pill bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">
             📬 W kolejce: <b id="stat-pending"><%= stats.pending %></b>
