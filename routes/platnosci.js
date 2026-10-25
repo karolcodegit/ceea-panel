@@ -20,13 +20,14 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
   try {
     const courses = await fetchAllCourses(); // DatoCMS – filtr (id zgodne z payments.course_id)
 
-    // aktywny kurs z naszej tabeli (schema-fixes-v3/v4)
+    // aktywny kurs z naszej tabeli
     const { data: dbCourses } = await supabase
       .from("courses")
       .select("course_id, is_active");
     const activeCourseId =
       (dbCourses || []).find((c) => c.is_active)?.course_id || null;
 
+    // płatności za kursy
     const { data: payments, error } = await supabase
       .from("payments")
       .select(
@@ -36,11 +37,20 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
       .limit(200);
     if (error) throw error;
 
+    // płatności za książki
+    const { data: bookOrders, error: boErr } = await supabase
+      .from("book_orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (boErr) console.error("[GET /platnosci] book_orders:", boErr.message);
+
     res.render("admin-platnosci", {
       isAdmin: true,
       active: "platnosci",
       courses,
       payments: payments || [],
+      bookOrders: bookOrders || [],
       activeCourseId,
       query: req.query,
     });
@@ -51,6 +61,7 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
       active: "platnosci",
       courses: [],
       payments: [],
+      bookOrders: [],
       activeCourseId: null,
       query: {},
       error: err.message,
@@ -70,7 +81,7 @@ router.post(
 
       const { data: pay } = await supabase
         .from("payments")
-        .select("*, courses(title), users(email)")   // ← users(email) dla buyer_email
+        .select("*, courses(title), users(email)") // ← users(email) dla buyer_email
         .eq("id", id)
         .single();
       if (!pay) throw new Error("Nie znaleziono płatności");
@@ -82,7 +93,7 @@ router.post(
 
       const items = [
         {
-          name: `Udział w kursie: ${pay.courses?.title || "Kurs"}`,   // ← title, nie nameCourse
+          name: `Udział w kursie: ${pay.courses?.title || "Kurs"}`, // ← title, nie nameCourse
           quantity: 1,
           unit: "szt.",
           net_price: net,
@@ -102,7 +113,7 @@ router.post(
           buyer_name: buyerName,
           buyer_address: buyerAddress,
           buyer_nip: buyerNip || null,
-          buyer_email: pay.users?.email || null,   // ← teraz zadziała (users dołączone wyżej)
+          buyer_email: pay.users?.email || null, // ← teraz zadziała (users dołączone wyżej)
           total_net: net,
           total_vat: vat,
           total_gross: gross,
@@ -162,13 +173,19 @@ router.post(
   async (req, res) => {
     try {
       const { data: payment, error } = await supabase
-        .from("payments").select("order_number").eq("id", req.params.id).single();
+        .from("payments")
+        .select("order_number")
+        .eq("id", req.params.id)
+        .single();
       if (error || !payment) throw new Error("Nie znaleziono płatności");
 
       // serwis CEEA: status paid + automatyczny mail do kursanta
       const r = await fetch(`${CEEA_API}/mark-paid`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-key": CEEA_ADMIN_KEY },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": CEEA_ADMIN_KEY,
+        },
         body: JSON.stringify({ orderNumber: payment.order_number }),
       });
       const json = await r.json().catch(() => ({}));
@@ -176,18 +193,28 @@ router.post(
 
       // faktura powiązana -> paid
       const { data: pay } = await supabase
-        .from("payments").select("invoice_id").eq("id", req.params.id).single();
+        .from("payments")
+        .select("invoice_id")
+        .eq("id", req.params.id)
+        .single();
       if (pay?.invoice_id) {
-        await supabase.from("invoices").update({ status: "paid" }).eq("id", pay.invoice_id);
+        await supabase
+          .from("invoices")
+          .update({ status: "paid" })
+          .eq("id", pay.invoice_id);
       }
 
-      res.redirect(`${ADMIN_PREFIX}/platnosci?success=${encodeURIComponent(
-        json.alreadyPaid
-          ? "Ta płatność była już oznaczona jako opłacona."
-          : "Oznaczono jako zapłacone. Kursant otrzymał mail z potwierdzeniem."
-      )}`);
+      res.redirect(
+        `${ADMIN_PREFIX}/platnosci?success=${encodeURIComponent(
+          json.alreadyPaid
+            ? "Ta płatność była już oznaczona jako opłacona."
+            : "Oznaczono jako zapłacone. Kursant otrzymał mail z potwierdzeniem."
+        )}`
+      );
     } catch (err) {
-      res.redirect(`${ADMIN_PREFIX}/platnosci?error=${encodeURIComponent(err.message)}`);
+      res.redirect(
+        `${ADMIN_PREFIX}/platnosci?error=${encodeURIComponent(err.message)}`
+      );
     }
   }
 );

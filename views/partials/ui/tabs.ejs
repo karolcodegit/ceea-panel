@@ -1,0 +1,32 @@
+<%
+  const _tabs = locals.tabs || [];
+  const _cur  = locals.activeTab || (_tabs[0] && _tabs[0].key) || '';
+%>
+<% if (_tabs.length) { %>
+<div class="tabs" data-tabs>
+  <% _tabs.forEach(t => { %>
+    <a href="<%= t.href %>" class="tabs-tab <%= t.key === _cur ? 'is-active' : '' %>"><%= t.label %></a>
+  <% }) %>
+  <span class="tabs-ink" aria-hidden="true"></span>
+</div>
+
+<script>
+  (function () {
+    function initTabs(root) {
+      if (root.dataset.tabsInit === '1') return;
+      root.dataset.tabsInit = '1';
+      var ink = root.querySelector('.tabs-ink');
+      var active = root.querySelector('.tabs-tab.is-active') || root.querySelector('.tabs-tab');
+      function move() {
+        if (!ink || !active) return;
+        ink.style.left = active.offsetLeft + 'px';
+        ink.style.width = active.offsetWidth + 'px';
+      }
+      move();
+      window.addEventListener('resize', move);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(move);
+    }
+    document.querySelectorAll('[data-tabs]').forEach(initTabs);
+  })();
+</script>
+<% } %>

@@ -12,11 +12,7 @@
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
 
-        <div class="flex items-center justify-end mb-6">
-          
-          <button onclick="openBookModal()" class="btn btn-sm btn-primary">+ Dodaj książkę</button>
-        </div>
-
+        <%# ── komunikaty POZA kartą ── %>
         <% if (q.success) { %>
           <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
         <% } %>
@@ -24,41 +20,51 @@
           <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
         <% } %>
 
-        <!-- Filtry -->
-        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
-            <div>
-              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                <input type="text" id="search" placeholder="tytuł, autor, wydawnictwo..."
-                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+        <%# ═════ BIAŁY PROSTOKĄT MODUŁU ═════ %>
+        <section class="module-card p-4 sm:p-5">
+
+          <%# Rząd akcji — TUTAJ się zamyka, zaraz po przycisku %>
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <button onclick="openBookModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj książkę</button>
+          </div>
+
+          <%# Filtry jako szary element wewnątrz karty (zamiast starej białej kartki) %>
+          <div class="module-item p-4 sm:p-5 mb-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
+              <div>
+                <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                  <input type="text" id="search" placeholder="tytuł, autor, wydawnictwo..."
+                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+                </div>
+              </div>
+              <div>
+                <label for="fAvail" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Dostępność</label>
+                <select id="fAvail" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <option value="all">Wszystkie</option>
+                  <option value="available">Dostępne w sprzedaży</option>
+                  <option value="unavailable">Niedostępne</option>
+                </select>
+              </div>
+              <div>
+                <label for="fStock" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Stan magazynowy</label>
+                <select id="fStock" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <option value="all">Wszystkie</option>
+                  <option value="zero">Stan: 0</option>
+                  <option value="low">Stan &lt; 5</option>
+                  <option value="ok">Stan ≥ 5</option>
+                </select>
               </div>
             </div>
-            <div>
-              <label for="fAvail" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Dostępność</label>
-              <select id="fAvail" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
-                <option value="all">Wszystkie</option>
-                <option value="available">Dostępne w sprzedaży</option>
-                <option value="unavailable">Niedostępne</option>
-              </select>
-            </div>
-            <div>
-              <label for="fStock" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Stan magazynowy</label>
-              <select id="fStock" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
-                <option value="all">Wszystkie</option>
-                <option value="zero">Stan: 0</option>
-                <option value="low">Stan &lt; 5</option>
-                <option value="ok">Stan ≥ 5</option>
-              </select>
-            </div>
           </div>
-        </div>
 
-        <!-- Tabela (komponent DataTable) -->
-        <div id="booksTable"></div>
+          <%# Tabela %>
+          <div id="booksTable"></div>
 
-        <!-- Modal: dodaj / edytuj książkę -->
+        </section>
+
+        <%# ═════ MODAL — poza kartą, przed zamknięciem main ═════ %>
         <div id="bookModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeBookModal()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -140,7 +146,8 @@
             </form>
           </div>
         </div>
-
+          </div>
+        </section>
       </main>
     </div>
 

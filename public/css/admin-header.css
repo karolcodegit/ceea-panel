@@ -217,8 +217,13 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODULE CARDS — powtarzalne „białe kartki" (FlowAI)
-   Zamiast kopiować klasy Tailwinda: <section class="module-card p-5">
+   MODULE CARDS — powtarzalne kartki (FlowAI)
+   ─────────────────────────────────────────────────────────────
+   .module-card   — biały prostokąt modułu (zakładki, lista, formularz…)
+   .module-item   — element W środku karty: szare tło + obramowanie
+                    (kafelki kursów, wiersze list, klucze API…)
+   .tabs          — zakładki z przesuwającą się pigułką (patrz
+                    partials/ui/tabs.ejs)
    ═══════════════════════════════════════════════════════════════ */
 
 .module-card {
@@ -233,10 +238,81 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   box-shadow: none;
 }
 
-/* Kafelek statystyki: ikona w kwadracie + etykieta + wartość
-   <div class="stat-tile"><span class="stat-tile-icon">…svg…</span>
-     <div><p class="stat-tile-label">Total Keys</p><p class="stat-tile-value">04</p></div>
-   </div> */
+.module-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.module-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+.dark .module-item {
+  background: rgba(148, 163, 184, .07);
+  border-color: #1e293b;
+}
+.dark .module-item:hover {
+  background: rgba(148, 163, 184, .1);
+  border-color: #334155;
+}
+
+/* ── Zakładki (pigułka z .tabs-ink przesuwa się pod aktywnym linkiem) ── */
+.tabs {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tabs-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .5rem 1rem;
+  border-radius: 9999px;
+  font-size: .875rem;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.tabs-tab:hover { color: #111827; }
+.tabs-tab.is-active { color: #111827; font-weight: 600; }
+
+.tabs-ink {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  background: #fff;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+  transition: left .25s cubic-bezier(.4, 0, .2, 1), width .25s cubic-bezier(.4, 0, .2, 1);
+}
+
+.dark .tabs {
+  background: rgba(15, 23, 42, .6);
+  border-color: #1e293b;
+}
+.dark .tabs-tab { color: #94a3b8; }
+.dark .tabs-tab:hover,
+.dark .tabs-tab.is-active { color: #fff; }
+.dark .tabs-ink { background: #0f172a; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+
+/* Kafelek statystyki (ikona + etykieta + wartość) */
 .stat-tile {
   display: flex;
   align-items: center;
@@ -246,17 +322,14 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   border-radius: .75rem;
   padding: .875rem 1rem;
 }
-.dark .stat-tile {
-  background: rgba(15, 23, 42, .55);
-  border-color: #1e293b;
-}
+.dark .stat-tile { background: rgba(15, 23, 42, .55); border-color: #1e293b; }
 .stat-tile-icon {
   width: 2rem; height: 2rem;
   border-radius: .5rem;
   background: #f3f4f6;
   color: #4b5563;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; 
+  flex-shrink: 0;
 }
 .dark .stat-tile-icon { background: rgba(255,255,255,.06); color: #94a3b8; }
 .stat-tile-icon svg { width: 1rem; height: 1rem; }
@@ -265,9 +338,46 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .stat-tile-value { font-size: 1.125rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.2; }
 .dark .stat-tile-value { color: #f1f5f9; }
 
-/* Nagłówek sekcji wewnątrz karty (np. „Integrations API Key") */
-.module-title {
-  font-size: .95rem; font-weight: 700; color: #111827;
-  display: flex; align-items: center; gap: .5rem;
-}
+.module-title { font-size: .95rem; font-weight: 700; color: #111827; display: flex; align-items: center; gap: .5rem; }
 .dark .module-title { color: #f1f5f9; }
+
+
+/* Karta „produktowa" — biała, z shadow i uniesieniem na hover */
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+.card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .09);
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+}
+.dark .card {
+  background: rgba(15, 23, 42, .55);
+  border-color: #1e293b;
+  box-shadow: none;
+}
+.dark .card:hover {
+  border-color: #334155;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .35);
+  transform: translateY(-2px);
+}
+
+/* Wewnętrzny prostokąt z borderem (w środku .card) */
+.card-inner {
+  background: #f8f8f8;
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  overflow: hidden;               /* zdjęcie nie wystaje z zaokrąglonych rogów */
+  transition: border-color .2s ease;
+}
+.card:hover .card-inner { border-color: #d1d5db; }   /* border „żyje" z hoverem karty */
+
+.dark .card-inner {
+  background: rgba(148, 163, 184, .05);
+  border-color: #1e293b;
+}
+.dark .card:hover .card-inner { border-color: #334155; }

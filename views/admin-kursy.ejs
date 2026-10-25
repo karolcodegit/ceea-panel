@@ -1,119 +1,137 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-  <%- include('partials/head') %>
-  <title>Kursy — Panel administratora</title>
-</head>
-<body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors">
-  <%- include('partials/admin-nav', { active: 'kursy' }) %>
-  <%- include('partials/header') %>
+  <head>
+    <%- include('partials/head') %>
+    <title>Kursy — Panel administratora</title>
+  </head>
+  <body
+    class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors"
+  >
+    <%- include('partials/admin-nav', { active: 'kursy' }) %> <%# „+ Nowy kurs"
+    ląduje w pasku górnym (jak „Generate API Key" w FlowAI) —%> <%# dane
+    przekazujemy razem z include'm, bez ruszania route'a %> <%-
+    include('partials/header') %>
 
-  <div class="lg:pl-64 pt-16">
-    <main class=" max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <% const q = locals.query || {}; %>
-      <% const f = locals.filter || 'all'; %>
-
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8 ">
-        <div>
-          <!--   -->
-         
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% const q = locals.query || {}; %> <% const f = locals.filter || 'all';
+        %> <% if (q.success) { %>
+        <div
+          class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"
+        >
+          <%= q.success %>
         </div>
-        <a href="<%= adminPrefix %>/kursy/nowy" class="btn btn-sm btn-primary">+ Nowy kurs</a>
-      </div>
+        <% } %> <% if (q.error) { %>
+        <div
+          class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"
+        >
+          <%= q.error %>
+        </div>
+        <% } %> <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki + lista kursów ═════
+        %>
+        <section class="module-card p-4 sm:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <%- include('partials/ui/tabs', { tabs: [ { key: 'all', label:
+            'Wszystkie', href: adminPrefix + '/kursy?filter=all' }, { key:
+            'active', label: 'Aktywne (rejestracja)', href: adminPrefix +
+            '/kursy?filter=active' }, { key: 'archive', label: 'Archiwum', href:
+            adminPrefix + '/kursy?filter=archive' }, ], activeTab: f }) %>
 
-      <% if (q.success) { %>
-        <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
-      <% } %>
-      <% if (q.error) { %>
-        <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error %></div>
-      <% } %>
-
-      <!-- Filtry -->
-      <div class="flex flex-wrap items-center gap-2 mb-6">
-        <a href="<%= adminPrefix %>/kursy?filter=all"
-           class="px-4 py-2 rounded-lg text-sm font-medium <%= f === 'all' ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700' %>">Wszystkie</a>
-        <a href="<%= adminPrefix %>/kursy?filter=active"
-           class="px-4 py-2 rounded-lg text-sm font-medium <%= f === 'active' ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700' %>">Aktywne (rejestracja)</a>
-        <a href="<%= adminPrefix %>/kursy?filter=archive"
-           class="px-4 py-2 rounded-lg text-sm font-medium <%= f === 'archive' ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700' %>">Archiwum</a>
-      </div>
-
-      <% const list = courses || []; %>
-
-      <% if (list.length === 0) { %>
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-12 text-center transition-colors">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-            <svg class="w-8 h-8 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-            </svg>
+            <a
+              href="<%= adminPrefix %>/kursy/nowy"
+              class="btn btn-sm btn-primary whitespace-nowrap"
+            >
+              + Nowy kurs
+            </a>
           </div>
-          <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Brak kursów</h2>
-          <p class="text-gray-500 dark:text-slate-400 mb-4">
-            Brak kursów dla wybranego filtra. Utwórz pierwszy kurs.
-          </p>
-          <a href="<%= adminPrefix %>/kursy/nowy" class="btn btn-sm btn-primary">+ Nowy kurs</a>
-        </div>
-      <% } else { %>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <% list.forEach(course => { %>
-            <article class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-slate-950/30 transition-all">
 
-              <% if (course.image?.url) { %>
-                <img src="<%= course.image.url %>" alt="<%= course.nameCourse %>" loading="lazy" class="w-full h-40 object-cover">
-              <% } else { %>
-                <div class="w-full h-40 bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
-                  <span class="text-4xl font-bold text-white"><%= (course.nameCourse || 'C').charAt(0) %></span>
+          <% const list = courses || []; %> <% if (list.length === 0) { %>
+          <div class="module-item p-12 text-center">
+            <div
+              class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-gray-400 dark:text-slate-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+            </div>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Brak kursów
+            </h2>
+            <p class="text-gray-500 dark:text-slate-400 mb-4">
+              Brak kursów dla wybranego filtra. Utwórz pierwszy kurs.
+            </p>
+            <a
+              href="<%= adminPrefix %>/kursy/nowy"
+              class="btn btn-sm btn-primary"
+              >+ Nowy kurs</a
+            >
+          </div>
+          <% } else { %> <%# Siatka kursów — szare kafelki z obramowaniem
+          (module-item) %>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <% list.forEach(course => { %>
+              <article class="card group p-2.5">
+                <div class="card-inner">
+              
+                  <% if (course.image?.url) { %>
+                    <img src="<%= course.image.url %>" alt="<%= course.nameCourse %>" loading="lazy"
+                         class="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-[1.03]">
+                  <% } else { %>
+                    <div class="w-full h-40 bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                      <span class="text-4xl font-bold text-white"><%= (course.nameCourse || 'C').charAt(0) %></span>
+                    </div>
+                  <% } %>
+              
+                  <div class="p-5">
+                    <div class="flex items-start justify-between gap-3 mb-2 min-h-10">
+                      <h2 class="font-semibold text-gray-900 dark:text-white leading-snug"><%= course.nameCourse %></h2>
+                      <% const badgeCls = course.available ? 'badge-green' : (course._raw?.is_archive ? 'badge-gray' : 'badge-amber'); %>
+                      <span class="badge <%= badgeCls %> shrink-0">
+                        <%= course.available ? 'Aktywny' : (course._raw?.is_archive ? 'Archiwum' : 'Nieaktywny') %>
+                      </span>
+                    </div>
+              
+                    <p class="text-sm text-gray-500 dark:text-slate-400 mb-4"><%= course.date %></p>
+              
+                    <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-500 dark:text-slate-400 mb-5">
+                      <span class="inline-flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <%= course.materialsCount %> materiałów
+                      </span>
+                      <span class="inline-flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 11-3-3"/>
+                        </svg>
+                        <%= course.participantsCount %> uczestników
+                      </span>
+                    </div>
+              
+                    <div class="grid grid-cols-3 gap-2 pt-4 border-t border-gray-100 dark:border-slate-700/70">
+                      <a href="<%= adminPrefix %>/kursy/<%= course.id %>/materials" class="btn btn-xs btn-delete">Materiały</a>
+                      <a href="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy" class="btn btn-xs btn-edit">Uczestnicy</a>
+                      <a href="<%= adminPrefix %>/kursy/<%= course.id %>/edytuj" class="btn btn-xs btn-neutral">Edytuj</a>
+                    </div>
+                  </div>
+              
                 </div>
-              <% } %>
-
-              <div class="p-5">
-                <div class="flex items-start justify-between gap-3 mb-2 min-h-10">
-                  <h2 class="font-semibold text-gray-900 dark:text-white leading-snug"><%= course.nameCourse %></h2>
-                  <% const badgeCls = course.available ? 'badge-green' : (course._raw?.is_archive ? 'badge-gray' : 'badge-amber'); %>
-                  <span class="badge <%= badgeCls %> shrink-0">
-                    <%= course.available ? 'Aktywny' : (course._raw?.is_archive ? 'Archiwum' : 'Nieaktywny') %>
-                  </span>
-                </div>
-
-                <p class="text-sm text-gray-500 dark:text-slate-400 mb-4"><%= course.date %></p>
-
-                <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-500 dark:text-slate-400 mb-5">
-                  <span class="inline-flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                    <%= course.materialsCount %> materiałów
-                  </span>
-                  <span class="inline-flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 11-3-3"/>
-                    </svg>
-                    <%= course.participantsCount %> uczestników
-                  </span>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 pt-4 border-t border-gray-100 dark:border-slate-700">
-                  <a href="<%= adminPrefix %>/kursy/<%= course.id %>/materials"
-                     class="btn btn-xs btn-delete">
-                    Materiały
-                  </a>
-                  <a href="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy"
-                     class="btn btn-xs btn-edit">
-                    Uczestnicy
-                  </a>
-                  <a href="<%= adminPrefix %>/kursy/<%= course.id %>/edytuj"
-                     class="btn btn-xs btn-neutral">
-                    Edytuj
-                  </a>
-                </div>
-              </div>
-            </article>
-          <% }) %>
-        </div>
-      <% } %>
-
-    </main>
-  </div>
-</body>
+              </article>
+            <% }) %>
+          </div>
+          <% } %>
+        </section>
+      </main>
+    </div>
+  </body>
 </html>
