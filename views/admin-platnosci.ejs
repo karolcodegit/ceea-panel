@@ -5,62 +5,105 @@
     <title>Płatności — Panel CEEA</title>
     <style>
       @media print {
-        .no-print { display: none !important; }
-        body { background: white; }
+        .no-print {
+          display: none !important;
+        }
+        body {
+          background: white;
+        }
       }
     </style>
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-    <%- include('partials/admin-nav', { active: 'platnosci' }) %>
-    <%- include('partials/header') %>
+    <%- include('partials/admin-nav', { active: 'platnosci' }) %> <%-
+    include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <% const query = locals.query || {}; %>
-
-        <%# ── Komunikaty POZA kartą ── %>
-        <% if (query.success) { %>
-          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= query.success %></div>
-        <% } %>
-        <% if (query.error) { %>
-          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= query.error %></div>
-        <% } %>
-
-        <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki Kursy / Książki ═════ %>
+        <% const query = locals.query || {}; %> <%# ── Komunikaty POZA kartą ──
+        %> <% if (query.success) { %>
+        <div
+          class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"
+        >
+          <%= query.success %>
+        </div>
+        <% } %> <% if (query.error) { %>
+        <div
+          class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"
+        >
+          <%= query.error %>
+        </div>
+        <% } %> <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki Kursy / Książki ═════
+        %>
         <section class="module-card p-4 sm:p-5">
-
           <%# Rząd: zakładki po lewej, druk po prawej %>
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-5 no-print">
-            <div class="tabs" data-tabs-panels>
-              <a href="#" class="tabs-tab is-active" data-panel="courses">Kursy</a>
-              <a href="#" class="tabs-tab" data-panel="books">Książki</a>
-              <span class="tabs-ink" aria-hidden="true"></span>
-            </div>
-            <button onclick="window.print()" class="btn btn-sm btn-neutral whitespace-nowrap">🖨 Drukuj widok</button>
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 mb-5 no-print"
+          >
+          <div class="tabs" data-tabs-panels>
+            <a href="#" class="tabs-tab is-active" data-panel="courses">Kursy <span class="opacity-60 text-xs" id="tabCountCourses"></span></a>
+            <a href="#" class="tabs-tab" data-panel="books">Książki <span class="opacity-60 text-xs" id="tabCountBooks"></span></a>
+            <span class="tabs-ink" aria-hidden="true"></span>
+          </div>
+            <button
+              onclick="window.print()"
+              class="btn btn-sm btn-neutral whitespace-nowrap"
+            >
+              🖨 Drukuj widok
+            </button>
           </div>
 
           <%# ══════ PANEL: KURSY ══════ %>
           <div data-panel-content="courses">
             <div class="module-item p-4 sm:p-5 mb-5 no-print">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">Filtry</h2>
-                <button type="button" onclick="clearFilters()" class="btn btn-xs btn-ghost">Wyczyść filtry ✕</button>
+                <h2
+                  class="text-sm font-semibold text-gray-700 dark:text-slate-300"
+                >
+                  Filtry
+                </h2>
+                <button
+                  type="button"
+                  onclick="clearFilters()"
+                  class="btn btn-xs btn-ghost"
+                >
+                  Wyczyść filtry ✕
+                </button>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4">
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4"
+              >
                 <div class="sm:col-span-2">
-                  <label for="searchInput" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                  <label
+                    for="searchInput"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Szukaj</label
+                  >
                   <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                    <input type="text" id="searchInput" placeholder="email, nazwisko, nr zamówienia..."
-                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20" />
+                    <span
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                      >🔍</span
+                    >
+                    <input
+                      type="text"
+                      id="searchInput"
+                      placeholder="email, nazwisko, nr zamówienia..."
+                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label for="courseFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Kurs</label>
-                  <select id="courseFilter"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <label
+                    for="courseFilter"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Kurs</label
+                  >
+                  <select
+                    id="courseFilter"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
                     <option value="all">Wszystkie kursy</option>
                     <% courses.forEach(c => { %>
                     <option value="<%= c.id %>"><%= c.nameCourse %></option>
@@ -69,11 +112,19 @@
                 </div>
 
                 <div>
-                  <label for="statusFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status płatności</label>
-                  <select id="statusFilter"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <label
+                    for="statusFilter"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Status płatności</label
+                  >
+                  <select
+                    id="statusFilter"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
                     <option value="all">Wszystkie statusy</option>
-                    <option value="awaiting_transfer">⏳ Oczekuje na przelew</option>
+                    <option value="awaiting_transfer">
+                      ⏳ Oczekuje na przelew
+                    </option>
                     <option value="awaiting_payment">⏳ Oczekuje online</option>
                     <option value="paid">✅ Zapłacone</option>
                     <option value="canceled">❌ Anulowane</option>
@@ -81,9 +132,15 @@
                 </div>
 
                 <div>
-                  <label for="invoiceFilter" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Faktura</label>
-                  <select id="invoiceFilter"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <label
+                    for="invoiceFilter"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Faktura</label
+                  >
+                  <select
+                    id="invoiceFilter"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
                     <option value="all">Wszystkie</option>
                     <option value="with">Tylko z fakturą</option>
                     <option value="without">Bez faktury</option>
@@ -91,15 +148,29 @@
                 </div>
 
                 <div>
-                  <label for="dateFrom" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data od</label>
-                  <input type="date" id="dateFrom"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+                  <label
+                    for="dateFrom"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Data od</label
+                  >
+                  <input
+                    type="date"
+                    id="dateFrom"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
                 </div>
 
                 <div>
-                  <label for="dateTo" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data do</label>
-                  <input type="date" id="dateTo"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+                  <label
+                    for="dateTo"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Data do</label
+                  >
+                  <input
+                    type="date"
+                    id="dateTo"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
                 </div>
               </div>
             </div>
@@ -111,33 +182,68 @@
           <div data-panel-content="books" class="hidden">
             <div class="module-item p-4 sm:p-5 mb-5 no-print">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">Filtry</h2>
-                <button type="button" onclick="clearBookFilters()" class="btn btn-xs btn-ghost">Wyczyść filtry ✕</button>
+                <h2
+                  class="text-sm font-semibold text-gray-700 dark:text-slate-300"
+                >
+                  Filtry
+                </h2>
+                <button
+                  type="button"
+                  onclick="clearBookFilters()"
+                  class="btn btn-xs btn-ghost"
+                >
+                  Wyczyść filtry ✕
+                </button>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4">
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4"
+              >
                 <div class="sm:col-span-2">
-                  <label for="bSearch" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                  <label
+                    for="bSearch"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Szukaj</label
+                  >
                   <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                    <input type="text" id="bSearch" placeholder="email, nazwisko, nr zamówienia…"
-                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20" />
+                    <span
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                      >🔍</span
+                    >
+                    <input
+                      type="text"
+                      id="bSearch"
+                      placeholder="email, nazwisko, nr zamówienia…"
+                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label for="bStatus" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status</label>
-                  <select id="bStatus"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <label
+                    for="bStatus"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Status</label
+                  >
+                  <select
+                    id="bStatus"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
                     <option value="all">Wszystkie statusy</option>
                     <%# opcje uzupełniane dynamicznie z danych (JS) %>
                   </select>
                 </div>
 
                 <div>
-                  <label for="bDelivery" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Dostawa</label>
-                  <select id="bDelivery"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <label
+                    for="bDelivery"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Dostawa</label
+                  >
+                  <select
+                    id="bDelivery"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
                     <option value="all">Wszystkie metody</option>
                     <option value="parcel_locker">Paczkomat</option>
                     <option value="courier">Kurier</option>
@@ -146,383 +252,439 @@
                 </div>
 
                 <div>
-                  <label for="bDateFrom" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data od</label>
-                  <input type="date" id="bDateFrom"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+                  <label
+                    for="bDateFrom"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Data od</label
+                  >
+                  <input
+                    type="date"
+                    id="bDateFrom"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
                 </div>
 
                 <div>
-                  <label for="bDateTo" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Data do</label>
-                  <input type="date" id="bDateTo"
-                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]" />
+                  <label
+                    for="bDateTo"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Data do</label
+                  >
+                  <input
+                    type="date"
+                    id="bDateTo"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 [color-scheme:light] dark:[color-scheme:dark]"
+                  />
                 </div>
               </div>
             </div>
 
             <div id="bookOrdersTable"></div>
           </div>
-
         </section>
 
         <%# ═════ MODAL faktury (kursy) — poza kartą ═════ %>
-        <div id="invoiceModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 no-print">
-          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
-          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dane do faktury</h3>
+        <div
+          id="invoiceModal"
+          class="fixed inset-0 z-50 hidden items-center justify-center p-4 no-print"
+        >
+          <div
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onclick="closeModal()"
+          ></div>
+          <div
+            class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6"
+          >
+            <h3
+              class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+            >
+              Dane do faktury
+            </h3>
             <form id="invoiceForm" method="POST" class="space-y-3">
               <input type="hidden" name="paymentId" id="modalPaymentId" />
               <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa / Firma</label>
-                <input type="text" name="buyerName" id="mName" required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                <label
+                  class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                  >Nazwa / Firma</label
+                >
+                <input
+                  type="text"
+                  name="buyerName"
+                  id="mName"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Adres</label>
-                <textarea name="buyerAddress" id="mAddress" rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"></textarea>
+                <label
+                  class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                  >Adres</label
+                >
+                <textarea
+                  name="buyerAddress"
+                  id="mAddress"
+                  rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                ></textarea>
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP (opcjonalnie)</label>
-                <input type="text" name="buyerNip" id="mNip"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                <label
+                  class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                  >NIP (opcjonalnie)</label
+                >
+                <input
+                  type="text"
+                  name="buyerNip"
+                  id="mNip"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                />
               </div>
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">Generuj fakturę</button>
+                <button
+                  type="button"
+                  onclick="closeModal()"
+                  class="btn btn-sm btn-neutral flex-1"
+                >
+                  Anuluj
+                </button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                  Generuj fakturę
+                </button>
               </div>
             </form>
           </div>
         </div>
-
       </main>
     </div>
 
     <script>
-      let allPayments = <%- JSON.stringify(payments) %>;
-      let allBookOrders = <%- JSON.stringify(typeof bookOrders !== 'undefined' ? bookOrders : []) %>;
-      const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null) %>;
+           let allPayments = <%- JSON.stringify(payments) %>;
+           let allBookOrders = <%- JSON.stringify(typeof bookOrders !== 'undefined' ? bookOrders : []) %>;
+           const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null) %>;
 
-      // ═════════════ PANELE: KURSY / KSIĄŻKI ═════════════
-      (function () {
-        var root = document.querySelector('[data-tabs-panels]');
-        if (!root) return;
-        var ink = root.querySelector('.tabs-ink');
-        var tabs = root.querySelectorAll('.tabs-tab');
+           // ═════════════ PANELE: KURSY / KSIĄŻKI ═════════════
+           (function () {
+             var root = document.querySelector('[data-tabs-panels]');
+             if (!root) return;
+             var ink = root.querySelector('.tabs-ink');
+             var tabs = root.querySelectorAll('.tabs-tab');
 
-        function moveInk(el) {
-          if (!el || !ink) return;
-          ink.style.left = el.offsetLeft + 'px';
-          ink.style.width = el.offsetWidth + 'px';
-        }
+             function moveInk(el) {
+               if (!el || !ink) return;
+               ink.style.left = el.offsetLeft + 'px';
+               ink.style.width = el.offsetWidth + 'px';
+             }
 
-        tabs.forEach(function (t) {
-          t.addEventListener('click', function (e) {
-            e.preventDefault();
-            tabs.forEach(function (x) { x.classList.remove('is-active'); });
-            t.classList.add('is-active');
-            moveInk(t);
-            document.querySelectorAll('[data-panel-content]').forEach(function (p) {
-              p.classList.toggle('hidden', p.dataset.panelContent !== t.dataset.panel);
-            });
-          });
-        });
+             tabs.forEach(function (t) {
+               t.addEventListener('click', function (e) {
+                 e.preventDefault();
+                 tabs.forEach(function (x) { x.classList.remove('is-active'); });
+                 t.classList.add('is-active');
+                 moveInk(t);
+                 document.querySelectorAll('[data-panel-content]').forEach(function (p) {
+                   p.classList.toggle('hidden', p.dataset.panelContent !== t.dataset.panel);
+                 });
+               });
+             });
 
-        moveInk(root.querySelector('.tabs-tab.is-active') || tabs[0]);
-        window.addEventListener('resize', function () {
-          moveInk(root.querySelector('.tabs-tab.is-active'));
-        });
-        if (document.fonts && document.fonts.ready) {
-          document.fonts.ready.then(function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
-        }
-      })();
+             moveInk(root.querySelector('.tabs-tab.is-active') || tabs[0]);
+             window.addEventListener('resize', function () {
+               moveInk(root.querySelector('.tabs-tab.is-active'));
+             });
+             if (document.fonts && document.fonts.ready) {
+               document.fonts.ready.then(function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
+             }
+           })();
 
-      // ═════════════ POMOCNICZE ═════════════
-      function fmtDate(d) {
-        if (!d) return '-';
-        return new Date(d).toLocaleString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-      }
-      function fmtMoney(n) {
-        return new Intl.NumberFormat('pl-PL', { style:'currency', currency:'PLN' }).format(n);
-      }
+           // ═════════════ POMOCNICZE ═════════════
+           function fmtDate(d) {
+             if (!d) return '-';
+             return new Date(d).toLocaleString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+           }
+           function fmtMoney(n) {
+             return new Intl.NumberFormat('pl-PL', { style:'currency', currency:'PLN' }).format(n);
+           }
 
-      // ── DANE NABYWCY z payload (dwie konwencje pól) ──
-      function invoiceData(p) {
-        const pl = p.payload || {};
-        return {
-          name: (pl.InvoiceName || pl.invoiceName || '').toString().trim(),
-          street: (pl.InvoiceStreet || pl.invoiceStreet || '').toString().trim(),
-          numberHome: (pl.InvoiceNumberHome || pl.invoiceNumberHome || '').toString().trim(),
-          zipCode: (pl.InvoiceZipCode || pl.invoiceZipCode || '').toString().trim(),
-          city: (pl.InvoiceCity || pl.invoiceCity || '').toString().trim(),
-          nip: (pl.InvoiceNip || pl.invoiceNip || '').toString().trim(),
-        };
-      }
+           // ── DANE NABYWCY z payload (dwie konwencje pól) ──
+           function invoiceData(p) {
+             const pl = p.payload || {};
+             return {
+               name: (pl.InvoiceName || pl.invoiceName || '').toString().trim(),
+               street: (pl.InvoiceStreet || pl.invoiceStreet || '').toString().trim(),
+               numberHome: (pl.InvoiceNumberHome || pl.invoiceNumberHome || '').toString().trim(),
+               zipCode: (pl.InvoiceZipCode || pl.invoiceZipCode || '').toString().trim(),
+               city: (pl.InvoiceCity || pl.invoiceCity || '').toString().trim(),
+               nip: (pl.InvoiceNip || pl.invoiceNip || '').toString().trim(),
+             };
+           }
 
-      // ═════════════ PANEL: KURSY ═════════════
-      const courseName = p =>
-        (p.courses && (p.courses.title || p.courses.nameCourse)) || p.course_id || '-';
+           // ═════════════ PANEL: KURSY ═════════════
+           const courseName = p =>
+             (p.courses && (p.courses.title || p.courses.nameCourse)) || p.course_id || '-';
 
-      const statusBadge = {
-        paid: 'badge-green',
-        awaiting_transfer: 'badge-amber',
-        awaiting_payment: 'badge-amber',
-        canceled: 'badge-red',
-        expired: 'badge-red',
-      };
-      const statusLabel = {
-        paid: 'Zapłacone',
-        awaiting_transfer: 'Oczekuje na przelew',
-        awaiting_payment: 'Oczekuje online',
-        canceled: 'Anulowane',
-        expired: 'Wygasło',
-      };
-      const methodBadge = { transfer: 'badge-outline', tpay: 'badge-blue' };
-      const methodLabel = { transfer: 'Przelew', tpay: 'Online (tpay)' };
+           const statusBadge = {
+             paid: 'badge-green',
+             awaiting_transfer: 'badge-amber',
+             awaiting_payment: 'badge-amber',
+             canceled: 'badge-red',
+             expired: 'badge-red',
+           };
+           const statusLabel = {
+             paid: 'Zapłacone',
+             awaiting_transfer: 'Oczekuje na przelew',
+             awaiting_payment: 'Oczekuje online',
+             canceled: 'Anulowane',
+             expired: 'Wygasło',
+           };
+           const methodBadge = { transfer: 'badge-outline', tpay: 'badge-blue' };
+           const methodLabel = { transfer: 'Przelew', tpay: 'Online (tpay)' };
 
-      const table = new DataTable('#paymentsTable', {
-        csvFilename: 'platnosci-kursy.csv',
-        pageSize: 10,
-        columns: [
-          { key: 'created_at', label: 'Data', sortable: true,
-            sortValue: r => new Date(r.created_at),
-            render: p => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap text-xs">${fmtDate(p.created_at)}</span>` },
-          { key: '_user', label: 'Uczestnik',
-            sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
-            csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
-            render: p => `
-              <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
-              <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
-          { key: 'course_id', label: 'Kurs',
-            sortValue: r => courseName(r),
-            render: p => `<span class="text-gray-700 dark:text-slate-300">${courseName(p)}</span>` },
-          { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
-            render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
-          { key: 'status', label: 'Status', sortable: true,
-            sortValue: r => r.status,
-            render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${statusLabel[p.status]||p.status}</span>` },
-          { key: 'method', label: 'Metoda',
-            render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${methodLabel[p.method]||p.method}</span>` },
-          { key: 'invoice', label: 'Faktura', sortable: false,
-            render: p => p.invoices
-              ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
-              : '<span class="text-gray-400 text-xs">—</span>' },
-          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `<div class="btn-group">` +
-              (p.status !== 'paid'
-                ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="btn btn-xs btn-success">Zapłacono</button></form>`
-                : '') +
-              (!p.invoices
-                ? `<button onclick="openInvoiceModal('${p.id}')" class="btn btn-xs btn-neutral">Faktura</button>`
-                : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`) +
-              `</div>` },
-        ],
-      });
+           const table = new DataTable('#paymentsTable', {
+             csvFilename: 'platnosci-kursy.csv',
+             pageSize: 10,
+             columns: [
+               { key: 'created_at', label: 'Data', sortable: true,
+                 sortValue: r => new Date(r.created_at),
+                 render: p => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap text-xs">${fmtDate(p.created_at)}</span>` },
+               { key: '_user', label: 'Uczestnik',
+                 sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
+                 csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
+                 render: p => `
+                   <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
+                   <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
+               { key: 'course_id', label: 'Kurs',
+                 sortValue: r => courseName(r),
+                 render: p => `<span class="text-gray-700 dark:text-slate-300">${courseName(p)}</span>` },
+               { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
+                 render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
+               { key: 'status', label: 'Status', sortable: true,
+                 sortValue: r => r.status,
+                 render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${statusLabel[p.status]||p.status}</span>` },
+               { key: 'method', label: 'Metoda',
+                 render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${methodLabel[p.method]||p.method}</span>` },
+               { key: 'invoice', label: 'Faktura', sortable: false,
+                 render: p => p.invoices
+                   ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
+                   : '<span class="text-gray-400 text-xs">—</span>' },
+               { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+                 render: p => `<div class="btn-group">` +
+                   (p.status !== 'paid'
+                     ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="btn btn-xs btn-success">Zapłacono</button></form>`
+                     : '') +
+                   (!p.invoices
+                     ? `<button onclick="openInvoiceModal('${p.id}')" class="btn btn-xs btn-neutral">Faktura</button>`
+                     : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`) +
+                   `</div>` },
+             ],
+           });
 
-      function render() {
-        const search = document.getElementById('searchInput').value.toLowerCase();
-        const status = document.getElementById('statusFilter').value;
-        const invoice = document.getElementById('invoiceFilter').value;
-        const course = document.getElementById('courseFilter').value;
-        const from = document.getElementById('dateFrom').value;
-        const to = document.getElementById('dateTo').value;
+           function render() {
+             const search = document.getElementById('searchInput').value.toLowerCase();
+             const status = document.getElementById('statusFilter').value;
+             const invoice = document.getElementById('invoiceFilter').value;
+             const course = document.getElementById('courseFilter').value;
+             const from = document.getElementById('dateFrom').value;
+             const to = document.getElementById('dateTo').value;
 
-        const filtered = allPayments.filter(p => {
-          const u = p.users || {};
-          const matchSearch = !search
-            || (u.email||'').toLowerCase().includes(search)
-            || (u.name||'').toLowerCase().includes(search)
-            || (u.surname||'').toLowerCase().includes(search)
-            || (p.order_number||'').toLowerCase().includes(search);
-          const matchStatus = status === 'all' || p.status === status;
-          const matchCourse = course === 'all' || String(p.course_id) === course;
-          const matchInvoice = invoice === 'all'
-            || (invoice === 'with' ? !!p.invoice_id : !p.invoice_id);
-          const matchFrom = !from || new Date(p.created_at) >= new Date(from);
-          const matchTo = !to || new Date(p.created_at) <= new Date(to + 'T23:59:59');
-          return matchSearch && matchStatus && matchCourse && matchInvoice && matchFrom && matchTo;
-        });
+             const filtered = allPayments.filter(p => {
+               const u = p.users || {};
+               const matchSearch = !search
+                 || (u.email||'').toLowerCase().includes(search)
+                 || (u.name||'').toLowerCase().includes(search)
+                 || (u.surname||'').toLowerCase().includes(search)
+                 || (p.order_number||'').toLowerCase().includes(search);
+               const matchStatus = status === 'all' || p.status === status;
+               const matchCourse = course === 'all' || String(p.course_id) === course;
+               const matchInvoice = invoice === 'all'
+                 || (invoice === 'with' ? !!p.invoice_id : !p.invoice_id);
+               const matchFrom = !from || new Date(p.created_at) >= new Date(from);
+               const matchTo = !to || new Date(p.created_at) <= new Date(to + 'T23:59:59');
+               return matchSearch && matchStatus && matchCourse && matchInvoice && matchFrom && matchTo;
+             });
 
-        table.setRows(filtered);
-      }
+             table.setRows(filtered);
+           }
 
-      ['searchInput','statusFilter','invoiceFilter','courseFilter','dateFrom','dateTo']
-        .forEach(id => document.getElementById(id).addEventListener('input', render));
+           ['searchInput','statusFilter','invoiceFilter','courseFilter','dateFrom','dateTo']
+             .forEach(id => document.getElementById(id).addEventListener('input', render));
 
-      function clearFilters() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('statusFilter').value = 'all';
-        document.getElementById('invoiceFilter').value = 'all';
-        document.getElementById('courseFilter').value = ACTIVE_COURSE || 'all';
-        document.getElementById('dateFrom').value = '';
-        document.getElementById('dateTo').value = '';
-        render();
-      }
+           function clearFilters() {
+             document.getElementById('searchInput').value = '';
+             document.getElementById('statusFilter').value = 'all';
+             document.getElementById('invoiceFilter').value = 'all';
+             document.getElementById('courseFilter').value = ACTIVE_COURSE || 'all';
+             document.getElementById('dateFrom').value = '';
+             document.getElementById('dateTo').value = '';
+             render();
+           }
 
-      // ── Modal faktury ──
-      function openInvoiceModal(paymentId) {
-        const p = allPayments.find(x => x.id === paymentId);
-        const d = p ? invoiceData(p) : {};
-        document.getElementById('modalPaymentId').value = paymentId;
-        document.getElementById('mName').value = d.name || '';
-        document.getElementById('mNip').value = d.nip || '';
-        document.getElementById('mAddress').value = [
-          [d.street, d.numberHome].filter(Boolean).join(' '),
-          [d.zipCode, d.city].filter(Boolean).join(' '),
-        ].filter(Boolean).join('\n');
-        document.getElementById('invoiceForm').action = `<%= adminPrefix %>/platnosci/${paymentId}/faktura`;
-        document.getElementById('invoiceModal').classList.remove('hidden');
-        document.getElementById('invoiceModal').classList.add('flex');
-      }
-      function closeModal() {
-        document.getElementById('invoiceModal').classList.add('hidden');
-        document.getElementById('invoiceModal').classList.remove('flex');
-      }
+           // ── Modal faktury ──
+           function openInvoiceModal(paymentId) {
+             const p = allPayments.find(x => x.id === paymentId);
+             const d = p ? invoiceData(p) : {};
+             document.getElementById('modalPaymentId').value = paymentId;
+             document.getElementById('mName').value = d.name || '';
+             document.getElementById('mNip').value = d.nip || '';
+             document.getElementById('mAddress').value = [
+               [d.street, d.numberHome].filter(Boolean).join(' '),
+               [d.zipCode, d.city].filter(Boolean).join(' '),
+             ].filter(Boolean).join('\n');
+             document.getElementById('invoiceForm').action = `<%= adminPrefix %>/platnosci/${paymentId}/faktura`;
+             document.getElementById('invoiceModal').classList.remove('hidden');
+             document.getElementById('invoiceModal').classList.add('flex');
+           }
+           function closeModal() {
+             document.getElementById('invoiceModal').classList.add('hidden');
+             document.getElementById('invoiceModal').classList.remove('flex');
+           }
 
-      if (ACTIVE_COURSE) {
-        document.getElementById('courseFilter').value = ACTIVE_COURSE;
-      }
+           if (ACTIVE_COURSE) {
+             document.getElementById('courseFilter').value = ACTIVE_COURSE;
+           }
 
-      // ═════════════ PANEL: KSIĄŻKI ═════════════
-      // Mapowania — dopasuj wartości do tego, co realnie wraca z book_orders.status
-      const bookStatusBadge = {
-        new: 'badge-blue',
-        awaiting_payment: 'badge-amber',
-        awaiting_transfer: 'badge-amber',
-        paid: 'badge-green',
-        confirmed: 'badge-green',
-        shipped: 'badge-purple',
-        completed: 'badge-green',
-        canceled: 'badge-red',
-      };
-      const bookStatusLabel = {
-        new: 'Nowe',
-        awaiting_payment: 'Oczekuje online',
-        awaiting_transfer: 'Oczekuje na przelew',
-        paid: 'Opłacone',
-        confirmed: 'Potwierdzone',
-        shipped: 'Wysłane',
-        completed: 'Zrealizowane',
-        canceled: 'Anulowane',
-      };
+           // ═════════════ PANEL: KSIĄŻKI ═════════════
+           // Mapowania — dopasuj wartości do tego, co realnie wraca z book_orders.status
+           const bookStatusBadge = {
+             new: 'badge-blue',
+             awaiting_payment: 'badge-amber',
+             awaiting_transfer: 'badge-amber',
+             paid: 'badge-green',
+             confirmed: 'badge-green',
+             shipped: 'badge-purple',
+             completed: 'badge-green',
+             canceled: 'badge-red',
+           };
+           const bookStatusLabel = {
+             new: 'Nowe',
+             awaiting_payment: 'Oczekuje online',
+             awaiting_transfer: 'Oczekuje na przelew',
+             paid: 'Opłacone',
+             confirmed: 'Potwierdzone',
+             shipped: 'Wysłane',
+             completed: 'Zrealizowane',
+             canceled: 'Anulowane',
+           };
 
-      // Dostawa: normalizacja z fallbackiem do surowej wartości
-      function deliveryKind(o) {
-        const m = (o.delivery_method || '').toLowerCase();
-        if (m.includes('paczkomat') || m.includes('inpost') || m.includes('parcel')) return 'parcel_locker';
-        if (m.includes('kurier') || m.includes('courier') || m.includes('dhl') || m.includes('dpd') || m.includes('gls')) return 'courier';
-        if (m.includes('odbiór') || m.includes('pickup') || m.includes('osobist')) return 'pickup';
-        return 'other';
-      }
-      const deliveryBadge = { parcel_locker: 'badge-purple', courier: 'badge-blue', pickup: 'badge-outline', other: 'badge-outline' };
-      const deliveryLabel = {
-        parcel_locker: 'Paczkomat',
-        courier: 'Kurier',
-        pickup: 'Odbiór osobisty',
-        other: null, // pokaż surową wartość
-      };
+           // Dostawa: normalizacja z fallbackiem do surowej wartości
+           function deliveryKind(o) {
+             const m = (o.delivery_method || '').toLowerCase();
+             if (m.includes('paczkomat') || m.includes('inpost') || m.includes('parcel')) return 'parcel_locker';
+             if (m.includes('kurier') || m.includes('courier') || m.includes('dhl') || m.includes('dpd') || m.includes('gls')) return 'courier';
+             if (m.includes('odbiór') || m.includes('pickup') || m.includes('osobist')) return 'pickup';
+             return 'other';
+           }
+           const deliveryBadge = { parcel_locker: 'badge-purple', courier: 'badge-blue', pickup: 'badge-outline', other: 'badge-outline' };
+           const deliveryLabel = {
+             parcel_locker: 'Paczkomat',
+             courier: 'Kurier',
+             pickup: 'Odbiór osobisty',
+             other: null, // pokaż surową wartość
+           };
 
-      function deliveryCell(o) {
-        const kind = deliveryKind(o);
-        const label = deliveryLabel[kind] || o.delivery_method || '—';
-        const extra = (kind === 'parcel_locker' && o.parcel_locker_code)
-          ? `<div class="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">${o.parcel_locker_code}</div>`
-          : '';
-        return `<span class="badge ${deliveryBadge[kind]}">${label}</span>${extra}`;
-      }
+           function deliveryCell(o) {
+             const kind = deliveryKind(o);
+             const label = deliveryLabel[kind] || o.delivery_method || '—';
+             const extra = (kind === 'parcel_locker' && o.parcel_locker_code)
+               ? `<div class="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">${o.parcel_locker_code}</div>`
+               : '';
+             return `<span class="badge ${deliveryBadge[kind]}">${label}</span>${extra}`;
+           }
 
-      // items (jsonb) → "Tytuł ×2, Tytuł 2"
-      function bookItemsSummary(items) {
-        if (!Array.isArray(items) || !items.length) return '<span class="text-gray-400 text-xs">—</span>';
-        const s = items.map(i => {
-          const t = i.title || i.name || 'Pozycja';
-          const q = Number(i.qty || i.quantity) || 1;
-          return q > 1 ? `${t} ×${q}` : t;
-        }).join(', ');
-        return `<span class="text-gray-700 dark:text-slate-300">${s}</span>`;
-      }
+           // items (jsonb) → "Tytuł ×2, Tytuł 2"
+           function bookItemsSummary(items) {
+             if (!Array.isArray(items) || !items.length) return '<span class="text-gray-400 text-xs">—</span>';
+             const s = items.map(i => {
+               const t = i.title || i.name || 'Pozycja';
+               const q = Number(i.qty || i.quantity) || 1;
+               return q > 1 ? `${t} ×${q}` : t;
+             }).join(', ');
+             return `<span class="text-gray-700 dark:text-slate-300">${s}</span>`;
+           }
 
-      // Dynamiczna lista statusów do filtra (z tego, co realnie jest w bazie)
-      (function populateBookStatuses() {
-        const sel = document.getElementById('bStatus');
-        const uniq = [...new Set(allBookOrders.map(o => o.status).filter(Boolean))];
-        uniq.forEach(st => {
-          const opt = document.createElement('option');
-          opt.value = st;
-          opt.textContent = bookStatusLabel[st] || st;
-          sel.appendChild(opt);
-        });
-      })();
+           // Dynamiczna lista statusów do filtra (z tego, co realnie jest w bazie)
+           (function populateBookStatuses() {
+             const sel = document.getElementById('bStatus');
+             const uniq = [...new Set(allBookOrders.map(o => o.status).filter(Boolean))];
+             uniq.forEach(st => {
+               const opt = document.createElement('option');
+               opt.value = st;
+               opt.textContent = bookStatusLabel[st] || st;
+               sel.appendChild(opt);
+             });
+           })();
 
-      const booksTable = new DataTable('#bookOrdersTable', {
-        csvFilename: 'platnosci-ksiazki.csv',
-        pageSize: 10,
-        columns: [
-          { key: 'created_at', label: 'Data', sortable: true,
-            sortValue: r => new Date(r.created_at),
-            render: o => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap text-xs">${fmtDate(o.created_at)}</span>` },
-          { key: '_buyer', label: 'Klient',
-            sortValue: r => `${r.name||''} ${r.surname||''}`.toLowerCase(),
-            csvValue: r => `${r.name||''} ${r.surname||''} (${r.email||''})`,
-            render: o => `
-              <div class="font-medium text-gray-900 dark:text-white">${o.name||''} ${o.surname||''}</div>
-              <div class="text-xs text-gray-500 dark:text-slate-500">${o.email||''}</div>` },
-          { key: '_items', label: 'Książki',
-            csvValue: r => (r.items || []).map(i => i.title || i.name).join('; '),
-            render: o => bookItemsSummary(o.items) },
-          { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
-            render: o => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(o.amount)}</span>` },
-          { key: 'status', label: 'Status', sortable: true,
-            sortValue: r => r.status,
-            render: o => `<span class="badge ${bookStatusBadge[o.status]||'badge-amber'}">${bookStatusLabel[o.status]||o.status}</span>` },
-          { key: '_delivery', label: 'Dostawa', sortable: true,
-            sortValue: r => deliveryKind(r),
-            render: o => deliveryCell(o) },
-          { key: 'order_number', label: 'Zamówienie',
-            csvValue: r => r.order_number || '',
-            render: o => `
-              <div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>
-              ${o.resume_url ? `<a href="${o.resume_url}" target="_blank" rel="noopener" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">podgląd ↗</a>` : ''}` },
-        ],
-      });
+           const booksTable = new DataTable('#bookOrdersTable', {
+             csvFilename: 'platnosci-ksiazki.csv',
+             pageSize: 10,
+             columns: [
+               { key: 'created_at', label: 'Data', sortable: true,
+                 sortValue: r => new Date(r.created_at),
+                 render: o => `<span class="text-gray-600 dark:text-slate-400 whitespace-nowrap text-xs">${fmtDate(o.created_at)}</span>` },
+               { key: '_buyer', label: 'Klient',
+                 sortValue: r => `${r.name||''} ${r.surname||''}`.toLowerCase(),
+                 csvValue: r => `${r.name||''} ${r.surname||''} (${r.email||''})`,
+                 render: o => `
+                  <div class="font-medium text-gray-900 dark:text-white">${o.name||''} ${o.surname||''}</div>
+                  <div class="text-xs text-gray-500 dark:text-slate-500 break-all" title="${o.email||''}">${o.email||''}</div>`
+              },
+               { key: '_items', label: 'Książki',
+                 csvValue: r => (r.items || []).map(i => i.title || i.name).join('; '),
+                 render: o => bookItemsSummary(o.items) },
+               { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
+                 render: o => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(o.amount)}</span>` },
+               { key: 'status', label: 'Status', sortable: true,
+                 sortValue: r => r.status,
+                 render: o => `<span class="badge ${bookStatusBadge[o.status]||'badge-amber'}">${bookStatusLabel[o.status]||o.status}</span>` },
+               { key: '_delivery', label: 'Dostawa', sortable: true,
+                 sortValue: r => deliveryKind(r),
+                 render: o => deliveryCell(o) },
+               { key: 'order_number', label: 'Zamówienie',
+                 csvValue: r => r.order_number || '',
+                 render: o => `
+                   <div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>
+                   ${o.resume_url ? `<a href="${o.resume_url}" target="_blank" rel="noopener" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">podgląd ↗</a>` : ''}` },
+             ],
+           });
 
-      function renderBookOrders() {
-        const s = document.getElementById('bSearch').value.toLowerCase();
-        const st = document.getElementById('bStatus').value;
-        const dlv = document.getElementById('bDelivery').value;
-        const from = document.getElementById('bDateFrom').value;
-        const to = document.getElementById('bDateTo').value;
+           function renderBookOrders() {
+             const s = document.getElementById('bSearch').value.toLowerCase();
+             const st = document.getElementById('bStatus').value;
+             const dlv = document.getElementById('bDelivery').value;
+             const from = document.getElementById('bDateFrom').value;
+             const to = document.getElementById('bDateTo').value;
 
-        const filtered = allBookOrders.filter(o => {
-          const matchS = !s
-            || (o.email||'').toLowerCase().includes(s)
-            || (o.name||'').toLowerCase().includes(s)
-            || (o.surname||'').toLowerCase().includes(s)
-            || (o.order_number||'').toLowerCase().includes(s);
-          const matchSt = st === 'all' || o.status === st;
-          const matchD = dlv === 'all' || deliveryKind(o) === dlv;
-          const matchFrom = !from || new Date(o.created_at) >= new Date(from);
-          const matchTo = !to || new Date(o.created_at) <= new Date(to + 'T23:59:59');
-          return matchS && matchSt && matchD && matchFrom && matchTo;
-        });
+             const filtered = allBookOrders.filter(o => {
+               const matchS = !s
+                 || (o.email||'').toLowerCase().includes(s)
+                 || (o.name||'').toLowerCase().includes(s)
+                 || (o.surname||'').toLowerCase().includes(s)
+                 || (o.order_number||'').toLowerCase().includes(s);
+               const matchSt = st === 'all' || o.status === st;
+               const matchD = dlv === 'all' || deliveryKind(o) === dlv;
+               const matchFrom = !from || new Date(o.created_at) >= new Date(from);
+               const matchTo = !to || new Date(o.created_at) <= new Date(to + 'T23:59:59');
+               return matchS && matchSt && matchD && matchFrom && matchTo;
+             });
 
-        booksTable.setRows(filtered);
-      }
+             booksTable.setRows(filtered);
+           }
 
-      ['bSearch','bStatus','bDelivery','bDateFrom','bDateTo']
-        .forEach(id => document.getElementById(id).addEventListener('input', renderBookOrders));
+           ['bSearch','bStatus','bDelivery','bDateFrom','bDateTo']
+             .forEach(id => document.getElementById(id).addEventListener('input', renderBookOrders));
 
-      function clearBookFilters() {
-        document.getElementById('bSearch').value = '';
-        document.getElementById('bStatus').value = 'all';
-        document.getElementById('bDelivery').value = 'all';
-        document.getElementById('bDateFrom').value = '';
-        document.getElementById('bDateTo').value = '';
-        renderBookOrders();
-      }
-
-      // ── start ──
-      render();
-      renderBookOrders();
+           function clearBookFilters() {
+             document.getElementById('bSearch').value = '';
+             document.getElementById('bStatus').value = 'all';
+             document.getElementById('bDelivery').value = 'all';
+             document.getElementById('bDateFrom').value = '';
+             document.getElementById('bDateTo').value = '';
+             renderBookOrders();
+           }
+           document.getElementById('tabCountCourses').textContent = allPayments.length;
+           document.getElementById('tabCountBooks').textContent = allBookOrders.length;
+           // ── start ──
+           render();
+           renderBookOrders();
     </script>
   </body>
 </html>
