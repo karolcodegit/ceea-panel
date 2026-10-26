@@ -7,30 +7,21 @@
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors">
   <%- include('partials/admin-nav', { active: 'kursy' }) %>
-  <%- include('partials/header') %>
+  <%- include('partials/header', { pageTitle: course.nameCourse, pageSubtitle: 'Materiały kursu' }) %>
 
   <div class="lg:pl-64 pt-16">
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 ">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-      <div class="mb-6">
+      <div class="mb-5">
         <a href="<%= adminPrefix %>/kursy"
            class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
           ← Wróć do kursów
         </a>
       </div>
 
-      <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-        <%= course.nameCourse %>
-      </h1>
-      <p class="text-gray-500 dark:text-slate-400 mb-6 sm:mb-8">
-        Materiały kursu
-      </p>
-
-      <!-- Dodaj materiał -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-8 transition-colors">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Dodaj materiał
-        </h2>
+      <%# Karta: dodaj materiał %>
+      <section class="module-card p-5 sm:p-6 mb-6">
+        <h2 class="module-title mb-4">Dodaj materiał</h2>
 
         <form id="materialForm"
               method="POST"
@@ -46,16 +37,8 @@
 
           <!-- przełącznik źródła -->
           <div class="flex gap-2">
-            <button type="button"
-                    id="modeFile"
-                    class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white transition-colors">
-              Plik
-            </button>
-            <button type="button"
-                    id="modeLink"
-                    class="px-4 py-2 text-sm rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
-              Link
-            </button>
+            <button type="button" id="modeFile" class="btn btn-sm btn-primary">Plik</button>
+            <button type="button" id="modeLink" class="btn btn-sm btn-neutral">Link</button>
           </div>
 
           <!-- ukryte pola wypełniane automatycznie -->
@@ -107,10 +90,12 @@
             Dodaj materiał
           </button>
         </form>
-      </div>
+      </section>
 
-      <!-- Lista materiałów -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors">
+      <%# Karta: lista materiałów %>
+      <section class="module-card p-4 sm:p-5">
+        <h2 class="module-title mb-4">Materiały kursu <span class="text-xs font-normal text-gray-400 dark:text-slate-500">(<%= materials.length %>)</span></h2>
+
         <%
           const badge = {
             pdf: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
@@ -127,13 +112,13 @@
         %>
 
         <% if (materials.length === 0) { %>
-          <p class="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
+          <div class="module-item p-10 text-center text-gray-400 dark:text-slate-500 text-sm">
             Brak materiałów — dodaj pierwszy powyżej.
-          </p>
+          </div>
         <% } else { %>
-          <ul class="divide-y divide-gray-100 dark:divide-slate-700">
+          <div class="space-y-3">
             <% materials.forEach(m => { %>
-              <li class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-6 py-4">
+              <div class="module-item p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
                   <span class="px-2 py-1 rounded text-xs font-semibold shrink-0 <%= badge[m.type] || badge.link %>">
                     <%= label[m.type] || m.type %>
@@ -144,28 +129,21 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0 pl-2 sm:pl-0">
-                  <a href="<%= m.url %>"
-                     target="_blank"
-                     rel="noopener"
-                     class="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors">
-                    Otwórz
-                  </a>
+                  <a href="<%= m.url %>" target="_blank" rel="noopener"
+                     class="btn btn-xs btn-edit">Otwórz</a>
 
                   <form method="POST"
                         action="<%= adminPrefix %>/materials/<%= m.id %>/delete"
                         class="js-confirm"
                         data-confirm="Usunąć materiał „<%= m.title %>"?">
-                    <button type="submit"
-                            class="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
-                      Usuń
-                    </button>
+                    <button type="submit" class="btn btn-xs btn-delete">Usuń</button>
                   </form>
                 </div>
-              </li>
+              </div>
             <% }) %>
-          </ul>
+          </div>
         <% } %>
-      </div>
+      </section>
 
     </main>
   </div>
@@ -186,22 +164,15 @@
     const linkSection = document.getElementById('linkSection');
     const linkUrl = document.getElementById('linkUrl');
 
-    const TYPE_LABELS = {
-      pdf: 'PDF',
-      jpg: 'Zdjęcie',
-      video: 'Wideo',
-      link: 'Link'
-    };
+    const TYPE_LABELS = { pdf: 'PDF', jpg: 'Zdjęcie', video: 'Wideo', link: 'Link' };
 
-    const CLS_MODE_ACTIVE = 'px-4 py-2 text-sm rounded-lg bg-red-600 text-white transition-colors';
-    const CLS_MODE_IDLE = 'px-4 py-2 text-sm rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors';
+    const CLS_MODE_ACTIVE = 'btn btn-sm btn-primary';
+    const CLS_MODE_IDLE = 'btn btn-sm btn-neutral';
 
-    // 🔹 Wykrywanie urządzeń mobilnych
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     function enableSubmit() {
       const ok = !!fileUrl.value;
-
       submitBtn.disabled = !ok;
       submitBtn.classList.toggle('bg-gray-300', !ok);
       submitBtn.classList.toggle('dark:bg-slate-700', !ok);
@@ -212,21 +183,15 @@
 
     function detectType(info) {
       const format = (info.format || '').toLowerCase();
-
       if (format === 'pdf') return 'pdf';
       if (info.resource_type === 'video') return 'video';
-      if (
-        info.resource_type === 'image' ||
-        ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'].includes(format)
-      ) return 'jpg';
-
+      if (info.resource_type === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'].includes(format)) return 'jpg';
       return 'link';
     }
 
     function detectTypeFromFile(file) {
       const type = file.type.toLowerCase();
       const name = file.name.toLowerCase();
-
       if (type.includes('pdf') || name.endsWith('.pdf')) return 'pdf';
       if (type.includes('video')) return 'video';
       if (type.includes('image') || name.endsWith('.heic') || name.endsWith('.heif')) return 'jpg';
@@ -234,16 +199,13 @@
     }
 
     function showPreview(name, type) {
-      if (!title.value) {
-        title.value = name.replace(/\.[^/.]+$/, '');
-      }
+      if (!title.value) title.value = name.replace(/\.[^/.]+$/, '');
       fileName.textContent = name;
       fileTypeLabel.textContent = '· ' + (TYPE_LABELS[type] || type);
       preview.classList.remove('hidden');
       enableSubmit();
     }
 
-    // 🔹 Cloudinary Widget — desktop
     const widget = cloudinary.createUploadWidget({
       cloudName: '<%= cloudName %>',
       uploadPreset: '<%= uploadPreset %>',
@@ -261,74 +223,50 @@
       }
     });
 
-    // 🔹 Kliknięcie przycisku — mobile vs desktop
     uploadBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (isMobile) {
-        nativeFileInput.click();
-      } else {
-        widget.open();
-      }
+      if (isMobile) nativeFileInput.click();
+      else widget.open();
     });
 
-    // 🔹 Natywny upload przez fetch — mobile fallback
     nativeFileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+      const file = e.target.files[0];
+      if (!file) return;
+      uploadBtn.innerHTML = '<span class="text-2xl block mb-1">⏳</span><span class="font-medium">Wysyłanie...</span>';
+      uploadBtn.disabled = true;
+      const detectedType = detectTypeFromFile(file);
+      let resourceType = 'auto';
+      if (detectedType === 'jpg') resourceType = 'image';
+      else if (detectedType === 'pdf') resourceType = 'image';
+      else if (detectedType === 'video') resourceType = 'video';
+      else resourceType = 'raw';
 
-  uploadBtn.innerHTML = '<span class="text-2xl block mb-1">⏳</span><span class="font-medium">Wysyłanie...</span>';
-  uploadBtn.disabled = true;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', '<%= uploadPreset %>');
+      formData.append('resource_type', resourceType);
 
-  const detectedType = detectTypeFromFile(file);
-
-  // 🔹 iOS Safari lepiej radzi sobie z konkretnym endpointem niż /auto/
-  let resourceType = 'auto';
-  if (detectedType === 'jpg') resourceType = 'image';
-  else if (detectedType === 'pdf') resourceType = 'image'; // ← PDF to format typu image w Cloudinary! raw wymaga podpisanego uploadu
-  else if (detectedType === 'video') resourceType = 'video';
-  else resourceType = 'raw';
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', '<%= uploadPreset %>');
-  formData.append('resource_type', resourceType);
-
-  try {
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/<%= cloudName %>/${resourceType}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-        credentials: 'omit', // 🔹 ważne dla CORS na Safari
-        // NIE dodawaj Content-Type! FormData sam ustawia boundary
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/<%= cloudName %>/${resourceType}/upload`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'omit',
+        });
+        const data = await res.json();
+        if (data.error) { console.error('Cloudinary error:', data.error); throw new Error(data.error.message); }
+        if (!res.ok) throw new Error(`Błąd serwera: ${res.status}`);
+        fileUrl.value = data.secure_url;
+        fileType.value = detectedType;
+        showPreview(file.name, detectedType);
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('Błąd przesyłania:\n\n' + (err.message || 'Sprawdź połączenie i spróbuj ponownie.'));
+      } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<span class="text-2xl block mb-1">📁</span><span class="font-medium">Wybierz plik</span><br><span class="text-xs text-gray-400 dark:text-slate-500">PDF, wideo, zdjęcia — typ wykrywany automatycznie</span>';
+        nativeFileInput.value = '';
       }
-    );
-
-    const data = await res.json();
-
-    // 🔹 Cloudinary zwraca błąd w body mimo statusu 200
-    if (data.error) {
-      console.error('Cloudinary error:', data.error);
-      throw new Error(data.error.message);
-    }
-
-    if (!res.ok) {
-      throw new Error(`Błąd serwera: ${res.status}`);
-    }
-
-    fileUrl.value = data.secure_url;
-    fileType.value = detectedType;
-    showPreview(file.name, detectedType);
-
-  } catch (err) {
-    console.error('Upload error:', err);
-    alert('Błąd przesyłania:\n\n' + (err.message || 'Sprawdź połączenie i spróbuj ponownie.'));
-  } finally {
-    uploadBtn.disabled = false;
-    uploadBtn.innerHTML = '<span class="text-2xl block mb-1">📁</span><span class="font-medium">Wybierz plik</span><br><span class="text-xs text-gray-400 dark:text-slate-500">PDF, wideo, zdjęcia — typ wykrywany automatycznie</span>';
-    nativeFileInput.value = '';
-  }
-});
+    });
 
     document.getElementById('clearFile').addEventListener('click', () => {
       fileUrl.value = '';
@@ -341,15 +279,12 @@
     function setMode(link) {
       fileSection.classList.toggle('hidden', link);
       linkSection.classList.toggle('hidden', !link);
-
       modeFile.className = link ? CLS_MODE_IDLE : CLS_MODE_ACTIVE;
       modeLink.className = link ? CLS_MODE_ACTIVE : CLS_MODE_IDLE;
-
       fileUrl.value = '';
       fileType.value = link ? 'link' : '';
       linkUrl.value = '';
       preview.classList.add('hidden');
-
       enableSubmit();
     }
 

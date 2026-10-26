@@ -6,16 +6,11 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'faq' }) %>
-    <%- include('partials/header', { pageTitle: 'Faq', pageIcon: 'faq' }) %>
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
-
-        <div class="flex items-center justify-end mb-6">
-          
-          <button onclick="openFaqModal()" class="btn btn-sm btn-primary">+ Dodaj pytanie</button>
-        </div>
 
         <% if (q.success) { %>
           <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
@@ -24,21 +19,27 @@
           <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
         <% } %>
 
-        <!-- Filtry -->
-        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6 flex flex-wrap items-center gap-2">
-          <div class="relative flex-1 min-w-[220px]">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-            <input type="text" id="search" placeholder="szukaj w pytaniach i odpowiedziach..."
-              class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+        <section class="module-card p-4 sm:p-5">
+
+          <div class="flex flex-wrap items-center justify-end gap-3 mb-5">
+            <button onclick="openFaqModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj pytanie</button>
           </div>
-          <button data-filter="all" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">Wszystkie</button>
-          <button data-filter="active" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Widoczne</button>
-          <button data-filter="inactive" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Ukryte</button>
-        </div>
 
-        <div id="faqTable"></div>
+          <div class="module-item p-4 sm:p-5 mb-5 flex flex-wrap items-center gap-2">
+            <div class="relative flex-1 min-w-[220px]">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+              <input type="text" id="search" placeholder="szukaj w pytaniach i odpowiedziach..."
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+            </div>
+            <button data-filter="all" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">Wszystkie</button>
+            <button data-filter="active" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Widoczne</button>
+            <button data-filter="inactive" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Ukryte</button>
+          </div>
 
-        <!-- Modal: dodaj / edytuj -->
+          <div id="faqTable"></div>
+
+        </section>
+
         <div id="faqModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeFaqModal()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -162,7 +163,6 @@
           }
         } else {
           document.getElementById('modalTitle').textContent = 'Dodaj pytanie';
-          // domyślna kolejność = max + 10 (wygodne wstawianie na końcu)
           const max = Math.max(0, ...DATA.map(d => Number(d.sort_order) || 0));
           document.getElementById('fSortOrder').value = max + 10;
         }

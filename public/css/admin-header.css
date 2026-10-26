@@ -341,8 +341,94 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .module-title { font-size: .95rem; font-weight: 700; color: #111827; display: flex; align-items: center; gap: .5rem; }
 .dark .module-title { color: #f1f5f9; }
 
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS — spójny system przycisków (nadpisuje warianty z admin-ui.css,
+   które ładują się wcześniej). Bez zmian w markupie stron.
+   ═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  font-weight: 600;
+  border-radius: .75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/* Karta „produktowa" — biała, z shadow i uniesieniem na hover */
+.btn-xs { padding: .35rem .7rem; font-size: .75rem; }
+.btn-sm { padding: .5rem 1rem;    font-size: .85rem; }
+.btn-md { padding: .6rem 1.2rem;  font-size: .925rem; }
+
+/* Podstawowy / główny (brand CEEA) */
+.btn-primary {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, .35), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.btn-primary:hover:not(:disabled) { background: #b91c1c; }
+
+/* Neutralny (biały z borderem — „Edytuj", drukuj itp.) */
+.btn-neutral {
+  background: #fff;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+.btn-neutral:hover:not(:disabled) { background: #f9fafb; border-color: #d1d5db; color: #111827; }
+
+/* Duch (czyszczenie filtrów, pobieranie) */
+.btn-ghost {
+  background: transparent;
+  color: #6b7280;
+}
+.btn-ghost:hover:not(:disabled) { background: #f3f4f6; color: #111827; }
+
+/* Akcje pomocnicze w wierszach tabel */
+.btn-edit {
+  background: #eff6ff;
+  border-color: #dbeafe;
+  color: #2563eb;
+}
+.btn-edit:hover:not(:disabled) { background: #dbeafe; }
+
+.btn-delete {
+  background: #fff;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.btn-delete:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+
+.btn-success {
+  background: #16a34a;
+  color: #fff;
+}
+.btn-success:hover:not(:disabled) { background: #15803d; }
+
+/* ── Dark mode ── */
+.dark .btn-neutral {
+  background: rgba(15, 23, 42, .6);
+  border-color: #334155;
+  color: #e2e8f0;
+}
+.dark .btn-neutral:hover:not(:disabled) { background: rgba(30, 41, 59, .8); border-color: #475569; color: #fff; }
+
+.dark .btn-ghost { color: #94a3b8; }
+.dark .btn-ghost:hover:not(:disabled) { background: rgba(148, 163, 184, .12); color: #fff; }
+
+.dark .btn-edit { background: rgba(37, 99, 235, .15); border-color: rgba(59, 130, 246, .3); color: #93c5fd; }
+.dark .btn-edit:hover:not(:disabled) { background: rgba(37, 99, 235, .25); }
+
+.dark .btn-delete { background: transparent; border-color: rgba(248, 113, 113, .35); color: #f87171; }
+.dark .btn-delete:hover:not(:disabled) { background: rgba(220, 38, 38, .12); border-color: rgba(248, 113, 113, .55); }
+
+/* Karta „produktowa" — zewnętrzny poziom: biel, shadow, uniesienie na hover.
+   Używaj razem z .card-inner (wewnętrzny border). */
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -365,19 +451,3 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   box-shadow: 0 10px 28px rgba(0, 0, 0, .35);
   transform: translateY(-2px);
 }
-
-/* Wewnętrzny prostokąt z borderem (w środku .card) */
-.card-inner {
-  background: #f8f8f8;
-  border: 1px solid #e5e7eb;
-  border-radius: .75rem;
-  overflow: hidden;               /* zdjęcie nie wystaje z zaokrąglonych rogów */
-  transition: border-color .2s ease;
-}
-.card:hover .card-inner { border-color: #d1d5db; }   /* border „żyje" z hoverem karty */
-
-.dark .card-inner {
-  background: rgba(148, 163, 184, .05);
-  border-color: #1e293b;
-}
-.dark .card:hover .card-inner { border-color: #334155; }

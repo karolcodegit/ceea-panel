@@ -6,7 +6,11 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'kursy' }) %>
-    <%- include('partials/header', { pageTitle: 'Kursy', pageIcon: 'academic-cap' }) %>
+    <%- include('partials/header', {
+      pageTitle: locals.course ? 'Edytuj kurs' : 'Nowy kurs',
+      pageSubtitle: locals.course ? ('Identyfikator: ' + (locals.course.course_id || '')) : 'Definicja nowego kursu'
+    }) %>
+    
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -15,14 +19,8 @@
         <% const program = Array.isArray(c.program) ? c.program : []; %>
         <% const prices = Array.isArray(c.info_prices) ? c.info_prices : []; %>
 
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"><%= course ? 'Edytuj kurs' : 'Nowy kurs' %></h1>
-            <p class="text-gray-500 dark:text-slate-400">
-              <% if (course) %><span class="font-mono text-xs"><%= c.course_id %></span>
-            </p>
-          </div>
-          <a href="<%= adminPrefix %>/kursy" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm hover:bg-gray-200">← Lista kursów</a>
+        <div class="flex items-center justify-end mb-6">
+          <a href="<%= adminPrefix %>/kursy" class="btn btn-sm btn-neutral">← Lista kursów</a>
         </div>
 
         <% if (q.error) { %>
@@ -36,8 +34,8 @@
           <% } %>
 
           <!-- ══════ SEKCJA 1: PODSTAWOWE ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">1. Podstawowe dane kursu</h2>
+          <section class="module-card p-5 sm:p-6">
+            <h2 class="module-title mb-4">1. Podstawowe dane kursu</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <% if (!course) { %>
                 <div class="sm:col-span-2">
@@ -110,18 +108,18 @@
           </section>
 
           <!-- ══════ SEKCJA 2: PROGRAM KURSU (do 3 dni) ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+          <section class="module-card p-5 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">2. Program kursu</h2>
-              <button type="button" id="addDayBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj dzień</button>
+              <button type="button" id="addDayBtn" class="btn btn-xs btn-neutral">+ Dodaj dzień</button>
             </div>
             <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Maksymalnie 3 dni. Wydarzenia: jedno na linię, pogrubienia <code>**tekst**</code> (jak w DatoCMS).</p>
             <div id="daysContainer" class="space-y-4"></div>
           </section>
 
           <!-- ══════ SEKCJA 3: DODATKOWE INFORMACJE O KURSIE ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">3. Dodatkowe informacje o kursie</h2>
+          <section class="module-card p-5 sm:p-6">
+            <h2 class="module-title mb-4">3. Dodatkowe informacje o kursie</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Zdjęcie</label>
@@ -153,7 +151,7 @@
             <div class="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700/60">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Ceny hotelowe (HotelPrice)</h3>
-                <button type="button" id="addPriceBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj cenę</button>
+                <button type="button" id="addPriceBtn" class="btn btn-xs btn-neutral">+ Dodaj cenę</button>
               </div>
               <div id="pricesContainer" class="space-y-2"></div>
             </div>
@@ -166,8 +164,8 @@
           </section>
 
           <!-- ══════ SEKCJA 4: DODATKOWE INFORMACJE O HOTELU ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">4. Dodatkowe informacje o hotelu</h2>
+          <section class="module-card p-5 sm:p-6">
+            <h2 class="module-title mb-4">4. Dodatkowe informacje o hotelu</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Warunek uczestnictwa *</label>
@@ -188,8 +186,8 @@
           </section>
 
           <!-- ══════ SEKCJA 5: USTAWIENIA KURSU ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">5. Ustawienia kursu</h2>
+          <section class="module-card p-5 sm:p-6">
+            <h2 class="module-title mb-4">5. Ustawienia kursu</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               <label class="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" name="available" value="1" class="w-4 h-4 mt-0.5 accent-red-600" <%= c.available ? 'checked' : '' %>>
@@ -223,32 +221,32 @@
 
 
           <!-- ══════ SEKCJA 6: OPCJE FORMULARZA (POSIŁKI / DODATKI) ══════ -->
-          <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6">
+          <section class="module-card p-5 sm:p-6">
             <div class="flex items-center justify-between mb-1">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">6. Opcje formularza (posiłki i dodatki)</h2>
-              <button type="button" id="addMealBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj opcję</button>
+              <button type="button" id="addMealBtn" class="btn btn-xs btn-neutral">+ Dodaj opcję</button>
             </div>
             <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Dodatkowe opcje rejestracji (obiady, warsztaty itp.) – różna liczba. Każda: etykieta, cena, dostępność.</p>
             <div id="mealsContainer" class="space-y-2 mb-6"></div>
 
             <div class="flex items-center justify-between mb-1">
               <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Dania do wyboru</h3>
-              <button type="button" id="addDishBtn" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">+ Dodaj danie</button>
+              <button type="button" id="addDishBtn" class="btn btn-xs btn-neutral">+ Dodaj danie</button>
             </div>
             <p class="text-xs text-gray-400 dark:text-slate-500 mb-3">Pojawiają się w select „Proszę wybrać dania" w formularzu zapisu.</p>
             <div id="dishesContainer" class="space-y-2"></div>
           </section>
 
           <div class="flex gap-2">
-            <a href="<%= adminPrefix %>/kursy" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm text-center">Anuluj</a>
-            <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Zapisz kurs</button>
+            <a href="<%= adminPrefix %>/kursy" class="btn btn-sm btn-neutral flex-1">Anuluj</a>
+            <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz kurs</button>
           </div>
         </form>
          <!-- Modal: link / obrazek (edytor markdown) -->
          <div id="mdLinkModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeMdLink()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj link / obrazek</h3>
+            <h3 class="module-title mb-4">Dodaj link / obrazek</h3>
             <div class="space-y-3">
               <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tekst linku / alt obrazka</label>
@@ -260,8 +258,8 @@
                 <input type="text" id="mdlUrl" placeholder="https://…"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">
                 <div class="flex items-center gap-2 mt-2">
-                  <button type="button" id="mdlUpload" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj z Cloudinary</button>
-                  <button type="button" id="mdlPick" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">🖼 Wybierz z galerii</button>
+                  <button type="button" id="mdlUpload" class="btn btn-xs btn-neutral">⬆ Wgraj z Cloudinary</button>
+                  <button type="button" id="mdlPick" class="btn btn-xs btn-neutral">🖼 Wybierz z galerii</button>
                 </div>
                 <div id="mdlPrev" class="mt-2"></div>
               </div>

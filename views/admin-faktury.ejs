@@ -12,21 +12,11 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'faktury' }) %>
-    <%- include('partials/header', { pageTitle: 'Faktury', pageIcon: 'invoice' }) %>
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
-
-        <div class="flex items-center justify-end mb-6">
-          <div class="flex items-center gap-2">
-            <% if (ksefEnabled) { %>
-              <span class="badge badge-green">KSeF: aktywny</span>
-            <% } else { %>
-              <span class="badge badge-outline" title="Integracja przygotowana – włączenie po konfiguracji certyfikatu">KSeF: wkrótce</span>
-            <% } %>
-          </div>
-        </div>
 
         <% if (q.success) { %>
           <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
@@ -35,33 +25,43 @@
           <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
         <% } %>
 
-        <!-- Filtry -->
-        <div class="no-print bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
-            <div>
-              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                <input type="text" id="search" placeholder="nazwa firmy, NIP, email, nazwisko..."
-                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+        <section class="module-card p-4 sm:p-5">
+
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <span class="text-sm text-gray-500 dark:text-slate-400">Osoby, które poprosiły o fakturę VAT</span>
+            <% if (ksefEnabled) { %>
+              <span class="badge badge-green">KSeF: aktywny</span>
+            <% } else { %>
+              <span class="badge badge-outline" title="Integracja przygotowana – włączenie po konfiguracji certyfikatu">KSeF: wkrótce</span>
+            <% } %>
+          </div>
+
+          <div class="module-item p-4 sm:p-5 mb-5 no-print">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
+              <div class="sm:col-span-2">
+                <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                  <input type="text" id="search" placeholder="nazwa firmy, NIP, email, nazwisko..."
+                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+                </div>
+              </div>
+              <div>
+                <label for="fStatus" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status faktury</label>
+                <select id="fStatus" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <option value="all">Wszystkie</option>
+                  <option value="missing">Nie wystawiona</option>
+                  <option value="pdf">Wystawiona (PDF)</option>
+                  <option value="ksef">W KSeF</option>
+                </select>
               </div>
             </div>
-            <div>
-              <label for="fStatus" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status faktury</label>
-              <select id="fStatus" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
-                <option value="all">Wszystkie</option>
-                <option value="missing">Nie wystawiona</option>
-                <option value="pdf">Wystawiona (PDF)</option>
-                <option value="ksef">W KSeF</option>
-              </select>
-            </div>
           </div>
-        </div>
 
-        <!-- Tabela (komponent DataTable) -->
-        <div id="invoicesTable"></div>
+          <div id="invoicesTable"></div>
 
-        <!-- Modal faktury -->
+        </section>
+
         <div id="invoiceModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6">
@@ -112,7 +112,6 @@
         return [parts, city].filter(Boolean).join(', ') || '—';
       }
 
-      // ── Komponent tabeli ──
       const table = new DataTable('#invoicesTable', {
         csvFilename: 'faktury.csv',
         pageSize: 10,
@@ -123,7 +122,7 @@
             csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
             render: p => `
               <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
-              <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
+              <div class="text-xs text-gray-500 dark:text-slate-500 break-all">${p.users?.email||''}</div>` },
           { key: '_buyer', label: 'Nabywca (dane z formularza)',
             sortValue: r => (r.invoiceData?.name || '').toLowerCase(),
             csvValue: r => `${r.invoiceData?.name || ''};${r.invoiceData?.nip || ''}`,
@@ -156,7 +155,6 @@
         ],
       });
 
-      // ── Filtrowanie ──
       function render() {
         const s = document.getElementById('search').value.toLowerCase();
         const fs = document.getElementById('fStatus').value;
@@ -180,7 +178,6 @@
         table.setRows(rows);
       }
 
-      // ── Modal (prefill z danych formularza) ──
       function openModal(paymentId) {
         const p = DATA.find(x => x.id === paymentId);
         const d = p?.invoiceData || {};

@@ -6,20 +6,11 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'media' }) %>
-    <%- include('partials/header', { pageTitle: 'Media', pageIcon: 'media' }) %>
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
-
-        <div class="flex items-center justify-end mb-6">
-          <div class="flex items-center gap-2">
-            <button id="testBtn" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200">Testuj połączenie</button>
-            <% if (cloudName && uploadPreset) { %>
-              <button id="uploadBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">+ Wgraj zdjęcie</button>
-            <% } %>
-          </div>
-        </div>
 
         <% if (!cloudName || !uploadPreset) { %>
           <div class="mb-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 rounded-xl text-sm">
@@ -35,20 +26,33 @@
 
         <div id="testResult" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
-        <!-- Foldery -->
-        <div class="flex flex-wrap items-center gap-2 mb-6">
-          <% folders.forEach(f => { %>
-            <button data-folder="<%= f.id %>" class="fbtn px-4 py-2 rounded-lg text-sm font-medium <%= f.id === 'ceea' ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700' %>"><%= f.name %></button>
-          <% }) %>
-        </div>
+        <section class="module-card p-4 sm:p-5">
 
-        <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+          <%# Rząd: zakładki folderów po lewej (przesuwana pigułka), akcje po prawej %>
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div class="tabs" data-media-tabs>
+              <% folders.forEach(f => { %>
+                <a href="#" class="tabs-tab <%= f.id === 'ceea' ? 'is-active' : '' %>" data-folder="<%= f.id %>"><%= f.name %></a>
+              <% }) %>
+              <span class="tabs-ink" aria-hidden="true"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="testBtn" class="btn btn-sm btn-neutral whitespace-nowrap">Testuj połączenie</button>
+              <% if (cloudName && uploadPreset) { %>
+                <button id="uploadBtn" class="btn btn-sm btn-primary whitespace-nowrap">+ Wgraj zdjęcie</button>
+              <% } %>
+            </div>
+          </div>
 
-        <div class="mt-6 text-center">
-          <button id="moreBtn" class="hidden px-6 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium hover:bg-gray-200">Załaduj więcej</button>
-        </div>
+          <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
 
-        <div id="empty" class="hidden text-center py-16 text-gray-400 dark:text-slate-500 text-sm">Brak zdjęć w tym folderze.</div>
+          <div class="mt-6 text-center">
+            <button id="moreBtn" class="hidden btn btn-sm btn-neutral">Załaduj więcej</button>
+          </div>
+
+          <div id="empty" class="hidden text-center py-16 text-gray-400 dark:text-slate-500 text-sm">Brak zdjęć w tym folderze.</div>
+
+        </section>
       </main>
     </div>
 
@@ -83,16 +87,16 @@
 
         j.resources.forEach(x => {
           const card = document.createElement('div');
-          card.className = 'group relative bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden';
+          card.className = 'card group overflow-hidden';
           card.innerHTML = `
             <div class="aspect-[4/3] bg-gray-100 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
-              <img src="${x.thumb}" alt="${esc(x.public_id)}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <img src="${x.thumb}" alt="${esc(x.public_id)}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
             </div>
             <div class="p-2.5 space-y-1.5">
               <p class="text-[11px] text-gray-500 dark:text-slate-400 truncate font-mono" title="${esc(x.public_id)}">${esc(x.public_id)}</p>
               <div class="flex gap-1.5">
-                <button class="copyBtn flex-1 px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[11px] font-medium hover:bg-blue-100" data-url="${x.url}">Kopiuj URL</button>
-                <button class="delBtn flex-1 px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded text-[11px] font-medium hover:bg-red-100">Usuń</button>
+                <button class="copyBtn btn btn-xs btn-edit flex-1" data-url="${x.url}">Kopiuj URL</button>
+                <button class="delBtn btn btn-xs btn-delete flex-1">Usuń</button>
               </div>
             </div>`;
           card.querySelector('.copyBtn').addEventListener('click', async (e) => {
@@ -115,22 +119,38 @@
         });
       }
 
-      document.querySelectorAll('.fbtn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          currentFolder = btn.dataset.folder;
-          document.querySelectorAll('.fbtn').forEach(b => {
-            const active = b === btn;
-            b.className = 'fbtn px-4 py-2 rounded-lg text-sm font-medium ' + (active
-              ? 'bg-red-600 text-white'
-              : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700');
+      // Zakładki folderów — przesuwana pigułka
+      (function () {
+        var root = document.querySelector('[data-media-tabs]');
+        if (!root) return;
+        var ink = root.querySelector('.tabs-ink');
+        var tabs = root.querySelectorAll('.tabs-tab');
+        function moveInk(el) {
+          if (!el || !ink) return;
+          ink.style.left = el.offsetLeft + 'px';
+          ink.style.width = el.offsetWidth + 'px';
+        }
+        tabs.forEach(function (t) {
+          t.addEventListener('click', function (e) {
+            e.preventDefault();
+            tabs.forEach(function (x) { x.classList.remove('is-active'); });
+            t.classList.add('is-active');
+            moveInk(t);
+            currentFolder = t.dataset.folder;
+            load(true);
           });
-          load(true);
         });
-      });
+        var activeTab = root.querySelector('.tabs-tab.is-active') || tabs[0];
+        moveInk(activeTab);
+        currentFolder = activeTab.dataset.folder;   // synchronizacja z aktywnym folderem
+        window.addEventListener('resize', function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
+        }
+      })();
 
       moreBtn.addEventListener('click', () => load(false));
 
-      // Upload widget → do folderu wg wybraniej zakładki
       document.getElementById('uploadBtn')?.addEventListener('click', () => {
         if (!window.cloudinary) return alert('Widget Cloudinary nie załadował się.');
         cloudinary.createUploadWidget(
@@ -145,13 +165,12 @@
           },
           (error, result) => {
             if (!error && result && result.event === 'success') {
-              setTimeout(() => load(true), 800); // odśwież po propagacji
+              setTimeout(() => load(true), 800);
             }
           }
         ).open();
       });
 
-      // Test połączenia
       document.getElementById('testBtn').addEventListener('click', async () => {
         const box = document.getElementById('testResult');
         box.classList.remove('hidden');

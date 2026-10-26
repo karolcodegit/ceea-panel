@@ -6,16 +6,11 @@
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'sponsorzy' }) %>
-    <%- include('partials/header', { pageTitle: 'Sponsorzy', pageIcon: 'sponsors' }) %>
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
-
-        <div class="flex items-center justify-end mb-6">
-          
-          <button onclick="openSponsorModal()" class="btn btn-sm btn-primary">+ Dodaj sponsora</button>
-        </div>
 
         <% if (q.success) { %>
           <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
@@ -24,31 +19,37 @@
           <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
         <% } %>
 
-        <!-- Filtry -->
-        <div class="bg-white dark:bg-slate-800/80 rounded-2xl border border-gray-200 dark:border-slate-700/60 shadow-sm p-4 sm:p-5 mb-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
-            <div>
-              <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                <input type="text" id="search" placeholder="nazwa sponsora..."
-                  class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+        <section class="module-card p-4 sm:p-5">
+
+          <div class="flex flex-wrap items-center justify-end gap-3 mb-5">
+            <button onclick="openSponsorModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj sponsora</button>
+          </div>
+
+          <div class="module-item p-4 sm:p-5 mb-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
+                  <input type="text" id="search" placeholder="nazwa sponsora..."
+                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+                </div>
+              </div>
+              <div>
+                <label for="fActive" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status</label>
+                <select id="fActive" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                  <option value="all">Wszyscy</option>
+                  <option value="active">Aktywni</option>
+                  <option value="inactive">Ukryci</option>
+                </select>
               </div>
             </div>
-            <div>
-              <label for="fActive" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Status</label>
-              <select id="fActive" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
-                <option value="all">Wszyscy</option>
-                <option value="active">Aktywni</option>
-                <option value="inactive">Ukryci</option>
-              </select>
-            </div>
           </div>
-        </div>
 
-        <div id="sponsorsTable"></div>
+          <div id="sponsorsTable"></div>
 
-        <!-- Modal: dodaj / edytuj -->
+        </section>
+
         <div id="sponsorModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeSponsorModal()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
@@ -115,7 +116,7 @@
           { key: '_logo', label: 'Logo', sortable: false,
             csvValue: r => r.logo_url || '',
             render: p => p.logo_url
-              ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" class="h-10 w-auto max-w-[140px] object-contain rounded" onerror="this.outerHTML='<span class=\\'text-gray-300 text-xs\\'>brak</span>'" />`
+              ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" class="h-10 w-auto max-w-[140px] object-contain rounded" onerror="this.outerHTML='<span class=\'text-gray-300 text-xs\'>brak</span>'" />`
               : '<span class="text-gray-300 dark:text-slate-600 text-xs">brak</span>' },
           { key: 'name', label: 'Nazwa', sortable: true,
             sortValue: r => (r.name || '').toLowerCase(),
@@ -123,7 +124,7 @@
           { key: 'website_url', label: 'Strona www', sortable: false,
             csvValue: r => r.website_url || '',
             render: p => p.website_url
-              ? `<a href="${p.website_url}" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">${p.website_url.replace(/^https?:\/\//, '')}</a>`
+              ? `<a href="${p.website_url}" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline text-xs break-all">${p.website_url.replace(/^https?:\/\//, '')}</a>`
               : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
           { key: 'is_active', label: 'Status', sortable: true,
             sortValue: r => r.is_active ? 1 : 0,
@@ -133,7 +134,7 @@
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
             render: p => `<div class="btn-group">` +
               `<button onclick="openSponsorModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button>` +
-              `<button onclick="deleteSponsor('${p.id}', '${String(p.name).replace(/'/g, "\'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
+              `<button onclick="deleteSponsor('${p.id}', '${String(p.name).replace(/'/g, "'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
               `</div>` },
         ],
       });

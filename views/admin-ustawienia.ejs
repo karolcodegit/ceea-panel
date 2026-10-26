@@ -11,8 +11,6 @@
   <div class="lg:pl-64 pt-16">
     <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-      
-
       <% const q = locals.query || {}; %>
       <% if (q.success) { %>
         <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
@@ -21,203 +19,237 @@
         <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
       <% } %>
 
-      <!-- ══════════ SEKCJA 1: USTAWIENIA PANELU ══════════ -->
-      <div class="mb-2">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">Panel administratora</h2>
+      <%# Zakładki — nowe sekcje ustawień dodajesz jako kolejne .tabs-tab + panel %>
+      <div class="tabs mb-6" data-tabs-panels>
+        <a href="#" class="tabs-tab is-active" data-panel="panel">Panel</a>
+        <a href="#" class="tabs-tab" data-panel="firma">Firma</a>
+        <span class="tabs-ink" aria-hidden="true"></span>
       </div>
 
-      <!-- Motyw -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Motyw panelu</h3>
-        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Wybór jest wspólny z panelem uczestnika.</p>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" data-theme-choice="light">Jasny</button>
-          <button type="button" data-theme-choice="dark">Ciemny</button>
-          <button type="button" data-theme-choice="system">Systemowy</button>
-        </div>
-      </section>
+      <%# ══════ PANEL: PANEL ADMINISTRATORA ══════ %>
+      <div data-panel-content="panel" class="space-y-4">
 
-      <!-- Status integracji -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status integracji</h3>
-        <%
-          const integrations = [
-            { name: 'Supabase', desc: 'Baza danych — użytkownicy, zapisy, materiały', ok: status.supabase },
-            { name: 'DatoCMS', desc: 'Treści i definicje kursów (wygaszane)', ok: status.datocms },
-            { name: 'Cloudinary', desc: 'Przesyłanie i serwowanie plików', ok: status.cloudinary, test: true },
-            { name: 'MailerSend', desc: 'Wysyłka e-maili z hasłami', ok: status.mailer },
-          ];
-        %>
-        <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
-          <% integrations.forEach(i => { %>
-            <li class="flex items-center gap-3 py-3">
-              <span class="w-2.5 h-2.5 rounded-full shrink-0 <%= i.ok ? 'bg-green-500' : 'bg-red-500' %>"></span>
-              <div class="flex-1 min-w-0">
-                <p class="font-medium text-gray-900 dark:text-slate-100"><%= i.name %></p>
-                <p class="text-sm text-gray-500 dark:text-slate-400 truncate"><%= i.desc %></p>
+        <!-- Motyw -->
+        <section class="module-card p-5 sm:p-6">
+          <h3 class="module-title mb-1">Motyw panelu</h3>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Wybór jest wspólny z panelem uczestnika.</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" data-theme-choice="light">Jasny</button>
+            <button type="button" data-theme-choice="dark">Ciemny</button>
+            <button type="button" data-theme-choice="system">Systemowy</button>
+          </div>
+        </section>
+
+        <!-- Status integracji -->
+        <section class="module-card p-5 sm:p-6">
+          <h3 class="module-title mb-4">Status integracji</h3>
+          <%
+            const integrations = [
+              { name: 'Supabase', desc: 'Baza danych — użytkownicy, zapisy, materiały', ok: status.supabase },
+              { name: 'DatoCMS', desc: 'Treści i definicje kursów (wygaszane)', ok: status.datocms },
+              { name: 'Cloudinary', desc: 'Przesyłanie i serwowanie plików', ok: status.cloudinary, test: true },
+              { name: 'MailerSend', desc: 'Wysyłka e-maili z hasłami', ok: status.mailer },
+            ];
+          %>
+          <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
+            <% integrations.forEach(i => { %>
+              <li class="flex items-center gap-3 py-3">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0 <%= i.ok ? 'bg-green-500' : 'bg-red-500' %>"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-gray-900 dark:text-slate-100"><%= i.name %></p>
+                  <p class="text-sm text-gray-500 dark:text-slate-400 truncate"><%= i.desc %></p>
+                  <% if (i.test) { %>
+                    <div id="cloudinaryTestResult" class="hidden mt-2 p-3 rounded-lg text-xs leading-relaxed"></div>
+                  <% } %>
+                </div>
                 <% if (i.test) { %>
-                  <div id="cloudinaryTestResult" class="hidden mt-2 p-3 rounded-lg text-xs leading-relaxed"></div>
+                  <button type="button" id="cloudinaryTestBtn" class="btn btn-xs btn-neutral shrink-0">Testuj połączenie</button>
                 <% } %>
-              </div>
-              <% if (i.test) { %>
-                <button type="button" id="cloudinaryTestBtn" class="btn btn-xs btn-neutral shrink-0">Testuj połączenie</button>
-              <% } %>
-              <span class="badge <%= i.ok ? 'badge-green' : 'badge-red' %> shrink-0">
-                <%= i.ok ? 'Skonfigurowano' : 'Brak konfiguracji' %>
-              </span>
-            </li>
-          <% }) %>
-        </ul>
-      </section>
+                <span class="badge <%= i.ok ? 'badge-green' : 'badge-red' %> shrink-0">
+                  <%= i.ok ? 'Skonfigurowano' : 'Brak konfiguracji' %>
+                </span>
+              </li>
+            <% }) %>
+          </ul>
+        </section>
 
-      <!-- Kopia zapasowa -->
-      <section class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 mb-10">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Kopia zapasowa</h3>
-        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
-          Eksport JSON: użytkownicy (bez haseł), zapisy na kursy i materiały. Przydatne do archiwum i wniosków RODO.
-        </p>
-        <a href="<%= adminPrefix %>/ustawienia/eksport"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          Pobierz kopię danych
-        </a>
-      </section>
+        <!-- Kopia zapasowa -->
+        <section class="module-card p-5 sm:p-6">
+          <h3 class="module-title mb-1">Kopia zapasowa</h3>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+            Eksport JSON: użytkownicy (bez haseł), zapisy na kursy i materiały. Przydatne do archiwum i wniosków RODO.
+          </p>
+          <a href="<%= adminPrefix %>/ustawienia/eksport" class="btn btn-sm btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Pobierz kopię danych
+          </a>
+        </section>
 
-      <!-- ══════════ SEKCJA 2: DANE FIRMY (ceea.org.pl) ══════════ -->
-      <div class="mb-2 mt-10">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">Dane firmy — strona ceea.org.pl</h2>
       </div>
 
-      <% const c = locals.company || {}; %>
-      <form method="POST" action="<%= adminPrefix %>/ustawienia/firma" class="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-5 sm:p-6 space-y-5">
+      <%# ══════ PANEL: DANE FIRMY ══════ %>
+      <div data-panel-content="firma" class="hidden">
+        <% const c = locals.company || {}; %>
+        <form method="POST" action="<%= adminPrefix %>/ustawienia/firma" class="module-card p-5 sm:p-6 space-y-5">
 
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Podstawowe</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa firmy *</label>
-              <input type="text" name="name_company" required value="<%= c.name_company || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis (o firmie)</label>
-              <textarea name="description" rows="3"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.description || '' %></textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
-              <input type="text" name="email" value="<%= c.email || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Godziny otwarcia</label>
-              <input type="text" name="opening_hours" value="<%= c.opening_hours || '' %>" placeholder="Pn–Pt, 9.00–17.00"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <div>
+            <h3 class="module-title mb-4">Podstawowe</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa firmy *</label>
+                <input type="text" name="name_company" required value="<%= c.name_company || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Opis (o firmie)</label>
+                <textarea name="description" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= c.description || '' %></textarea>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
+                <input type="text" name="email" value="<%= c.email || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Godziny otwarcia</label>
+                <input type="text" name="opening_hours" value="<%= c.opening_hours || '' %>" placeholder="Pn–Pt, 9.00–17.00"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Adres</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ulica</label>
-              <input type="text" name="street" value="<%= c.street || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer</label>
-              <input type="text" name="number_home" value="<%= c.number_home || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kod pocztowy</label>
-              <input type="text" name="zip_code" value="<%= c.zip_code || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Miasto</label>
-              <input type="text" name="city" value="<%= c.city || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+            <h3 class="module-title mb-4">Adres</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ulica</label>
+                <input type="text" name="street" value="<%= c.street || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer</label>
+                <input type="text" name="number_home" value="<%= c.number_home || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kod pocztowy</label>
+                <input type="text" name="zip_code" value="<%= c.zip_code || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Miasto</label>
+                <input type="text" name="city" value="<%= c.city || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rejestrowe</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP</label>
-              <input type="text" name="nip" value="<%= c.nip || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">REGON</label>
-              <input type="text" name="regon" value="<%= c.regon || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">KRS</label>
-              <input type="text" name="krs" value="<%= c.krs || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+            <h3 class="module-title mb-4">Rejestrowe</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">NIP</label>
+                <input type="text" name="nip" value="<%= c.nip || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">REGON</label>
+                <input type="text" name="regon" value="<%= c.regon || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">KRS</label>
+                <input type="text" name="krs" value="<%= c.krs || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bank</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa banku</label>
-              <input type="text" name="bank_account_name" value="<%= c.bank_account_name || '' %>" placeholder="Santander Bank Polska S.A."
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer konta</label>
-              <input type="text" name="bank_account" value="<%= c.bank_account || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+            <h3 class="module-title mb-4">Bank</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa banku</label>
+                <input type="text" name="bank_account_name" value="<%= c.bank_account_name || '' %>" placeholder="Santander Bank Polska S.A."
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Numer konta</label>
+                <input type="text" name="bank_account" value="<%= c.bank_account || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Media społecznościowe</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Facebook</label>
-              <input type="text" name="facebook" value="<%= c.facebook || '' %>" placeholder="ceea.poznan"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">YouTube</label>
-              <input type="text" name="youtube" value="<%= c.youtube || '' %>"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+          <div class="border-t border-gray-100 dark:border-slate-700/60 pt-5">
+            <h3 class="module-title mb-4">Media społecznościowe</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Facebook</label>
+                <input type="text" name="facebook" value="<%= c.facebook || '' %>" placeholder="ceea.poznan"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">YouTube</label>
+                <input type="text" name="youtube" value="<%= c.youtube || '' %>"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="flex items-center justify-between pt-2">
-          <p class="text-xs text-gray-400 dark:text-slate-500">
-            <% if (c.updated_at) { %>Ostatnia aktualizacja: <%= new Date(c.updated_at).toLocaleString('pl-PL') %><% } %>
-          </p>
-          <button type="submit" class="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-            Zapisz dane firmy
-          </button>
-        </div>
-      </form>
+          <div class="flex items-center justify-between pt-2">
+            <p class="text-xs text-gray-400 dark:text-slate-500">
+              <% if (c.updated_at) { %>Ostatnia aktualizacja: <%= new Date(c.updated_at).toLocaleString('pl-PL') %><% } %>
+            </p>
+            <button type="submit" class="btn btn-sm btn-primary">Zapisz dane firmy</button>
+          </div>
+        </form>
+      </div>
 
     </main>
   </div>
 
   <script>
+    // ── Przełączanie zakładek Panel / Firma ──
+    (function () {
+      var root = document.querySelector('[data-tabs-panels]');
+      if (!root) return;
+      var ink = root.querySelector('.tabs-ink');
+      var tabs = root.querySelectorAll('.tabs-tab');
+      function moveInk(el) {
+        if (!el || !ink) return;
+        ink.style.left = el.offsetLeft + 'px';
+        ink.style.width = el.offsetWidth + 'px';
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function (e) {
+          e.preventDefault();
+          tabs.forEach(function (x) { x.classList.remove('is-active'); });
+          t.classList.add('is-active');
+          moveInk(t);
+          document.querySelectorAll('[data-panel-content]').forEach(function (p) {
+            p.classList.toggle('hidden', p.dataset.panelContent !== t.dataset.panel);
+          });
+        });
+      });
+      moveInk(root.querySelector('.tabs-tab.is-active') || tabs[0]);
+      window.addEventListener('resize', function () {
+        moveInk(root.querySelector('.tabs-tab.is-active'));
+      });
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
+      }
+    })();
+
+    // ── Motyw ──
     (function () {
       var KEY = 'ceea-theme';
       var btns = document.querySelectorAll('[data-theme-choice]');
-      var BASE = 'px-4 py-2 text-sm rounded-lg border transition-colors ';
-      var ON = 'bg-red-600 border-red-600 text-white';
-      var OFF = 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700';
+      var BASE = 'btn btn-sm ';
+      var ON = 'btn-primary';
+      var OFF = 'btn-neutral';
 
       function current() { return localStorage.getItem(KEY) || 'system'; }
       function apply(mode) {
@@ -246,7 +278,7 @@
   </script>
 
   <script>
-    // ── Test połączenia Cloudinary (realny ping do Admin API) ──
+    // ── Test połączenia Cloudinary ──
     (function () {
       var btn = document.getElementById('cloudinaryTestBtn');
       var box = document.getElementById('cloudinaryTestResult');
