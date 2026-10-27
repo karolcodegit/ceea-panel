@@ -24,7 +24,7 @@ const adminToRow = (a) => ({
 const listAdmins = async () => {
   const { data, error } = await supabase
     .from("admin_users")
-    .select("email, name, qr_setup, created_at, updated_at")
+    .select("email, name, qr_setup, created_at, updated_at, last_login, is_super")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data || [];

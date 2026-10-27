@@ -94,16 +94,6 @@
         return t.length > 160 ? t.slice(0, 160) + '…' : t;
       }
 
-      function deleteFaq(id, question) {
-        const short = String(question).length > 60 ? String(question).slice(0, 60) + '…' : question;
-        if (!confirm(`Usunąć pytanie:\n„${short}"?`)) return;
-        const f = document.createElement('form');
-        f.method = 'POST';
-        f.action = `<%= adminPrefix %>/faq/${id}/usun`;
-        document.body.appendChild(f);
-        f.submit();
-      }
-
       const table = new DataTable('#faqTable', {
         csvFilename: 'faq.csv',
         pageSize: 10,
@@ -123,10 +113,12 @@
               ? '<span class="badge badge-green">widoczne</span>'
               : '<span class="badge badge-gray">ukryte</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `<div class="btn-group">` +
-              `<button onclick="openFaqModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button>` +
-              `<button onclick="deleteFaq('${p.id}', '${String(p.question).replace(/'/g, "\\'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
-              `</div>` },
+            render: p => rowActions([
+              { label: 'Edytuj', onclick: `openFaqModal('${p.id}')` },
+              { label: 'Usuń', danger: true,
+                formAction: `<%= adminPrefix %>/faq/${p.id}/usun`,
+                confirm: `Usunąć pytanie „${String(p.question).slice(0, 60)}"?` },
+            ]) },
         ],
       });
 

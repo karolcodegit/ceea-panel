@@ -109,15 +109,6 @@
       const DATA = <%- JSON.stringify(employees) %>;
       let filter = 'all';
 
-      function deleteEmployee(id, label) {
-        if (!confirm(`Usunąć pracownika:\n„${label}"?`)) return;
-        const f = document.createElement('form');
-        f.method = 'POST';
-        f.action = `<%= adminPrefix %>/pracownicy/${id}/usun`;
-        document.body.appendChild(f);
-        f.submit();
-      }
-
       const table = new DataTable('#empTable', {
         csvFilename: 'pracownicy.csv',
         pageSize: 10,
@@ -148,10 +139,12 @@
               ? '<span class="badge badge-green">widoczny</span>'
               : '<span class="badge badge-gray">ukryty</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `<div class="btn-group">` +
-              `<button onclick="openEmployeeModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button>` +
-              `<button onclick="deleteEmployee('${p.id}', '${String(p.name + ' ' + p.surname).replace(/'/g, "'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
-              `</div>` },
+            render: p => rowActions([
+              { label: 'Edytuj', onclick: `openEmployeeModal('${p.id}')` },
+              { label: 'Usuń', danger: true,
+                formAction: `<%= adminPrefix %>/pracownicy/${p.id}/usun`,
+                confirm: `Usunąć pracownika „${p.name} ${p.surname}"?` },
+            ]) },
         ],
       });
 

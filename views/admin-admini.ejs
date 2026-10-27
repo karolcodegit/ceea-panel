@@ -150,13 +150,15 @@
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
             render: a => {
               const locked = a.email === CURRENT || DATA.length <= 1;
-              return `<div class="btn-group">` +
-                `<form method="POST" action="<%= adminPrefix %>/admini/${encodeURIComponent(a.email)}/reset-2fa" onsubmit="return confirm('Zresetować 2FA dla ${a.email}?')">` +
-                  `<button class="btn btn-xs btn-neutral">Reset 2FA</button></form>` +
-                `<form method="POST" action="<%= adminPrefix %>/admini/${encodeURIComponent(a.email)}/usun" onsubmit="return confirm('Usunąć ${a.email}? Tej operacji nie można cofnąć.')">` +
-                  `<button ${locked ? 'disabled' : ''} class="btn btn-xs btn-delete">Usuń</button></form>` +
-                `</div>`;
-            } },
+              return rowActions([
+                { label: 'Reset 2FA',
+                  formAction: `<%= adminPrefix %>/admini/${encodeURIComponent(a.email)}/reset-2fa`,
+                  confirm: `Zresetować 2FA dla ${a.email}?` },
+                { label: 'Usuń', danger: true, disabled: locked,
+                  formAction: `<%= adminPrefix %>/admini/${encodeURIComponent(a.email)}/usun`,
+                  confirm: `Usunąć ${a.email}? Tej operacji nie można cofnąć.` },
+              ]);
+              } },
         ],
       });
 

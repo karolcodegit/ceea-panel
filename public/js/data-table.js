@@ -237,6 +237,123 @@
         URL.revokeObjectURL(a.href);
       }
     }
+    
   
+    
+  /* ============================================================
+     ROW ACTIONS — pomocnik do kolumny „Akcje"
+     Użycie w definicji kolumny:
+       render: p => rowActions([
+         { label: 'Edytuj', href: '/link/' + p.id },
+         { label: 'Usuń', formAction: '/usun/' + p.id,
+           confirm: 'Usunąć?', danger: true },
+       ])
+     1 akcja → sam przycisk (bez kropek) · 2+ → menu ⋮
+     ============================================================ */
+  function rowActions(items) {
+    const list = (items || []).filter(Boolean);
+    if (!list.length) return '';
+
+    function escAttr(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    function oneBtn(a) {
+      const cls = 'btn btn-xs ' + (a.danger ? 'btn-delete' : a.primary ? 'btn-primary' : 'btn-neutral');
+      if (a.formAction) {
+        return '<form method="POST" action="' + escAttr(a.formAction) + '"' +
+          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' : '') +
+          ' style="display:inline">' +
+          '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
+      }
+      if (a.onclick) {
+        return '<button type="button" class="' + cls + '" onclick="' + escAttr(a.onclick) + '"' +
+          (a.disabled ? ' disabled' : '') + '>' + a.label + '</button>';
+      }
+      return '<a href="' + escAttr(a.href || '#') + '" class="' + cls + '"' +
+        (a.disabled ? ' aria-disabled="true" tabindex="-1"' : '') + '>' + a.label + '</a>';
+    }
+    function menuItem(a) {
+      const cls = 'row-menu-item' + (a.danger ? ' is-danger' : '');
+      if (a.formAction) {
+        return '<form method="POST" action="' + escAttr(a.formAction) + '"' +
+          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' : '') +
+          ' style="display:block;margin:0">' +
+          '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
+      }
+      if (a.onclick) {
+        return '<button type="button" class="' + cls + '" onclick="' + escAttr(a.onclick) + '"' +
+          (a.disabled ? ' disabled' : '') + '>' + a.label + '</button>';
+      }
+      return '<a href="' + escAttr(a.href || '#') + '" class="' + cls + '"' +
+        (a.disabled ? ' aria-disabled="true" tabindex="-1"' : '') + '>' + a.label + '</a>';
+    }
+    if (list.length === 1) return oneBtn(list[0]);
+
+    return '<div class="row-menu">' +
+      '<button type="button" class="row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Akcje">' +
+        '<svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>' +
+      '</button>' +
+      '<div class="row-menu-panel hidden">' + list.map(menuItem).join('') + '</div>' +
+    '</div>';
+  }
+
+  /* Delegacja: otwieranie/zamykanie menu ⋮ (działa po każdym renderze tabeli) */
+  function closeRowMenus(except) {
+    document.querySelectorAll('.row-menu').forEach(function (wrap) {
+      if (except && wrap === except) return;
+      const panel = wrap.querySelector('.row-menu-panel');
+      const btn = wrap.querySelector('.row-menu-btn');
+      if (panel && !panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+        btn && btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    const hit = e.target.closest('.row-menu');
+    closeRowMenus(hit);
+
+    if (!hit || !e.target.closest('.row-menu-btn')) return;
+    const btn = hit.querySelector('.row-menu-btn');
+    const panel = hit.querySelector('.row-menu-panel');
+    if (!btn || !panel) return;
+
+    if (!panel.classList.contains('hidden')) {   // drugi klik = zamknij
+      panel.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    // Otwarcie: panel position:fixed → pozycja z prostokąta przycisku,
+    // kierunek dół, a gdy brak miejsca — góra (nie da się „uciec" poza ekran)
+    const r = btn.getBoundingClientRect();
+    panel.classList.remove('hidden');
+    panel.style.visibility = 'hidden';
+    const ph = panel.offsetHeight;
+    const pw = panel.offsetWidth;
+
+    let top;
+    const spaceBelow = window.innerHeight - r.bottom;
+    const spaceAbove = r.top;
+    if (spaceBelow >= ph + 8) top = r.bottom + 4;
+    else if (spaceAbove >= ph + 8) top = r.top - ph - 4;
+    else top = Math.max(8, window.innerHeight - ph - 8);
+
+    panel.style.top = top + 'px';
+    panel.style.left = Math.max(8, Math.min(r.right   - pw, window.innerWidth - pw - 8)) + 'px';
+    panel.style.visibility = '';
+    btn.setAttribute('aria-expanded', 'true');
+  });
+
+  // Scroll / resize → zamknij (menu fixed nie powinno „wisieć" w powietrzu)
+  window.addEventListener('scroll', function () { closeRowMenus(null); }, true);
+  window.addEventListener('resize', function () { closeRowMenus(null); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.row-menu-panel').forEach(function (p) { p.classList.add('hidden'); });
+    document.querySelectorAll('.row-menu-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+  });
     global.DataTable = DataTable;
+    global.rowActions = rowActions;
   })(window);

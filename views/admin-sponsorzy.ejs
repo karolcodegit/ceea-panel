@@ -97,15 +97,6 @@
     <script>
       const DATA = <%- JSON.stringify(sponsors) %>;
 
-      function deleteSponsor(id, name) {
-        if (!confirm(`Usunąć sponsora „${name}"?`)) return;
-        const f = document.createElement('form');
-        f.method = 'POST';
-        f.action = `<%= adminPrefix %>/sponsorzy/${id}/usun`;
-        document.body.appendChild(f);
-        f.submit();
-      }
-
       const table = new DataTable('#sponsorsTable', {
         csvFilename: 'sponsorzy.csv',
         pageSize: 10,
@@ -132,10 +123,12 @@
               ? '<span class="badge badge-green">widoczny</span>'
               : '<span class="badge badge-gray">ukryty</span>' },
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-            render: p => `<div class="btn-group">` +
-              `<button onclick="openSponsorModal('${p.id}')" class="btn btn-xs btn-edit">Edytuj</button>` +
-              `<button onclick="deleteSponsor('${p.id}', '${String(p.name).replace(/'/g, "'")}')" class="btn btn-xs btn-delete">Usuń</button>` +
-              `</div>` },
+            render: p => rowActions([
+              { label: 'Edytuj', onclick: `openSponsorModal('${p.id}')` },
+              { label: 'Usuń', danger: true,
+                formAction: `<%= adminPrefix %>/sponsorzy/${p.id}/usun`,
+                confirm: `Usunąć sponsora „${p.name}"?` },
+            ]) },
         ],
       });
 

@@ -14,6 +14,31 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
 });
 
+// ── Zapis admina do bazy (dawniej config/admins.js) ──
+const supabase = require("../config/supabase");
+async function persistAdmin(admin) {
+  const { error } = await supabase
+    .from("admin_users")
+    .update({
+      name: admin.name,
+      totp_secret: admin.secret,
+      qr_setup: admin.qrSetup,
+      backup_codes: admin.backupCodes || [],
+      updated_at: new Date().toISOString(),
+    })
+    .eq("email", admin.email);
+  if (error) console.error("persistAdmin:", error.message);
+}
+
+// Ostatnie logowanie — wywoływane przy KAŻDym udanym zalogowaniu
+async function touchLastLogin(email) {
+  const { error } = await supabase
+    .from("admin_users")
+    .update({ last_login: new Date().toISOString() })
+    .eq("email", email);
+  if (error) console.error("touchLastLogin:", error.message);
+}
+
 // KROK 1: Podaj email
 router.post("/start", loginLimiter, async (req, res) => {
   const { email } = req.body;
@@ -74,6 +99,9 @@ router.post("/verify-setup", loginLimiter, async (req, res) => {
     path: "/",
   });
 
+  // ← ostatnie logowanie (pierwsze — po aktywacji QR)
+  await touchLastLogin(admin.email);
+
   res.json({ success: true, admin: { email: admin.email, name: admin.name } });
 });
 
@@ -120,6 +148,9 @@ router.post("/verify", loginLimiter, async (req, res) => {
     path: "/",
   });
 
+  // ← ostatnie logowanie (standardowe logowanie)
+  await touchLastLogin(admin.email);
+
   res.json({ success: true, admin: { email: admin.email, name: admin.name } });
 });
 
@@ -134,19 +165,3 @@ router.post("/wyloguj", (req, res) => {
 });
 
 module.exports = router;
-
-// ── Zapis admina do bazy (dawniej config/admins.js) ──
-const supabase = require("../config/supabase");
-async function persistAdmin(admin) {
-  const { error } = await supabase
-    .from("admin_users")
-    .update({
-      name: admin.name,
-      totp_secret: admin.secret,
-      qr_setup: admin.qrSetup,
-      backup_codes: admin.backupCodes || [],
-      updated_at: new Date().toISOString(),
-    })
-    .eq("email", admin.email);
-  if (error) console.error("persistAdmin:", error.message);
-}

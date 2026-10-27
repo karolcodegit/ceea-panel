@@ -66,7 +66,7 @@ module.exports = [
     path: "/platnosci",
     icon: "payments",
     desc: "Przelewy i statusy płatności (tpay w trybie testowym)",
-    status: "beta",
+    status: "ready",
   },
   {
     key: "faktury",
@@ -74,7 +74,7 @@ module.exports = [
     path: "/faktury",
     icon: "invoice",
     desc: "Osoby, które poprosiły o fakturę VAT (KSeF testowo)",
-    status: "beta",
+    status: "ready",
   },
   {
     key: "sponsorzy",

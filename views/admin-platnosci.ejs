@@ -354,6 +354,17 @@
             </form>
           </div>
         </div>
+        <%# ═════ MODAL szczegółów zamówienia książki ═════ %>
+        <div id="bookOrderModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeBookOrderModal()"></div>
+          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Zamówienie książek</h3>
+              <button type="button" onclick="closeBookOrderModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors" aria-label="Zamknij">✕</button>
+            </div>
+            <div id="bookOrderBody" class="space-y-4 text-sm"></div>
+          </div>
+        </div>
       </main>
     </div>
 
@@ -467,14 +478,17 @@
                    ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium">${p.invoices.invoice_number}</a>`
                    : '<span class="text-gray-400 text-xs">—</span>' },
                { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-                 render: p => `<div class="btn-group">` +
-                   (p.status !== 'paid'
-                     ? `<form method="POST" action="<%= adminPrefix %>/platnosci/${p.id}/zaplacono" class="inline"><button class="btn btn-xs btn-success">Zapłacono</button></form>`
-                     : '') +
-                   (!p.invoices
-                     ? `<button onclick="openInvoiceModal('${p.id}')" class="btn btn-xs btn-neutral">Faktura</button>`
-                     : `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`) +
-                   `</div>` },
+                 render: p => {
+                   const actions = [];
+                   if (p.status !== 'paid') actions.push({
+                     label: 'Zapłacono', primary: true,
+                     formAction: `<%= adminPrefix %>/platnosci/${p.id}/zaplacono`,
+                     confirm: 'Oznaczyć jako zapłacone? Kursant otrzyma mail z potwierdzeniem.',
+                   });
+                   if (!p.invoices) actions.push({ label: 'Faktura', onclick: `openInvoiceModal('${p.id}')` });
+                   else actions.push({ label: 'Pobierz PDF', href: `<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf` });
+                   return rowActions(actions);
+                 } },
              ],
            });
 
@@ -640,9 +654,12 @@
                  render: o => deliveryCell(o) },
                { key: 'order_number', label: 'Zamówienie',
                  csvValue: r => r.order_number || '',
-                 render: o => `
-                   <div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>
-                   ${o.resume_url ? `<a href="${o.resume_url}" target="_blank" rel="noopener" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">podgląd ↗</a>` : ''}` },
+                 render: o => `<div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>` },
+               { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+                 render: o => rowActions([
+                   { label: 'Szczegóły', onclick: `openBookOrderDetails('${o.id}')` },
+                   ...(o.resume_url ? [{ label: 'Podgląd ↗', href: o.resume_url }] : []),
+                 ]) },
              ],
            });
 
@@ -672,6 +689,45 @@
            ['bSearch','bStatus','bDelivery','bDateFrom','bDateTo']
              .forEach(id => document.getElementById(id).addEventListener('input', renderBookOrders));
 
+           // ── Modal szczegółów zamówienia książki ──
+           function boRow(label, value) {
+             return `<div class="flex justify-between gap-4 py-1.5 border-b border-gray-100 dark:border-slate-700/60">
+               <span class="text-gray-500 dark:text-slate-400">${label}</span>
+               <span class="font-medium text-gray-900 dark:text-white text-right break-all">${value || '—'}</span>
+             </div>`;
+           }
+           function openBookOrderDetails(id) {
+             const o = allBookOrders.find(x => x.id === id);
+             if (!o) return;
+             const st = bookStatusLabel[o.status] || o.status || '—';
+             const items = Array.isArray(o.items) && o.items.length
+               ? o.items.map(i => `${i.title || i.name || 'Pozycja'}${(Number(i.qty || i.quantity) || 1) > 1 ? ' ×' + (i.qty || i.quantity) : ''}`).join('<br>')
+               : '—';
+             const addr = [o.street, o.city && [o.postcode, o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+
+             document.getElementById('bookOrderBody').innerHTML = `
+               ${boRow('Numer zamówienia', o.order_number)}
+               ${boRow('Status', st)}
+               ${boRow('Data złożenia', fmtDate(o.created_at))}
+               ${boRow('Klient', `${o.name || ''} ${o.surname || ''}`)}
+               ${boRow('Email', o.email)}
+               ${boRow('Telefon', o.phone)}
+               ${boRow('Dostawa', `${deliveryLabel[deliveryKind(o)] || o.delivery_method || ''}${o.parcel_locker_code ? ' · ' + o.parcel_locker_code : ''}`)}
+               ${boRow('Adres', addr)}
+               ${boRow('Książki', items)}
+               ${boRow('Kwota', fmtMoney(o.amount))}
+               ${o.notes ? boRow('Notatki', o.notes) : ''}
+               ${o.external_id ? boRow('ID zewnętrzne', o.external_id) : ''}
+               ${o.resume_url ? `<a href="${o.resume_url}" target="_blank" rel="noopener" class="btn btn-xs btn-edit">Podgląd zamówienia ↗</a>` : ''}
+             `;
+             document.getElementById('bookOrderModal').classList.remove('hidden');
+             document.getElementById('bookOrderModal').classList.add('flex');
+           }
+           function closeBookOrderModal() {
+             document.getElementById('bookOrderModal').classList.add('hidden');
+             document.getElementById('bookOrderModal').classList.remove('flex');
+           }
+
            function clearBookFilters() {
              document.getElementById('bSearch').value = '';
              document.getElementById('bStatus').value = 'all';
@@ -681,7 +737,7 @@
              renderBookOrders();
            }
            document.getElementById('tabCountCourses').textContent = allPayments.length;
-           document.getElementById('tabCountBooks').textContent = allBookOrders.length;
+           document.getElementById('tabCountBooks').  textContent = allBookOrders.length;
            // ── start ──
            render();
            renderBookOrders();
