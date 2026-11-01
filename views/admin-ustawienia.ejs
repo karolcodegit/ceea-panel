@@ -9,7 +9,7 @@
   <%- include('partials/header') %>
 
   <div class="lg:pl-64 pt-16">
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
       <% const q = locals.query || {}; %>
       <% if (q.success) { %>
@@ -20,9 +20,38 @@
       <% } %>
 
       <%# Zakładki — nowe sekcje ustawień dodajesz jako kolejne .tabs-tab + panel %>
+      <%
+        const svc = {
+          github:     ['GitHub',     'badge-blue'],
+          northflank: ['Northflank', 'badge-purple'],
+          netlify:    ['Netlify',    'badge-green'],
+          nodejs:     ['Panel (env)','badge-amber'],
+          gatsby:     ['Gatsby',     'badge-outline'],
+          supabase:   ['Supabase',   'badge-green'],
+          cloudflare: ['Cloudflare', 'badge-blue'],
+          mailsend:   ['Mailsend',   'badge-blue'],
+          cpaas:      ['Cpaas',      'badge-blue'],
+          gcloud:     ['Google Cloud','badge-green'],
+          cloudinary: ['Cloudinary',  'badge-blue'],
+          analytics:  ['Analytics',  'badge-amber'],
+          inpost:     ['InPost',     'badge-amber'],
+          inne:       ['Inne',       'badge-gray'],
+        };
+        const expState = (d) => {
+          if (!d) return { cls: 'badge-gray', txt: 'bez terminu' };
+          const days = Math.ceil((new Date(d) - Date.now()) / 864e5);
+          if (days < 0)  return { cls: 'badge-red',   txt: 'wygasł' };
+          if (days <= 14) return { cls: 'badge-amber', txt: days + ' dni' };
+          return { cls: 'badge-green', txt: new Date(d).toLocaleDateString('pl-PL') };
+        };
+      %>
+
       <div class="tabs mb-6" data-tabs-panels>
         <a href="#" class="tabs-tab is-active" data-panel="panel">Panel</a>
         <a href="#" class="tabs-tab" data-panel="firma">Firma</a>
+        <% if (locals.isSuperUser) { %>
+          <a href="#" class="tabs-tab" data-panel="klucze">Klucze <span class="opacity-60 text-xs"><%= (locals.keys || []).length %></span></a>
+        <% } %>
         <span class="tabs-ink" aria-hidden="true"></span>
       </div>
 
@@ -86,6 +115,55 @@
             Pobierz kopię danych
           </a>
         </section>
+
+        <!-- Tryb serwisowy (super admin) -->
+        <% if (locals.isSuperUser) { const F = locals.flags || {}; const ms = F.maintenance_site || {}; const mp = F.maintenance_panel || {}; %>
+        <section class="module-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="module-title">Tryb serwisowy</h3>
+            <% if (ms.enabled || mp.enabled) { %><span class="badge badge-red">aktywny</span><% } else { %><span class="badge badge-green">wyłączony</span><% } %>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mb-5">
+            „Strona" sygnalizuje frontowi Gatsby, że ma pokazać stronę przerwy. „Panel uczestnika" blokuje logowanie uczestników (admini przechodzą dalej).
+          </p>
+
+          <form method="POST" action="<%= adminPrefix %>/ustawienia/serwis" class="space-y-4">
+            <div class="module-item p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">Strona (ceea.org.pl)</p>
+                  <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Flaga odczytywana przez Gatsby (MaintenanceGate).</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" name="site_enabled" value="1" <%= ms.enabled ? 'checked' : '' %>>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <input type="text" name="site_message" value="<%= ms.message || '' %>" maxlength="300" placeholder="Komunikat dla odwiedzających…"
+                class="mt-3 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+
+            <div class="module-item p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">Panel uczestnika</p>
+                  <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Twarde blokowanie (HTTP 503) — Ty, jako zalogowany admin, widzisz wszystko normalnie.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" name="panel_enabled" value="1" <%= mp.enabled ? 'checked' : '' %>>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <input type="text" name="panel_message" value="<%= mp.message || '' %>" maxlength="300" placeholder="Komunikat dla uczestników…"
+                class="mt-3 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="btn btn-sm btn-primary">Zapisz tryb serwisowy</button>
+            </div>
+          </form>
+        </section>
+        <% } %>
 
       </div>
 
@@ -208,10 +286,337 @@
         </form>
       </div>
 
+      <%# ══════ PANEL: KLUCZE (super admin) — DataTable ══════ %>
+      <% if (locals.isSuperUser) { %>
+      <div data-panel-content="klucze" class="hidden space-y-4">
+        <section class="module-card p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 class="module-title">Klucze API <span class="text-xs font-normal text-gray-400 dark:text-slate-500">(<%= (locals.keys || []).length %>)</span></h2>
+              <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Wartości szyfrowane w bazie (AES-256-GCM). Dostęp tylko dla super admina.</p>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" id="importOpen" class="btn btn-sm btn-neutral whitespace-nowrap">⬆ Importuj .env</button>
+              <button type="button" id="addOpen" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj klucz</button>
+            </div>
+          </div>
+
+          <div id="keysTable"></div>
+        </section>
+      </div>
+
+      <%# Modal: dodaj klucz %>
+      <div id="keyModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('keyModal').classList.add('hidden');document.getElementById('keyModal').classList.remove('flex')"></div>
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4" id="keyModalTitle">Dodaj klucz API</h3>
+          <form method="POST" action="<%= adminPrefix %>/ustawienia/klucze" id="keyForm" class="space-y-3">
+            <input type="hidden" name="id" id="keyId" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Usługa</label>
+                <select name="service" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none cursor-pointer">
+                  <% Object.entries(svc).forEach(([val, l]) => { %>
+                    <option value="<%= val %>"><%= l[0] %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wygasa</label>
+                <input type="date" name="expires_at" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa klucza *</label>
+              <input type="text" name="key_name" required placeholder="np. SUPABASE_SERVICE_KEY"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwa zmiennej u dostawcy <span class="text-gray-400 font-normal">(opcjonalnie)</span></label>
+              <input type="text" name="alias" placeholder="np. GATSBY_AIRTABLE_API_KEY — gdy różni się od nazwy"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wartość *</label>
+              <input type="password" name="value" id="keyValue" required placeholder="wklej klucz…"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none">
+              <p class="hidden text-[11px] text-gray-400 mt-1" id="valueHint">Przy edycji zostaw puste, aby nie zmieniać wartości.</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wdrożony w</label>
+              <div class="flex flex-wrap gap-2">
+                <% Object.entries(svc).forEach(([val, l]) => { %>
+                  <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-slate-400 cursor-pointer">
+                    <input type="checkbox" name="targets" value="<%= val %>" class="w-3.5 h-3.5 accent-red-600"> <%= l[0] %>
+                  </label>
+                <% }) %>
+              </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button type="button" onclick="document.getElementById('keyModal').classList.add('hidden');document.getElementById('keyModal').classList.remove('flex')" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+              <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz klucz</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <% } %>
+
+      <%# Modal: import .env %>
+      <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('importModal').classList.add('hidden');document.getElementById('importModal').classList.remove('flex')"></div>
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Import z .env</h3>
+          <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">Wklej zawartość pliku .env — linie <code>KEY=VALUE</code>. Zostaną dodane jako usługa „Panel (env)", target „Panel (env)". Istniejące nazwy zostaną pominięte.</p>
+          <textarea id="importText" rows="10" placeholder="SUPABASE_URL=https://…&#10;SUPABASE_SERVICE_KEY=eyJhbGci…"
+            class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-xs font-mono outline-none focus:border-red-400"></textarea>
+          <p class="text-[11px] text-gray-400 mt-1" id="importPreview"></p>
+          <div class="flex gap-2 pt-3">
+            <button type="button" onclick="document.getElementById('importModal').classList.add('hidden');document.getElementById('importModal').classList.remove('flex')" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
+            <button type="button" id="importRun" class="btn btn-sm btn-primary flex-1">Importuj</button>
+          </div>
+        </div>
+      </div>
+
+      <%# Modal: podmień klucz u usługodawców %>
+      <div id="deployModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDeploy()"></div>
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Podmień klucz</h3>
+            <button type="button" onclick="closeDeploy()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-white/10 transition-colors" aria-label="Zamknij">✕</button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-slate-400 mb-4 font-mono" id="deployName"></p>
+          <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-4 font-mono hidden" id="deployAlias"></p>
+
+          <div class="module-item p-3 flex items-center justify-between gap-3 mb-4">
+            <span class="font-mono text-xs text-gray-600 dark:text-slate-300 truncate" id="deployValue">••••••••••••</span>
+            <button type="button" id="deployReveal" class="btn btn-xs btn-neutral shrink-0">Pokaż</button>
+          </div>
+
+          <p class="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Otwórz i wklej nową wartość u:</p>
+          <div class="space-y-2" id="deployLinks">
+            <% const T = locals.keyTargets || {}; %>
+            <% Object.entries(T).forEach(([key, url]) => { if (!url) return; const l = svc[key] || [key, 'badge-gray']; %>
+              <a href="<%= url %>" target="_blank" rel="noopener"
+                 class="module-item p-3 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                <span class="flex items-center gap-2"><span class="badge <%= l[1] %>"><%= l[0] %></span></span>
+                <span>Otwórz ↗</span>
+              </a>
+            <% }) %>
+            <% if (!Object.keys(T).length) { %>
+              <p class="text-xs text-gray-400">Skonfiguruj linki w env (GITHUB_REPO, NF_PROJECT/NF_SERVICE, NETLIFY_SITE).</p>
+            <% } %>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <button type="button" onclick="closeDeploy()" class="btn btn-sm btn-neutral flex-1">Zamknij</button>
+            <button type="button" id="deployCopy" class="btn btn-sm btn-primary flex-1">Kopiuj wartość</button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
   <script>
+    // ── Klucze: DataTable + dodaj / edytuj / podmień / pokaż ──
+    (function () {
+      const KEYS = <%- JSON.stringify((locals.keys || []).map(k => ({ id: k.id, service: k.service, key_name: k.key_name, alias: k.alias || '', expires_at: k.expires_at || '', last_used_at: k.last_used_at || '', created_at: k.created_at || '', updated_at: k.updated_at || '', targets: k.targets || [], masked: k.masked }))) %>;
+      const SVC = <%- JSON.stringify(svc) %>;
+
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function expState(d) {
+        if (!d) return { cls: 'badge-gray', txt: 'bez terminu' };
+        const days = Math.ceil((new Date(d) - Date.now()) / 864e5);
+        if (days < 0)   return { cls: 'badge-red',   txt: 'wygasł' };
+        if (days <= 14) return { cls: 'badge-amber', txt: days + ' dni' };
+        return { cls: 'badge-green', txt: new Date(d).toLocaleDateString('pl-PL') };
+      }
+
+      const keysTable = new DataTable('#keysTable', {
+        csvFilename: 'klucze.csv',
+        pageSize: 10,
+        emptyText: 'Brak zapisanych kluczy — dodaj pierwszy lub zaimportuj z .env.',
+        columns: [
+          { key: 'service', label: 'Usługa', sortable: true,
+            render: k => { const l = SVC[k.service] || SVC.inne; return `<span class="badge ${l[1]}">${l[0]}</span>`; } },
+          { key: 'key_name', label: 'Nazwa',
+            sortValue: r => r.key_name,
+            csvValue: r => r.alias ? `${r.key_name} (alias: ${r.alias})` : r.key_name,
+            render: k => `<div class="font-medium text-gray-900 dark:text-white font-mono text-xs">${esc(k.key_name)}</div>` +
+                          (k.alias ? `<div class="text-[10px] text-gray-400 font-normal mt-0.5">→ ${esc(k.alias)}</div>` : '') },
+          { key: '_value', label: 'Wartość', sortable: false,
+            csvValue: () => '(zaszyfrowane)',
+            render: k => `<span class="font-mono text-xs text-gray-500 dark:text-slate-400" data-mask="${k.id}">${esc(k.masked)}</span>` },
+          { key: 'targets', label: 'Wdrożony w', sortable: false,
+            render: k => (k.targets || []).map(t => { const l = SVC[t]; return l ? `<span class="badge ${l[1]} mr-1">${l[0]}</span>` : ''; }).join('') ||
+                          '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'expires_at', label: 'Wygasa', sortable: true,
+            sortValue: r => r.expires_at ? new Date(r.expires_at).getTime() : 0,
+            render: k => { const e = expState(k.expires_at); return `<span class="badge ${e.cls}">${e.txt}</span>`; } },
+          { key: 'last_used_at', label: 'Ostatnio użyty', sortable: true,
+            sortValue: r => r.last_used_at ? new Date(r.last_used_at).getTime() : 0,
+            render: k => k.last_used_at ? `<span class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${new Date(k.last_used_at).toLocaleString('pl-PL')}</span>` : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'created_at', label: 'Utworzono', sortable: true,
+            sortValue: r => r.created_at ? new Date(r.created_at).getTime() : 0,
+            render: k => k.created_at ? `<span class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${new Date(k.created_at).toLocaleString('pl-PL')}</span>` : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: 'updated_at', label: 'Zmodyfikowano', sortable: true,
+            sortValue: r => r.updated_at ? new Date(r.updated_at).getTime() : 0,
+            render: k => k.updated_at ? `<span class="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">${new Date(k.updated_at).toLocaleString('pl-PL')}</span>` : '<span class="text-gray-300 dark:text-slate-600 text-xs">—</span>' },
+          { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
+            render: k => rowActions([
+              { label: 'Pokaż i kopiuj', onclick: `revealKey('${k.id}')` },
+              { label: 'Podmień',        onclick: `openKeyDeploy('${k.id}')` },
+              { label: 'Edytuj',         onclick: `openKeyEdit('${k.id}')` },
+              { label: 'Usuń', danger: true,
+                formAction: `<%= adminPrefix %>/ustawienia/klucze/${k.id}/usun`,
+                confirm: `Usunąć klucz ${k.key_name}?` },
+            ]) },
+        ],
+      });
+      keysTable.setRows(KEYS);
+
+      // ── Pokaż: odsłania + kopiuje (delegacja — działa po każdym renderze) ──
+      window.revealKey = async function (id) {
+        const cell = document.querySelector(`[data-mask="${id}"]`);
+        if (!cell) return;
+        try {
+          const r = await fetch('<%= adminPrefix %>/ustawienia/klucze/' + id + '/wartosc');
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'Błąd');
+          cell.textContent = j.value;
+          cell.classList.add('text-gray-900', 'dark:text-white');
+          try { await navigator.clipboard.writeText(j.value); } catch (e) {}
+        } catch (e) {
+          alert(e.message);
+        }
+      };
+
+      // ── Podmień: modal z linkami do usługodawców ──
+      const deployModal = document.getElementById('deployModal');
+      let deployValue = null;
+      window.closeDeploy = function () {
+        deployModal.classList.add('hidden');
+        deployModal.classList.remove('flex');
+        deployValue = null;
+      };
+      window.openKeyDeploy = async function (id) {
+        const k = KEYS.find(x => x.id === id);
+        if (!k) return;
+        document.getElementById('deployName').textContent = k.key_name;
+        const aliasEl = document.getElementById('deployAlias');
+        if (k.alias) {
+          aliasEl.textContent = '⚠ U dostawcy zapisz jako: ' + k.alias;
+          aliasEl.classList.remove('hidden');
+        } else {
+          aliasEl.classList.add('hidden');
+        }
+        const valEl = document.getElementById('deployValue');
+        const rev = document.getElementById('deployReveal');
+        valEl.textContent = '••••••••••••';
+        rev.textContent = 'Pokaż';
+        deployValue = null;
+        deployModal.classList.remove('hidden');
+        deployModal.classList.add('flex');
+        try {
+          const r = await fetch('<%= adminPrefix %>/ustawienia/klucze/' + id + '/wartosc');
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'Błąd');
+          deployValue = j.value;
+        } catch (e) {
+          valEl.textContent = 'Błąd: ' + e.message;
+        }
+      };
+      document.getElementById('deployReveal').addEventListener('click', function () {
+        const valEl = document.getElementById('deployValue');
+        if (!deployValue) return;
+        const shown = valEl.textContent !== '••••••••••••';
+        valEl.textContent = shown ? '••••••••••••' : deployValue;
+        this.textContent = shown ? 'Pokaż' : 'Ukryj';
+      });
+      document.getElementById('deployCopy').addEventListener('click', async function () {
+        if (!deployValue) return;
+        await navigator.clipboard.writeText(deployValue);
+        this.textContent = 'Skopiowano!';
+        setTimeout(() => { this.textContent = 'Kopiuj wartość'; }, 1200);
+      });
+
+      // ── Dodaj / Edytuj (wspólny modal) ──
+      const modal = document.getElementById('keyModal');
+      const form = document.getElementById('keyForm');
+      const title = document.getElementById('keyModalTitle');
+      const valueInput = document.getElementById('keyValue');
+      const valueHint = document.getElementById('valueHint');
+
+      function openAdd() {
+        form.reset();
+        form.action = '<%= adminPrefix %>/ustawienia/klucze';
+        document.getElementById('keyId').value = '';
+        title.textContent = 'Dodaj klucz API';
+        valueInput.required = true;
+        valueHint.classList.add('hidden');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+      window.openKeyEdit = function (id) {
+        const k = KEYS.find(x => x.id === id);
+        if (!k) return;
+        form.reset();
+        form.action = '<%= adminPrefix %>/ustawienia/klucze/' + k.id + '/edytuj';
+        document.getElementById('keyId').value = k.id;
+        title.textContent = 'Edytuj klucz ' + k.key_name;
+        form.querySelector('[name=service]').value = k.service;
+        form.querySelector('[name=key_name]').value = k.key_name;
+        form.querySelector('[name=alias]').value = k.alias;
+        form.querySelector('[name=expires_at]').value = k.expires_at;
+        form.querySelectorAll('[name=targets]').forEach(cb => { cb.checked = k.targets.includes(cb.value); });
+        valueInput.required = false;
+        valueHint.classList.remove('hidden');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      };
+      document.getElementById('addOpen').addEventListener('click', openAdd);
+
+      // ── Import .env ──
+      const importModal = document.getElementById('importModal');
+      const ta = document.getElementById('importText');
+      const run = document.getElementById('importRun');
+      const preview = document.getElementById('importPreview');
+      document.getElementById('importOpen').addEventListener('click', () => {
+        importModal.classList.remove('hidden');
+        importModal.classList.add('flex');
+        ta.focus();
+      });
+      ta.addEventListener('input', () => {
+        const n = ta.value.split('\n').filter(l => /^[A-Za-z_][A-Za-z0-9_]*=/.test(l.trim())).length;
+        preview.textContent = n ? 'Wykryto ' + n + ' linii KEY=VALUE' : '';
+      });
+      run.addEventListener('click', async () => {
+        const items = ta.value.split('\n')
+          .map(l => l.trim())
+          .filter(l => /^[A-Za-z_][A-Za-z0-9_]*=/.test(l))
+          .map(l => { const i = l.indexOf('='); return { name: l.slice(0, i), value: l.slice(i + 1).replace(/^["']|["']$/g, '') }; });
+        if (!items.length) { preview.textContent = 'Brak poprawnych linii KEY=VALUE.'; return; }
+        run.disabled = true;
+        try {
+          const r = await fetch('<%= adminPrefix %>/ustawienia/klucze/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items }),
+          });
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'Błąd');
+          alert('Zaimportowano: ' + j.added + ', pominięto (już istnieją): ' + j.skipped);
+          location.reload();
+        } catch (e) {
+          preview.textContent = 'Błąd: ' + e.message;
+          run.disabled = false;
+        }
+      });
+    })();
+
     // ── Przełączanie zakładek Panel / Firma ──
     (function () {
       var root = document.querySelector('[data-tabs-panels]');

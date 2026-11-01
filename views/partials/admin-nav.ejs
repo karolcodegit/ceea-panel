@@ -288,7 +288,7 @@
       <button type="button" id="confirmCancel"
         class="px-4 py-2 text-sm rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">Anuluj</button>
       <button type="button" id="confirmOk"
-        class="px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all">Usuń</button>
+        class="px-4 py-2 text-sm rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all">Potwierdź</button>
     </div>
   </div>
 </div>
@@ -303,10 +303,16 @@
     var btnCancel = document.getElementById('confirmCancel');
     var pendingForm = null;
 
+    var CLS_OK = 'px-4 py-2 text-sm rounded-xl bg-gradient-to-r text-white shadow-lg transition-all ';
+    var CLS_GREEN = 'from-emerald-500 to-green-600 shadow-green-500/25 hover:shadow-green-500/40';
+    var CLS_RED = 'from-red-500 to-rose-600 shadow-red-500/25 hover:shadow-red-500/40';
+
     function open(message, form) {
       pendingForm = form;
       msg.textContent = message;
-      btnOk.textContent = form.dataset.confirmOk || 'Usuń';
+      var danger = form.dataset.confirmDanger === '1' || form.dataset.confirmDanger === 'true';
+      btnOk.textContent = form.dataset.confirmOk || (danger ? 'Usuń' : 'Potwierdź');
+      btnOk.className = CLS_OK + (danger ? CLS_RED : CLS_GREEN);
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       requestAnimationFrame(function () {

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title || 'Przerwa techniczna' %> — CEEA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap&subset=latin-ext" rel="stylesheet">
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif; padding: 1.5rem;
+      background: #f9fafb; color: #111827;
+    }
+    .card {
+      max-width: 30rem; width: 100%; text-align: center;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 1.25rem;
+      padding: 3rem 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+    img.logo { height: 2.25rem; width: auto; margin-bottom: 1.5rem; }
+    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: .75rem; }
+    p { color: #6b7280; line-height: 1.6; font-size: .95rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: .4rem; margin-bottom: 1.25rem;
+      background: #fef2f2; color: #b91c1c; font-size: .72rem; font-weight: 700;
+      padding: .3rem .8rem; border-radius: 999px; letter-spacing: .04em;
+    }
+    .dot { width: .5rem; height: .5rem; border-radius: 999px; background: #dc2626; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge"><span class="dot"></span> PRZERWA TECHNICZNA</span>
+    <img class="logo" src="/images/logo-header-color-black.jpg" alt="CEEA">
+    <h1><%= title || 'Przerwa techniczna' %></h1>
+    <p><%= message || 'Trwają prace techniczne. Wracamy już wkrótce — sprawdź za chwilę.' %></p>
+    <p style="margin-top:1.25rem;font-size:.85rem">
+      Pytania? <a href="mailto:kursy@ceea.org.pl">kursy@ceea.org.pl</a>
+    </p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<%
+  const fmtMoney = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
+  const fmtDate = d => d ? new Date(d).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const maxBo = Math.max(...((dash.books.ordersSeries || []).map(s => s.count)), 1);
+  const statusBadge = { paid: 'badge-green', new: 'badge-blue', awaiting_payment: 'badge-amber', awaiting_transfer: 'badge-amber', shipped: 'badge-purple', completed: 'badge-green', canceled: 'badge-red' };
+%>
+
+<%# 1. Kafelki %>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <div class="stat-tile">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></span>
+    <div><p class="stat-tile-label">Tytuły w katalogu</p><p class="stat-tile-value"><%= dash.books.titles %></p></div>
+  </div>
+  <div class="stat-tile">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></span>
+    <div><p class="stat-tile-label">Sprzedane sztuki</p><p class="stat-tile-value"><%= dash.books.soldUnits %></p></div>
+  </div>
+  <div class="stat-tile">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg></span>
+    <div><p class="stat-tile-label">Przychód łączny</p><p class="stat-tile-value"><%= fmtMoney(dash.books.revenue) %></p></div>
+  </div>
+  <div class="stat-tile <%= dash.books.awaiting ? 'ring-1 ring-amber-400/60' : '' %>">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+    <div><p class="stat-tile-label">Oczekujące zamówienia</p><p class="stat-tile-value <%= dash.books.awaiting ? 'text-amber-600 dark:text-amber-400' : '' %>"><%= dash.books.awaiting %></p></div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+
+  <%# 2. Wykres zamówień 14 dni %>
+  <section class="xl:col-span-2 module-card p-5 sm:p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div>
+        <h2 class="module-title">Zamówienia książek</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400">Ostatnie 14 dni</p>
+      </div>
+    </div>
+    <div id="bookOrdersChart" class="flex items-end gap-1 h-32">
+      <% (dash.books.ordersSeries || []).forEach(s => { %>
+        <div class="flex-1 bg-red-500/80 dark:bg-red-500/70 rounded-t hover:bg-red-600 transition-colors"
+             data-h="<%= Math.max(s.count ? 6 : 2, Math.round((s.count / maxBo) * 100)) %>"
+             title="<%= s.label %>: <%= s.count %> zamówień"></div>
+      <% }) %>
+    </div>
+    <div class="flex justify-between text-xs text-gray-400 dark:text-slate-500 mt-2">
+      <span><%= (dash.books.ordersSeries || [])[0] ? dash.books.ordersSeries[0].label : '' %></span>
+      <span>dziś</span>
+    </div>
+  </section>
+
+  <%# 3. Top sprzedawane + niski stan %>
+  <div class="space-y-6">
+    <section class="module-card p-5">
+      <h2 class="module-title mb-4">Top książki</h2>
+      <% if (!(dash.books.top || []).length) { %>
+        <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-4">Brak sprzedaży.</p>
+      <% } else { %>
+        <ul class="space-y-2.5">
+          <% dash.books.top.forEach((b, i) => { %>
+            <li class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-md bg-gray-100 dark:bg-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-300 flex items-center justify-center shrink-0"><%= i + 1 %></span>
+              <span class="flex-1 text-sm text-gray-700 dark:text-slate-200 truncate" title="<%= b.title %>"><%= b.title %></span>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white shrink-0"><%= b.count %> szt</span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <section class="module-card p-5">
+      <h2 class="module-title mb-4">Stan magazynowy</h2>
+      <% if (!(dash.books.lowList || []).length) { %>
+        <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-4">✓ Wszystkie stany powyżej 5 szt.</p>
+      <% } else { %>
+        <ul class="space-y-2">
+          <% dash.books.lowList.forEach(b => { const q = Number(b.stock_quantity) || 0; %>
+            <li class="flex items-center justify-between gap-3 text-sm">
+              <span class="text-gray-700 dark:text-slate-200 truncate"><%= b.name %></span>
+              <span class="badge <%= q === 0 ? 'badge-red' : 'badge-amber' %> shrink-0"><%= q === 0 ? 'brak' : q + ' szt' %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%# 4. Ostatnie zamówienia (tabela) %>
+<section class="module-card p-5">
+  <h2 class="module-title mb-4">Ostatnie zamówienia</h2>
+  <% if (!(dash.books.recentOrders || []).length) { %>
+    <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-6">Brak zamówień.</p>
+  <% } else { %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-xs text-gray-500 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-700/50">
+          <tr>
+            <th class="px-4 py-3 text-left font-medium">Numer</th>
+            <th class="px-4 py-3 text-left font-medium">Klient</th>
+            <th class="px-4 py-3 text-right font-medium">Sztuk</th>
+            <th class="px-4 py-3 text-right font-medium">Kwota</th>
+            <th class="px-4 py-3 text-left font-medium">Status</th>
+            <th class="px-4 py-3 text-left font-medium">Data</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+          <% (dash.books.recentOrders || []).forEach(o => { %>
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white font-mono text-xs"><%= o.order_number || '—' %></td>
+              <td class="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 break-all"><%= o.email %></td>
+              <td class="px-4 py-3 text-xs text-gray-600 dark:text-slate-300 text-right"><%= (Array.isArray(o.items) ? o.items : []).reduce((s, i) => s + (Number(i.qty || i.quantity) || 1), 0) %></td>
+              <td class="px-4 py-3 text-xs font-semibold text-gray-900 dark:text-white text-right whitespace-nowrap"><%= fmtMoney(o.amount) %></td>
+              <td class="px-4 py-3"><span class="badge <%= statusBadge[o.status] || 'badge-gray' %>"><%= o.status %></span></td>
+              <td class="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap"><%= fmtDate(o.created_at) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>

@@ -1,0 +1,22 @@
+<%# Sekcja: OSTATNIA AKTYWNOŚĆ (połączona) %>
+<section class="module-card p-5">
+  <h2 class="module-title mb-4">Ostatnia aktywność</h2>
+  <% if (!(dash.activity || []).length) { %>
+    <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-6">Brak aktywności.</p>
+  <% } else { %>
+    <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
+      <% (dash.activity || []).forEach(a => { %>
+        <li>
+          <div class="flex items-center gap-3 py-2.5">
+            <span class="text-lg shrink-0"><%= a.icon %></span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate"><%= a.label %></p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 truncate"><%= a.sub %></p>
+            </div>
+            <span class="text-[11px] text-gray-400 dark:text-slate-500 whitespace-nowrap shrink-0"><%= new Date(a.date).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %></span>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>

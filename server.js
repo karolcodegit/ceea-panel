@@ -13,6 +13,9 @@ const userRoutes = require("./routes/user");
 const { ADMIN_PREFIX, setAdminPathFlag } = require("./middleware/auth");
 const EmailQueue = require("./services/emailQueue");
 
+const maintenanceGate = require("./middleware/maintenance");
+const { flagsEndpoint } = require("./routes/serwis");
+
 // ===== EXPRESS =====
 const app = express();
 app.set("trust proxy", 1);
@@ -43,7 +46,12 @@ app.set("emailQueue", emailQueue);
 // ===== ROUTERY =====
 app.use("/api/auth", authRoutes);
 app.use(ADMIN_PREFIX, adminRoutes);
+app.get("/api/flags", flagsEndpoint);
+app.use(maintenanceGate);
 app.use("/", userRoutes);
+
+
+
 
 // ===== 404 =====
 app.use((req, res) => {

@@ -8,10 +8,12 @@ const supabase = require("../config/supabase");
 const rowToAdmin = (r) => ({
   email: r.email,
   name: r.name || "",
-  secret: r.totp_secret,          // wymagane przez Twój auth.js
+  secret: r.totp_secret,
   qrSetup: !!r.qr_setup,
   backupCodes: r.backup_codes || [],
-  isSuper: !!r.is_super, 
+  isSuper: !!r.is_super,
+  avatar_url: r.avatar_url || null,
+  position: r.position || null,
 });
 const adminToRow = (a) => ({
   email: a.email,

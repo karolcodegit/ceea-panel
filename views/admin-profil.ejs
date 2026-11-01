@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Profil — Panel CEEA</title>
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'profil' }) %>
+    <%- include('partials/header') %>
+
+    <%
+      const q = locals.query || {};
+      const p = locals.profile || {};
+      const backupLeft = Array.isArray(p.backup_codes) ? p.backup_codes.filter(b => !b.used).length : 0;
+      const hasAvatar = !!(locals.cloudName && locals.uploadPreset);
+    %>
+
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error %></div>
+        <% } %>
+
+        <%# Kafelki %>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div class="stat-tile">
+            <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></span>
+            <div><p class="stat-tile-label">Rola</p><p class="stat-tile-value text-sm pt-1"><%= p.is_super ? 'Super admin' : 'Administrator' %></p></div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></span>
+            <div><p class="stat-tile-label">2FA</p><p class="stat-tile-value text-sm pt-1"><%= p.qr_setup ? 'Aktywne' : 'Nieaktywne' %></p></div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+            <div><p class="stat-tile-label">Konto od</p><p class="stat-tile-value text-sm pt-1"><%= p.created_at ? new Date(p.created_at).toLocaleDateString('pl-PL') : '—' %></p></div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+            <div><p class="stat-tile-label">Ostatnie logowanie</p><p class="stat-tile-value text-sm pt-1"><span id="lastLogin"><%= p.last_login ? '' : '—' %></span></p></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <%# LEWA KOLUMNA %>
+          <div class="lg:col-span-2 space-y-6">
+
+            <%# Dane konta + zdjęcie + opis %>
+            <section class="module-card p-5">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-5 mb-6">
+                <div class="relative shrink-0">
+                  <div id="avatarBox" class="w-20 h-20 rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-700 bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                    <% if (p.avatar_url) { %>
+                      <img src="<%= p.avatar_url %>" alt="" class="w-full h-full object-cover" />
+                    <% } else { %>
+                      <span class="text-2xl font-bold text-blue-600 dark:text-blue-300"><%= ((p.name || p.email || 'A').charAt(0)).toUpperCase() %></span>
+                    <% } %>
+                  </div>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h2 class="module-title"><%= p.name || 'Administrator' %></h2>
+                  <p class="text-sm text-gray-500 dark:text-slate-400 truncate"><%= p.position || (p.is_super ? 'Super administrator' : 'Administrator') %></p>
+                  <% if (hasAvatar) { %>
+                    <div class="flex gap-2 mt-2">
+                      <button type="button" id="avatarUp" class="btn btn-xs btn-neutral">⬆ Zmień zdjęcie</button>
+                      <% if (p.avatar_url) { %><button type="button" id="avatarRm" class="btn btn-xs btn-ghost">Usuń</button><% } %>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+
+              <form method="POST" action="<%= adminPrefix %>/profil" class="space-y-4">
+                <input type="hidden" name="avatar_url" id="fAvatar" value="<%= p.avatar_url || '' %>" />
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Imię i nazwisko *</label>
+                    <input type="text" name="name" required value="<%= p.name || '' %>" maxlength="100"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 dark:focus:border-red-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">E-mail (login)</label>
+                    <input type="text" readonly value="<%= p.email %>"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-500 dark:text-slate-400 text-sm outline-none cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Telefon</label>
+                    <input type="text" name="phone" value="<%= p.phone || '' %>" maxlength="30" placeholder="+48 600 000 000"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 dark:focus:border-red-500" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Stanowisko</label>
+                    <input type="text" name="position" value="<%= p.position || '' %>" maxlength="100" placeholder="np. Koordynator kursów"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 dark:focus:border-red-500" />
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Opis</label>
+                    <textarea name="bio" rows="4" maxlength="2000" placeholder="Kilka zdań o Tobie — zobaczą inni administratorzy…"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 dark:focus:border-red-500"><%= p.bio || '' %></textarea>
+                  </div>
+                </div>
+
+                <div class="flex justify-end">
+                  <button type="submit" class="btn btn-sm btn-primary">Zapisz zmiany</button>
+                </div>
+              </form>
+            </section>
+
+            <%# Bezpieczeństwo %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Bezpieczeństwo</h2>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="badge <%= p.qr_setup ? 'badge-green' : 'badge-amber' %>">
+                    2FA: <%= p.qr_setup ? 'skonfigurowane' : 'do konfiguracji' %>
+                  </span>
+                  <span class="text-xs text-gray-500 dark:text-slate-400">Kody zapasowe: <b><%= backupLeft %></b> / <%= Array.isArray(p.backup_codes) ? p.backup_codes.length : 0 %></span>
+                </div>
+                <form method="POST" action="<%= adminPrefix %>/admini/<%= encodeURIComponent(p.email) %>/reset-2fa"
+                      class="js-confirm" data-confirm="Zresetować 2FA? Przy następnym logowaniu zeskanujesz nowy kod QR.">
+                  <button type="submit" class="btn btn-sm btn-neutral">Reset 2FA</button>
+                </form>
+              </div>
+            </section>
+
+            <%# Historia aktywności %>
+            <section class="module-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="module-title">Historia aktywności</h2>
+                <span class="badge badge-outline">wkrótce</span>
+              </div>
+              <div class="module-item p-8 text-center text-sm text-gray-400 dark:text-slate-500">
+                Dziennik zmian pojawi się tutaj — będziemy śledzić, co edytowałeś/aś w panelu<br>
+                (utworzone i zmienione rekordy, logowania, wysyłki).
+              </div>
+            </section>
+
+          </div>
+
+          <%# PRAWA KOLUMNA — miejsce na przyszłe widgety %>
+          <div class="space-y-6">
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Widgety</h2>
+              <div class="module-item p-8 text-center text-sm text-gray-400 dark:text-slate-500">
+                Dodatkowe widgety pojawią się w tej kolumnie.
+              </div>
+            </section>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Czas względny ostatniego logowania
+      (function () {
+        const raw = <%- JSON.stringify(p.last_login || null) %>;
+        const el = document.getElementById('lastLogin');
+        if (!raw || !el) return;
+        const t = new Date(raw);
+        const min = Math.floor((Date.now() - t.getTime()) / 60000);
+        const time = t.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        let txt;
+        if (min < 1) txt = 'przed chwilą';
+        else if (min < 60) txt = min + ' min temu';
+        else if (min < 1440) txt = Math.floor(min / 60) + ' godz. temu';
+        else if (min < 2880) txt = 'wczoraj, ' + time;
+        else txt = t.toLocaleString('pl-PL');
+        el.textContent = txt;
+        el.className = min < 60 ? 'text-green-600 dark:text-green-400 font-semibold' : '';
+      })();
+
+      // Upload zdjęcia profilowego (Cloudinary, folder ceea/admins)
+      (function () {
+        const input = document.getElementById('fAvatar');
+        const box = document.getElementById('avatarBox');
+        if (!input || !box) return;
+        const FALLBACK = '<span class="text-2xl font-bold text-blue-600 dark:text-blue-300">' +
+          <%- JSON.stringify(((p.name || p.email || 'A').charAt(0)).toUpperCase()) %> + '</span>';
+        function render() {
+          box.innerHTML = input.value
+            ? '<img src="' + input.value + '" class="w-full h-full object-cover" />'
+            : FALLBACK;
+        }
+        const up = document.getElementById('avatarUp');
+        if (up && window.cloudinary) {
+          up.addEventListener('click', function () {
+            cloudinary.createUploadWidget(
+              { cloudName: <%- JSON.stringify(locals.cloudName || '') %>,
+                uploadPreset: <%- JSON.stringify(locals.uploadPreset || '') %>,
+                folder: 'ceea/admins', multiple: false,
+                maxFileSize: 3000000, clientAllowedFormats: ['jpg','jpeg','png','webp'],
+                cropping: true, croppingAspectRatio: 1, croppingDefaultSelectionRatio: 0.9 },
+              function (err, res) {
+                if (!err && res && res.event === 'success') { input.value = res.info.secure_url; render(); }
+              }
+            ).open();
+          });
+        }
+        const rm = document.getElementById('avatarRm');
+        if (rm) rm.addEventListener('click', function () { input.value = ''; render(); });
+        render();
+      })();
+    </script>
+  </body>
+</html>

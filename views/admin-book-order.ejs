@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Zamówienie <%= order.order_number || order.id %> — Panel CEEA</title>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'platnosci' }) %>
+    <%- include('partials/header', {
+      pageTitle: 'Zamówienie ' + (order.order_number || ''),
+      pageSubtitle: 'Książki · ' + (order.email || ''),
+      pageIcon: 'books'
+    }) %>
+
+    <%
+      const q = locals.query || {};
+      const STATUS_FLOW = [
+        { key: 'new',        label: 'Nowe' },
+        { key: 'paid',       label: 'Opłacone' },
+        { key: 'shipped',    label: 'Wysłane' },
+        { key: 'completed',  label: 'Zrealizowane' },
+      ];
+      const statusLabelMap = {
+        new: 'Nowe', awaiting_payment: 'Oczekuje online', awaiting_transfer: 'Oczekuje na przelew',
+        paid: 'Opłacone', confirmed: 'Potwierdzone', shipped: 'Wysłane',
+        completed: 'Zrealizowane', canceled: 'Anulowane',
+      };
+      const isCanceled = order.status === 'canceled';
+      const isAwaitingPayment = ['awaiting_payment', 'awaiting_transfer'].includes(order.status);
+      const currentIdx = isCanceled ? -1 : Math.max(0, STATUS_FLOW.findIndex(s => s.key === order.status));
+      const items = Array.isArray(order.items) ? order.items : [];
+      const totalQty = items.reduce((s, i) => s + (Number(i.qty || i.quantity) || 1), 0);
+      const addr = [order.street, order.city && [order.postcode, order.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      const inpostLabel = { created: 'Utworzona', offered: 'Odebrana przez kuriera', sent_from_sorting_center: 'W sortowni',
+        ready_to_pickup: 'Gotowa do odbioru', pickup_reminder_sent: 'Przypomnienie o odbiorze', picked_up: 'Odebrana',
+        delivered: 'Doręczona', canceled: 'Anulowana' };
+    %>
+
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+        <div class="mb-5">
+          <a href="<%= adminPrefix %>/platnosci" class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">← Wróć do płatności</a>
+        </div>
+
+        <% if (q.success) { %>
+          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
+        <% } %>
+        <% if (q.error) { %>
+          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error %></div>
+        <% } %>
+
+        <%# ── Timeline statusów ── %>
+        <section class="module-card p-5 mb-6">
+          <% if (isCanceled) { %>
+            <div class="flex items-center gap-2 text-red-600 dark:text-red-400 font-semibold text-sm">
+              <span>✕</span> Zamówienie anulowane
+            </div>
+          <% } else { %>
+            <% if (isAwaitingPayment) { %>
+              <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300">
+                ⏳ Oczekuje na płatność — wysyłka odblokuje się po zaksięgowaniu wpłaty.
+              </div>
+            <% } %>
+            <div class="steps">
+              <% STATUS_FLOW.forEach((s, i) => { %>
+                <div class="step <%= i < currentIdx ? 'is-done' : (i === currentIdx ? 'is-current' : '') %>">
+                  <%= s.label %>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <%# ═══ LEWA KOLUMNA ═══ %>
+          <div class="lg:col-span-2 space-y-6">
+
+            <%# Kafelki %>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></span>
+                <div><p class="stat-tile-label">Sztuk łącznie</p><p class="stat-tile-value"><%= totalQty %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg></span>
+                <div><p class="stat-tile-label">Kwota</p><p class="stat-tile-value"><%= new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(order.amount) || 0) %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+                <div><p class="stat-tile-label">Data zamówienia</p><p class="stat-tile-value text-sm pt-1"><%= new Date(order.created_at).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg></span>
+                <div><p class="stat-tile-label">Zamówień klienta łącznie</p><p class="stat-tile-value"><%= history.length + 1 %></p></div>
+              </div>
+            </div>
+
+            <%# Dane odbiorcy — formularz read-only %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Dane odbiorcy</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Imię i nazwisko</label>
+                  <input readonly value="<%= `${order.name || ''} ${order.surname || ''}`.trim() %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Telefon</label>
+                  <input readonly value="<%= order.phone || '' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div class="sm:col-span-2"><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">E-mail</label>
+                  <input readonly value="<%= order.email || '' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Metoda dostawy</label>
+                  <input readonly value="<%= order.delivery_method || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Kod paczkomatu</label>
+                  <input readonly value="<%= order.parcel_locker_code || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm font-mono outline-none"></div>
+                <div class="sm:col-span-2"><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Ulica</label>
+                  <input readonly value="<%= order.street || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Kod pocztowy</label>
+                  <input readonly value="<%= order.postcode || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Miasto</label>
+                  <input readonly value="<%= order.city || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>
+                <div class="sm:col-span-2"><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">ID zewnętrzne</label>
+                  <input readonly value="<%= order.external_id || '—' %>" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm font-mono outline-none"></div>
+              </div>
+              <div class="mt-4 p-3 <%= order.notes ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300' : 'bg-gray-50 dark:bg-slate-700/40 text-gray-400 dark:text-slate-500' %> rounded-xl text-xs">
+                <span class="font-semibold">Notatki:</span> <%= order.notes || 'brak' %>
+              </div>
+            </section>
+
+            <%# Pozycje zamówienia %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Zamówione pozycje <span class="text-xs font-normal text-gray-400 dark:text-slate-500">(<%= items.length %> tytułów · <%= totalQty %> szt.)</span></h2>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-xs text-gray-500 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-700/50">
+                    <tr><th class="px-4 py-3 text-left font-medium">Tytuł</th><th class="px-4 py-3 text-right font-medium">Ilość</th><th class="px-4 py-3 text-right font-medium">Cena</th></tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                    <% items.forEach(i => { %>
+                      <tr>
+                        <td class="px-4 py-3 text-gray-900 dark:text-white"><%= i.title || i.name || 'Pozycja' %></td>
+                        <td class="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white"><%= Number(i.qty || i.quantity) || 1 %></td>
+                        <td class="px-4 py-3 text-right text-gray-600 dark:text-slate-400"><%= i.price ? new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(i.price)) : '—' %></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <%# ═══ PRAWA KOLUMNA ═══ %>
+          <div class="space-y-6">
+
+            <%# Wysyłka InPost %>
+            <section class="module-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="module-title">Wysyłka InPost</h2>
+                <% if (locals.inpostSandbox) { %><span class="badge badge-amber">sandbox</span><% } %>
+              </div>
+
+              <% if (order.tracking_number) { %>
+                <div class="space-y-3 text-sm">
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Numer przesyłki</p>
+                    <p class="font-mono font-semibold text-gray-900 dark:text-white break-all"><%= order.tracking_number %></p></div>
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Status InPost</p>
+                    <p class="font-medium text-gray-900 dark:text-white"><%= inpostLabel[order.inpost_status] || order.inpost_status || '—' %></p></div>
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Gabaryt</p>
+                    <p class="font-medium text-gray-900 dark:text-white uppercase"><%= order.parcel_size || '—' %></p></div>
+                  <% if (order.shipped_at) { %>
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Nadano</p>
+                    <p class="font-medium text-gray-900 dark:text-white"><%= new Date(order.shipped_at).toLocaleString('pl-PL') %></p></div>
+                  <% } %>
+                  <a href="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/etykieta" target="_blank"
+                     class="btn btn-sm btn-primary w-full">🖨 Pobierz etykietę PDF</a>
+                  <a href="https://inpost.pl/sledzenie-przesylek?number=<%= order.tracking_number %>" target="_blank" rel="noopener"
+                     class="btn btn-sm btn-neutral w-full">Śledzenie ↗</a>
+                </div>
+              <% } else if (!locals.inpostConfigured) { %>
+                <div class="p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                  InPost nie jest jeszcze skonfigurowany. Uzupełnij <code>INPOST_API_TOKEN</code> i <code>INPOST_ORG_ID</code> w env (Northflank) oraz ustaw <code>INPOST_ENV=production</code> po podpisaniu umowy.
+                </div>
+              <% } else if (order.status !== 'paid') { %>
+                <div class="p-3 bg-gray-50 dark:bg-slate-700/40 rounded-xl text-xs text-gray-500 dark:text-slate-400">
+                  Utworzenie przesyłki będzie możliwe po zaksięgowaniu płatności (status „Opłacone").
+                </div>
+              <% } else { %>
+                <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/wyslij" class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Gabaryt paczki</label>
+                    <select name="size" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400 cursor-pointer">
+                      <option value="mini">Mini (do 3 kg)</option>
+                      <option value="small" selected>Mała (do 25 kg)</option>
+                      <option value="medium">Średnia</option>
+                      <option value="large">Duża</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-primary w-full">📦 Utwórz przesyłkę InPost</button>
+                </form>
+              <% } %>
+            </section>
+
+            <%# Historia klienta %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Historia klienta</h2>
+              <% if (!history.length) { %>
+                <p class="text-sm text-gray-400 dark:text-slate-500">To pierwsze zamówienie tego klienta.</p>
+              <% } else { %>
+                <div class="space-y-2">
+                  <% history.forEach(h => { %>
+                    <a href="<%= adminPrefix %>/platnosci/ksiazki/<%= h.id %>"
+                       class="module-item p-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                      <div class="min-w-0">
+                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate"><%= h.order_number || h.id %></p>
+                        <p class="text-[11px] text-gray-500 dark:text-slate-400"><%= new Date(h.created_at).toLocaleDateString('pl-PL') %></p>
+                      </div>
+                      <div class="text-right shrink-0">
+                        <p class="text-xs font-semibold text-gray-900 dark:text-white"><%= new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(h.amount) || 0) %></p>
+                        <p class="text-[11px] text-gray-500 dark:text-slate-400"><%= statusLabelMap[h.status] || h.status %></p>
+                      </div>
+                    </a>
+                  <% }) %>
+                </div>
+              <% } %>
+            </section>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -246,7 +246,9 @@
        render: p => rowActions([
          { label: 'Edytuj', href: '/link/' + p.id },
          { label: 'Usuń', formAction: '/usun/' + p.id,
-           confirm: 'Usunąć?', danger: true },
+           confirm: 'Usunąć?', danger: true },        // → czerwone „Usuń”
+         { label: 'Zapłacono', formAction: '/zaplacono/' + p.id,
+           confirm: 'Zaksięgować?', confirmOk: 'Tak, zaksięguj' }, // → zielony przycisk
        ])
      1 akcja → sam przycisk (bez kropek) · 2+ → menu ⋮
      ============================================================ */
@@ -261,7 +263,9 @@
       const cls = 'btn btn-xs ' + (a.danger ? 'btn-delete' : a.primary ? 'btn-primary' : 'btn-neutral');
       if (a.formAction) {
         return '<form method="POST" action="' + escAttr(a.formAction) + '"' +
-          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' : '') +
+          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' +
+            (a.confirmOk ? ' data-confirm-ok="' + escAttr(a.confirmOk) + '"' : '') +
+            (a.danger ? ' data-confirm-danger="1"' : '') : '') +
           ' style="display:inline">' +
           '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
       }
@@ -276,7 +280,9 @@
       const cls = 'row-menu-item' + (a.danger ? ' is-danger' : '');
       if (a.formAction) {
         return '<form method="POST" action="' + escAttr(a.formAction) + '"' +
-          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' : '') +
+          (a.confirm ? ' class="js-confirm" data-confirm="' + escAttr(a.confirm) + '"' +
+            (a.confirmOk ? ' data-confirm-ok="' + escAttr(a.confirmOk) + '"' : '') +
+            (a.danger ? ' data-confirm-danger="1"' : '') : '') +
           ' style="display:block;margin:0">' +
           '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
       }

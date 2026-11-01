@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
+const inpost = require("../services/inpost");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
 const { fetchAllCourses } = require("../config/datocms");
 
@@ -12,26 +13,29 @@ const {
   generateInvoicePDF,
 } = require("../services/payments");
 
+
+
 // ═══════════════════════════════════════════════════════════════
 // ===== PŁATNOŚCI =====
 // ═══════════════════════════════════════════════════════════════
 
 router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
   try {
-    const courses = await fetchAllCourses(); // DatoCMS – filtr (id zgodne z payments.course_id)
-
-    // aktywny kurs z naszej tabeli
-    const { data: dbCourses } = await supabase
+    // kursy z Supabase — do filtra (value = course_id zgodne z payments.course_id)
+    const { data: dbCourses, error: cErr } = await supabase
       .from("courses")
-      .select("course_id, is_active");
+      .select("course_id, title, is_active, start_date")
+      .order("start_date", { ascending: false });
+    if (cErr) console.error("[GET /platnosci] courses:", cErr.message);
+    const courses = dbCourses || [];
     const activeCourseId =
-      (dbCourses || []).find((c) => c.is_active)?.course_id || null;
+      courses.find((c) => c.is_active)?.course_id || null;
 
     // płatności za kursy
     const { data: payments, error } = await supabase
       .from("payments")
       .select(
-        "*, invoices!payments_invoice_id_fkey(*), users(name, surname, email), courses(title)"
+        "*, invoices!payments_invoice_id_fkey(*), users(name, surname, email, phone), courses(title)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -68,7 +72,6 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
     });
   }
 });
-
 // Generuj fakturę
 router.post(
   "/platnosci/:id/faktura",
@@ -165,6 +168,81 @@ router.get(
   }
 );
 
+router.get("/platnosci/ksiazki/:id", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { data: order, error } = await supabase
+      .from("book_orders")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (error || !order) return res.redirect(ADMIN_PREFIX + "/platnosci");
+
+    // Historia klienta (pozostałe zamówienia tego samego emaila)
+    const { data: history } = await supabase
+      .from("book_orders")
+      .select("id, order_number, created_at, amount, status")
+      .eq("email", order.email)
+      .neq("id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    res.render("admin-book-order", {
+      isAdmin: true,
+      active: "platnosci",
+      order,
+      history: history || [],
+      inpostConfigured: !!(process.env.INPOST_API_TOKEN && process.env.INPOST_ORG_ID),
+      inpostSandbox: inpost.isSandbox(),
+      query: req.query,
+    });
+  } catch (err) {
+    console.error("[GET /platnosci/ksiazki/:id]", err);
+    res.redirect(ADMIN_PREFIX + "/platnosci?error=" + encodeURIComponent(err.message));
+  }
+});
+
+// Utwórz przesyłkę InPost
+router.post("/platnosci/ksiazki/:id/wyslij", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { data: order, error } = await supabase
+      .from("book_orders").select("*").eq("id", req.params.id).single();
+    if (error || !order) throw new Error("Nie znaleziono zamówienia");
+    if (order.tracking_number) throw new Error("Przesyłka już utworzona (numer: " + order.tracking_number + ")");
+    if (order.status !== "paid") throw new Error("Zamówienie nie jest opłacone — najpierw oznacz płatność.");
+
+    const shipment = await inpost.createLockerShipment(order, req.body.size || "small");
+
+    await supabase.from("book_orders").update({
+      tracking_number: String(shipment.id),
+      inpost_status: shipment.status,
+      parcel_size: shipment.size,
+      status: "shipped",
+      shipped_at: new Date().toISOString(),
+    }).eq("id", order.id);
+
+    res.redirect(`${ADMIN_PREFIX}/platnosci/ksiazki/${order.id}?success=` +
+      encodeURIComponent(`Utworzono przesyłkę InPost (ID ${shipment.id})`));
+  } catch (err) {
+    res.redirect(`${ADMIN_PREFIX}/platnosci/ksiazki/${req.params.id}?error=` + encodeURIComponent(err.message));
+  }
+});
+
+// Etykieta PDF
+router.get("/platnosci/ksiazki/:id/etykieta", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { data: order } = await supabase
+      .from("book_orders").select("tracking_number").eq("id", req.params.id).single();
+    if (!order?.tracking_number) throw new Error("Brak przesyłki dla tego zamówienia");
+
+    const pdf = await inpost.getLabelPdf(order.tracking_number);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="etykieta-${order.tracking_number}.pdf"`);
+    res.send(pdf);
+  } catch (err) {
+    res.redirect(`${ADMIN_PREFIX}/platnosci/ksiazki/${req.params.id}?error=` + encodeURIComponent(err.message));
+  }
+});
+
 // Oznacz jako zapłacone
 router.post(
   "/platnosci/:id/zaplacono",
@@ -209,6 +287,50 @@ router.post(
           json.alreadyPaid
             ? "Ta płatność była już oznaczona jako opłacona."
             : "Oznaczono jako zapłacone. Kursant otrzymał mail z potwierdzeniem."
+        )}`
+      );
+    } catch (err) {
+      res.redirect(
+        `${ADMIN_PREFIX}/platnosci?error=${encodeURIComponent(err.message)}`
+      );
+    }
+  }
+);
+
+// Oznacz zamówienie książek jako opłacone
+// (serwis CEEA: status paid + mail z potwierdzeniem do klienta i kopia do sekretariatu)
+router.post(
+  "/platnosci/ksiazki/:id/zaplacono",
+  adminOnly,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const { data: order, error } = await supabase
+        .from("book_orders")
+        .select("order_number")
+        .eq("id", req.params.id)
+        .single();
+      if (error || !order) throw new Error("Nie znaleziono zamówienia");
+
+      const r = await fetch(`${CEEA_API}/book-mark-paid`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": CEEA_ADMIN_KEY,
+        },
+        body: JSON.stringify({
+          orderId: req.params.id,
+          orderNumber: order.order_number,
+        }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(json.error || "Błąd serwisu płatności");
+
+      res.redirect(
+        `${ADMIN_PREFIX}/platnosci?success=${encodeURIComponent(
+          json.alreadyPaid
+            ? "To zamówienie było już oznaczone jako opłacone."
+            : "Zaksięgowano wpłatę. Klient otrzymał mail z potwierdzeniem."
         )}`
       );
     } catch (err) {

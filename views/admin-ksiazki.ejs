@@ -12,7 +12,6 @@
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <% const q = locals.query || {}; %>
 
-        <%# ── komunikaty POZA kartą ── %>
         <% if (q.success) { %>
           <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
         <% } %>
@@ -20,15 +19,11 @@
           <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
         <% } %>
 
-        <%# ═════ BIAŁY PROSTOKĄT MODUŁU ═════ %>
         <section class="module-card p-4 sm:p-5">
 
-          <%# Rząd akcji — TUTAJ się zamyka, zaraz po przycisku %>
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex flex-wrap items-center justify-end gap-3 mb-5">
             <button onclick="openBookModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj książkę</button>
           </div>
-
-          <%# Filtry jako szary element wewnątrz karty (zamiast starej białej kartki) %>
           <div class="module-item p-4 sm:p-5 mb-5">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
               <div>
@@ -59,12 +54,10 @@
             </div>
           </div>
 
-          <%# Tabela %>
           <div id="booksTable"></div>
 
         </section>
 
-        <%# ═════ MODAL — poza kartą, przed zamknięciem main ═════ %>
         <div id="bookModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeBookModal()"></div>
           <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -146,8 +139,6 @@
             </form>
           </div>
         </div>
-          </div>
-        </section>
       </main>
     </div>
 
@@ -185,7 +176,7 @@
           { key: '_cover', label: 'Okładka', sortable: false,
             csvValue: r => r.image_url || '',
             render: p => p.image_url
-              ? `<img src="${p.image_url}" alt="" loading="lazy" class="w-10 h-14 object-cover rounded shadow-sm" onerror="this.outerHTML='<span class=\\'text-gray-300 text-xs\\'>brak</span>'" />`
+              ? `<img src="${p.image_url}" alt="" loading="lazy" class="w-10 h-14 object-cover rounded shadow-sm" onerror="this.outerHTML='<span class=\'text-gray-300 text-xs\'>brak</span>'" />`
               : '<span class="text-gray-300 dark:text-slate-600 text-xs">brak</span>' },
           { key: '_title', label: 'Tytuł / Autor',
             sortValue: r => (r.name || '').toLowerCase(),
@@ -215,7 +206,6 @@
         ],
       });
 
-      // ── Filtrowanie ──
       function render() {
         const s = document.getElementById('search').value.toLowerCase();
         const fa = document.getElementById('fAvail').value;
@@ -240,7 +230,6 @@
         table.setRows(rows);
       }
 
-      // ── Modal: dodaj (pusty) / edytuj (prefill) ──
       function openBookModal(id) {
         const form = document.querySelector('#bookModal form');
         form.reset();
@@ -280,7 +269,6 @@
       render();
     </script>
 <script>
-      // Upload okładki do Cloudinary (folder: books)
       (function () {
         var input = document.getElementById('fImageUrl');
         if (!input || !window.cloudinary) return;

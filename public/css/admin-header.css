@@ -519,3 +519,65 @@ h1, h2, h3 { letter-spacing: -0.02em; }
    .dark .row-menu-item:hover { background: rgba(148,163,184,.12); }
    .dark .row-menu-item.is-danger { color: #f87171; }
    .dark .row-menu-item.is-danger:hover { background: rgba(220,38,38,.12); }
+   
+   /* ── Timeline statusów (strona zamówienia) ── */
+   .steps { display: flex; }
+   .step {
+     flex: 1;
+     position: relative;
+     padding-top: 1.6rem;
+     text-align: center;
+     font-size: .75rem;
+     font-weight: 500;
+     color: #9ca3af;
+   }
+   .step::before {
+     content: '';
+     position: absolute;
+     top: .35rem;
+     left: 50%;
+     transform: translateX(-50%);
+     width: .8rem; height: .8rem;
+     border-radius: 9999px;
+     background: #e5e7eb;
+   }
+   .step::after {
+     content: '';
+     position: absolute;
+     top: .65rem;
+     left: calc(50% + .6rem);
+     right: calc(-50% + .6rem);
+     height: 2px;
+     background: #e5e7eb;
+   }
+   .step:last-child::after { display: none; }
+   .step.is-done { color: #374151; }
+   .step.is-done::before { background: #16a34a; }
+   .step.is-done::after { background: #16a34a; }
+   .step.is-current { color: #111827; font-weight: 700; }
+   .step.is-current::before { background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, .15); }
+   
+   .dark .step { color: #64748b; }
+   .dark .step::before, .dark .step::after { background: #334155; }
+   .dark .step.is-done { color: #cbd5e1; }
+   .dark .step.is-done::before, .dark .step.is-done::after { background: #16a34a; }
+   .dark .step.is-current { color: #fff; }
+   .dark .step.is-current::before { background: #dc2626; }
+
+
+   /* ── Przełącznik (switch) ── */
+.switch { position: relative; display: inline-block; width: 2.75rem; height: 1.5rem; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: #d1d5db; transition: background .2s ease; cursor: pointer;
+}
+.switch .slider::before {
+  content: ''; position: absolute; top: .1875rem; left: .1875rem;
+  width: 1.125rem; height: 1.125rem; border-radius: 999px;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  transition: transform .2s ease;
+}
+.switch input:checked + .slider { background: #dc2626; }
+.switch input:checked + .slider::before { transform: translateX(1.25rem); }
+.dark .switch .slider { background: #475569; }

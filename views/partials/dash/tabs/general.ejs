@@ -1,0 +1,18 @@
+<%
+  const fmtMoney = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
+%>
+
+<%# Hero — główne liczby %>
+<%- include('../../dash/hero-stats') %>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+  <div class="space-y-6">
+    <%- include('../../dash/charts') %>
+  </div>
+  <div class="space-y-6">
+    <%- include('../../dash/courses') %>
+    <%- include('../../dash/infra') %>
+  </div>
+</div>
+
+<%- include('../../dash/activity') %>

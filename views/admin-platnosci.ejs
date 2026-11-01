@@ -23,15 +23,27 @@
         <% const query = locals.query || {}; %> <%# ── Komunikaty POZA kartą ──
         %> <% if (query.success) { %>
         <div
-          class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"
+          class="mb-5 flex items-center gap-3 rounded-2xl border border-green-200 dark:border-green-500/25 bg-green-50/70 dark:bg-green-500/10 px-4 py-3 shadow-sm"
         >
-          <%= query.success %>
+          <span
+            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-600 dark:text-green-300 text-sm font-semibold"
+            >✓</span
+          >
+          <p class="text-sm font-medium text-green-800 dark:text-green-200">
+            <%= query.success %>
+          </p>
         </div>
         <% } %> <% if (query.error) { %>
         <div
-          class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"
+          class="mb-5 flex items-center gap-3 rounded-2xl border border-red-200 dark:border-red-500/25 bg-red-50/70 dark:bg-red-500/10 px-4 py-3 shadow-sm"
         >
-          <%= query.error %>
+          <span
+            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-600 dark:text-red-300 text-sm font-semibold"
+            >!</span
+          >
+          <p class="text-sm font-medium text-red-800 dark:text-red-200">
+            <%= query.error %>
+          </p>
         </div>
         <% } %> <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki Kursy / Książki ═════
         %>
@@ -56,23 +68,36 @@
           <%# ══════ PANEL: KURSY ══════ %>
           <div data-panel-content="courses">
             <div class="module-item p-4 sm:p-5 mb-5 no-print">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between">
                 <h2
                   class="text-sm font-semibold text-gray-700 dark:text-slate-300"
                 >
                   Filtry
                 </h2>
-                <button
-                  type="button"
-                  onclick="clearFilters()"
-                  class="btn btn-xs btn-ghost"
-                >
-                  Wyczyść filtry ✕
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onclick="clearFilters()"
+                    class="btn btn-xs btn-ghost"
+                  >
+                    Wyczyść filtry ✕
+                  </button>
+                  <button
+                    type="button"
+                    onclick="toggleFilters('courseFiltersBody', this)"
+                    class="btn btn-xs btn-ghost lg:hidden"
+                    aria-expanded="false"
+                    aria-controls="courseFiltersBody"
+                  >
+                    Pokaż
+                    <span class="chev inline-block transition-transform">▾</span>
+                  </button>
+                </div>
               </div>
 
               <div
-                class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4"
+                id="courseFiltersBody"
+                class="hidden lg:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4 mt-4"
               >
                 <div class="sm:col-span-2">
                   <label
@@ -106,7 +131,7 @@
                   >
                     <option value="all">Wszystkie kursy</option>
                     <% courses.forEach(c => { %>
-                    <option value="<%= c.id %>"><%= c.nameCourse %></option>
+                    <option value="<%= c.course_id || c.id %>"><%= c.title || c.nameCourse %></option>
                     <% }) %>
                   </select>
                 </div>
@@ -181,23 +206,36 @@
           <%# ══════ PANEL: KSIĄŻKI ══════ %>
           <div data-panel-content="books" class="hidden">
             <div class="module-item p-4 sm:p-5 mb-5 no-print">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between">
                 <h2
                   class="text-sm font-semibold text-gray-700 dark:text-slate-300"
                 >
                   Filtry
                 </h2>
-                <button
-                  type="button"
-                  onclick="clearBookFilters()"
-                  class="btn btn-xs btn-ghost"
-                >
-                  Wyczyść filtry ✕
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onclick="clearBookFilters()"
+                    class="btn btn-xs btn-ghost"
+                  >
+                    Wyczyść filtry ✕
+                  </button>
+                  <button
+                    type="button"
+                    onclick="toggleFilters('bookFiltersBody', this)"
+                    class="btn btn-xs btn-ghost lg:hidden"
+                    aria-expanded="false"
+                    aria-controls="bookFiltersBody"
+                  >
+                    Pokaż
+                    <span class="chev inline-block transition-transform">▾</span>
+                  </button>
+                </div>
               </div>
 
               <div
-                class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4"
+                id="bookFiltersBody"
+                class="hidden lg:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-4 mt-4"
               >
                 <div class="sm:col-span-2">
                   <label
@@ -372,6 +410,9 @@
            let allPayments = <%- JSON.stringify(payments) %>;
            let allBookOrders = <%- JSON.stringify(typeof bookOrders !== 'undefined' ? bookOrders : []) %>;
            const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null) %>;
+           // Ostatnio wyświetlane (przefiltrowane) wiersze — na nich działa eksport CSV
+           let lastPayments = [];
+           let lastBookOrders = [];
 
            // ═════════════ PANELE: KURSY / KSIĄŻKI ═════════════
            (function () {
@@ -484,6 +525,7 @@
                      label: 'Zapłacono', primary: true,
                      formAction: `<%= adminPrefix %>/platnosci/${p.id}/zaplacono`,
                      confirm: 'Oznaczyć jako zapłacone? Kursant otrzyma mail z potwierdzeniem.',
+                     confirmOk: 'Tak, zaksięguj',
                    });
                    if (!p.invoices) actions.push({ label: 'Faktura', onclick: `openInvoiceModal('${p.id}')` });
                    else actions.push({ label: 'Pobierz PDF', href: `<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf` });
@@ -516,6 +558,7 @@
                return matchSearch && matchStatus && matchCourse && matchInvoice && matchFrom && matchTo;
              });
 
+             lastPayments = filtered;
              table.setRows(filtered);
            }
 
@@ -618,7 +661,9 @@
            // Dynamiczna lista statusów do filtra (z tego, co realnie jest w bazie)
            (function populateBookStatuses() {
              const sel = document.getElementById('bStatus');
-             const uniq = [...new Set(allBookOrders.map(o => o.status).filter(Boolean))];
+             // pełna lista znanych statusów (żeby "Opłacone" było widoczne od razu)
+             // + ewentualne inne statusy, które realnie są w bazie
+             const uniq = [...new Set([...Object.keys(bookStatusLabel), ...allBookOrders.map(o => o.status).filter(Boolean)])];
              uniq.forEach(st => {
                const opt = document.createElement('option');
                opt.value = st;
@@ -656,10 +701,18 @@
                  csvValue: r => r.order_number || '',
                  render: o => `<div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>` },
                { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
-                 render: o => rowActions([
-                   { label: 'Szczegóły', onclick: `openBookOrderDetails('${o.id}')` },
-                   ...(o.resume_url ? [{ label: 'Podgląd ↗', href: o.resume_url }] : []),
-                 ]) },
+                 render: o => {
+                   const actions = [];
+                   if (!['paid', 'shipped', 'completed'].includes(o.status)) actions.push({
+                     label: 'Zapłacono', primary: true,
+                     formAction: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/zaplacono`,
+                     confirm: 'Oznaczyć zamówienie jako opłacone? Wysyłka zostanie odblokowana.',
+                     confirmOk: 'Tak, zaksięguj',
+                   });
+                   actions.push({ label: 'Szczegóły', href: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}` });
+                   if (o.resume_url) actions.push({ label: 'Podgląd ↗', href: o.resume_url });
+                   return rowActions(actions);
+                 } },
              ],
            });
 
@@ -683,50 +736,12 @@
                return matchS && matchSt && matchD && matchFrom && matchTo;
              });
 
+             lastBookOrders = filtered;
              booksTable.setRows(filtered);
            }
 
            ['bSearch','bStatus','bDelivery','bDateFrom','bDateTo']
              .forEach(id => document.getElementById(id).addEventListener('input', renderBookOrders));
-
-           // ── Modal szczegółów zamówienia książki ──
-           function boRow(label, value) {
-             return `<div class="flex justify-between gap-4 py-1.5 border-b border-gray-100 dark:border-slate-700/60">
-               <span class="text-gray-500 dark:text-slate-400">${label}</span>
-               <span class="font-medium text-gray-900 dark:text-white text-right break-all">${value || '—'}</span>
-             </div>`;
-           }
-           function openBookOrderDetails(id) {
-             const o = allBookOrders.find(x => x.id === id);
-             if (!o) return;
-             const st = bookStatusLabel[o.status] || o.status || '—';
-             const items = Array.isArray(o.items) && o.items.length
-               ? o.items.map(i => `${i.title || i.name || 'Pozycja'}${(Number(i.qty || i.quantity) || 1) > 1 ? ' ×' + (i.qty || i.quantity) : ''}`).join('<br>')
-               : '—';
-             const addr = [o.street, o.city && [o.postcode, o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-
-             document.getElementById('bookOrderBody').innerHTML = `
-               ${boRow('Numer zamówienia', o.order_number)}
-               ${boRow('Status', st)}
-               ${boRow('Data złożenia', fmtDate(o.created_at))}
-               ${boRow('Klient', `${o.name || ''} ${o.surname || ''}`)}
-               ${boRow('Email', o.email)}
-               ${boRow('Telefon', o.phone)}
-               ${boRow('Dostawa', `${deliveryLabel[deliveryKind(o)] || o.delivery_method || ''}${o.parcel_locker_code ? ' · ' + o.parcel_locker_code : ''}`)}
-               ${boRow('Adres', addr)}
-               ${boRow('Książki', items)}
-               ${boRow('Kwota', fmtMoney(o.amount))}
-               ${o.notes ? boRow('Notatki', o.notes) : ''}
-               ${o.external_id ? boRow('ID zewnętrzne', o.external_id) : ''}
-               ${o.resume_url ? `<a href="${o.resume_url}" target="_blank" rel="noopener" class="btn btn-xs btn-edit">Podgląd zamówienia ↗</a>` : ''}
-             `;
-             document.getElementById('bookOrderModal').classList.remove('hidden');
-             document.getElementById('bookOrderModal').classList.add('flex');
-           }
-           function closeBookOrderModal() {
-             document.getElementById('bookOrderModal').classList.add('hidden');
-             document.getElementById('bookOrderModal').classList.remove('flex');
-           }
 
            function clearBookFilters() {
              document.getElementById('bSearch').value = '';
@@ -736,6 +751,149 @@
              document.getElementById('bDateTo').value = '';
              renderBookOrders();
            }
+           // ═════════════ PEŁNY EKSPORT CSV (wszystkie pola, nie tylko kolumny tabeli) ═════════════
+           // Separator ";" + BOM — poprawnie otwiera się w polskim Excelu
+           function csvEscape(v) {
+             if (v === null || v === undefined) return '';
+             const s = String(v);
+             return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+           }
+           function csvNum(n) {
+             const x = Number(n);
+             return isNaN(x) ? '' : x.toFixed(2).replace('.', ',');
+           }
+           function downloadCsv(filename, headers, rows) {
+             const lines = [headers.join(';')].concat(rows.map(r => r.map(csvEscape).join(';')));
+             const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+             const a = document.createElement('a');
+             a.href = URL.createObjectURL(blob);
+             a.download = filename;
+             document.body.appendChild(a);
+             a.click();
+             a.remove();
+             URL.revokeObjectURL(a.href);
+           }
+
+           // Eksportuje wiersze aktualnie widoczne w tabeli (po filtrach)
+           function exportCoursesCsv() {
+             downloadCsv(
+               'platnosci-kursy-pelne.csv',
+               ['Data','Uczestnik','E-mail','Telefon','Kurs','Kwota (zł)','Status','Metoda',
+                'Nr faktury','Faktura: nazwa','Faktura: NIP','Faktura: adres',
+                'ID płatności','Numer zamówienia'],
+               lastPayments.map(p => {
+                 const d = invoiceData(p);
+                 const addr = [
+                   [d.street, d.numberHome].filter(Boolean).join(' '),
+                   [d.zipCode, d.city].filter(Boolean).join(' '),
+                 ].filter(Boolean).join(', ');
+                 return [
+                   fmtDate(p.created_at),
+                   `${p.users?.name || ''} ${p.users?.surname || ''}`.trim(),
+                   p.users?.email || '',
+                   p.users?.phone || '',
+                   courseName(p),
+                   csvNum(p.amount),
+                   statusLabel[p.status] || p.status || '',
+                   methodLabel[p.method] || p.method || '',
+                   p.invoices ? p.invoices.invoice_number : '',
+                   d.name, d.nip, addr,
+                   p.id || '',
+                   p.order_number || '',
+                 ];
+               })
+             );
+           }
+
+           function exportBookOrdersCsv() {
+             const itemsText = items => (Array.isArray(items) ? items : []).map(i => {
+               const t = i.title || i.name || 'Pozycja';
+               const q = Number(i.qty || i.quantity) || 1;
+               const price = (i.price !== undefined && i.price !== null && i.price !== '')
+                 ? ` po ${csvNum(i.price)} zł` : '';
+               return `${t} ×${q}${price}`;
+             }).join(', ');
+             const itemsQty = items => (Array.isArray(items) ? items : [])
+               .reduce((s, i) => s + (Number(i.qty || i.quantity) || 1), 0);
+             downloadCsv(
+               'platnosci-ksiazki-pelne.csv',
+               ['Numer zamówienia','Data','Imię','Nazwisko','E-mail','Telefon',
+                'Metoda dostawy','Paczkomat','Ulica','Kod pocztowy','Miasto',
+                'Pozycje','Sztuk łącznie','Kwota (zł)','Status',
+                'Status InPost','Nr śledzenia','Rozmiar paczki','Data wysyłki',
+                'ID zewnętrzne','Notatki','Link do płatności'],
+               lastBookOrders.map(o => [
+                 o.order_number || '',
+                 fmtDate(o.created_at),
+                 o.name || '',
+                 o.surname || '',
+                 o.email || '',
+                 o.phone || '',
+                 deliveryLabel[deliveryKind(o)] || o.delivery_method || '',
+                 o.parcel_locker_code || '',
+                 o.street || '',
+                 o.postcode || '',
+                 o.city || '',
+                 itemsText(o.items),
+                 itemsQty(o.items),
+                 csvNum(o.amount),
+                 bookStatusLabel[o.status] || o.status || '',
+                 o.inpost_status || '',
+                 o.tracking_number || '',
+                 o.parcel_size || '',
+                 o.shipped_at ? fmtDate(o.shipped_at) : '',
+                 o.external_id || '',
+                 o.notes || '',
+                 o.resume_url || '',
+               ])
+             );
+           }
+
+           // ═════════════ FILTRY: zwijanie na mobile/tablet (desktop zawsze widoczny) ═════════════
+           function toggleFilters(bodyId, btn) {
+             const body = document.getElementById(bodyId);
+             if (!body) return;
+             const open = !body.classList.toggle('hidden'); // toggle zwraca true = ukryty
+             btn.setAttribute('aria-expanded', String(open));
+             if (btn.firstChild && btn.firstChild.nodeType === 3) {
+               btn.firstChild.textContent = open ? 'Ukryj ' : 'Pokaż ';
+             }
+             const chev = btn.querySelector('.chev');
+             if (chev) chev.classList.toggle('rotate-180', open);
+           }
+
+           // ═════════════ Wbudowany "Eksport CSV" w nagłówku tabeli → PEŁNY eksport ═════════════
+           // Przycisk DataTable ma stały atrybut [data-dt-csv] — przechwytujemy po nim
+           // (odporne na tekst etykiety), w fazie capture, przed handlerem DataTable.
+           function hijackCsvExport(containerId, exportFn) {
+             const el = document.getElementById(containerId);
+             if (!el) return;
+             el.addEventListener('click', (e) => {
+               const btn = e.target.closest('[data-dt-csv]');
+               if (!btn || !el.contains(btn)) return;
+               e.preventDefault();
+               e.stopPropagation();
+               exportFn();
+             }, true);
+           }
+           hijackCsvExport('paymentsTable', exportCoursesCsv);
+           hijackCsvExport('bookOrdersTable', exportBookOrdersCsv);
+
+           (function relabelBuiltinCsvButtons() {
+             const relabel = () => {
+               document
+                 .querySelectorAll('#paymentsTable [data-dt-csv], #bookOrdersTable [data-dt-csv]')
+                 .forEach(el => {
+                   if (!/pełny/i.test(el.textContent)) el.textContent = '⬇ Eksport pełny CSV';
+                 });
+             };
+             relabel();
+             ['paymentsTable', 'bookOrdersTable'].forEach(id => {
+               const el = document.getElementById(id);
+               if (el) new MutationObserver(relabel).observe(el, { childList: true, subtree: true });
+             });
+           })();
+
            document.getElementById('tabCountCourses').textContent = allPayments.length;
            document.getElementById('tabCountBooks').  textContent = allBookOrders.length;
            // ── start ──

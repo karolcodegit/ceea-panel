@@ -1,0 +1,38 @@
+<%
+  const fmtDate = d => d ? new Date(d).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  const mailBadge = { sent: 'badge-green', failed: 'badge-red', queued: 'badge-amber', delivered: 'badge-green', bounced: 'badge-red' };
+%>
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+  <div class="stat-tile">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span>
+    <div><p class="stat-tile-label">Wysłane (30 dni)</p><p class="stat-tile-value"><%= dash.mails.sent30 %></p></div>
+  </div>
+  <div class="stat-tile <%= dash.mails.failed30 ? 'ring-1 ring-red-400/60' : '' %>">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></span>
+    <div><p class="stat-tile-label">Błędy (30 dni)</p><p class="stat-tile-value <%= dash.mails.failed30 ? 'text-red-600 dark:text-red-400' : '' %>"><%= dash.mails.failed30 %></p></div>
+  </div>
+  <div class="stat-tile">
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+    <div><p class="stat-tile-label">W kolejce</p><p class="stat-tile-value"><%= dash.mails.queued %></p></div>
+  </div>
+</div>
+
+<section class="module-card p-5">
+  <h2 class="module-title mb-4">Ostatnia aktywność e-mail</h2>
+  <% if (!(dash.mails.recent || []).length) { %>
+    <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-6">Brak logów.</p>
+  <% } else { %>
+    <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
+      <% dash.mails.recent.forEach(m => { %>
+        <li class="flex items-center gap-3 py-2.5">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate"><%= m.recipient_email || '—' %></p>
+          </div>
+          <span class="badge <%= mailBadge[m.status] || 'badge-gray' %> shrink-0"><%= m.status %></span>
+          <span class="text-[11px] text-gray-400 dark:text-slate-500 whitespace-nowrap shrink-0"><%= fmtDate(m.created_at) %></span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>

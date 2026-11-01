@@ -1,0 +1,16 @@
+<%# Sekcja: INFRASTRUKTURA — status usług %>
+<section class="module-card p-5 mb-6">
+  <h2 class="module-title mb-2">Infrastruktura</h2>
+  <ul class="divide-y divide-gray-100 dark:divide-slate-700/60">
+    <% (dash.infra || []).forEach(i => { %>
+      <li class="flex items-center gap-3 py-2.5">
+        <span class="w-2.5 h-2.5 rounded-full shrink-0 <%= i.ok ? 'bg-green-500' : 'bg-red-500' %>"></span>
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-gray-900 dark:text-slate-100 text-sm"><%= i.name %></p>
+          <p class="text-xs text-gray-500 dark:text-slate-400 truncate"><%= i.desc %></p>
+        </div>
+        <span class="badge <%= i.ok ? 'badge-green' : 'badge-red' %> shrink-0"><%= i.ok ? 'OK' : 'Błąd' %></span>
+      </li>
+    <% }) %>
+  </ul>
+</section>
