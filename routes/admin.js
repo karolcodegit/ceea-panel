@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
-const { fetchAllCourses } = require("../config/datocms");
 const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
 const secrets = require("../services/secrets");
@@ -205,7 +204,6 @@ const keyTargets = {
 router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
   const status = {
     supabase: false,
-    datocms: false,
     cloudinary: false,
     mailer: false,
   };
@@ -232,20 +230,22 @@ router.get("/ustawienia", adminOnly, requireAdmin, async (req, res) => {
     console.error("ustawienia/supabase:", err.message);
   }
 
-  try {
-    await fetchAllCourses();
-    status.datocms = true;
-  } catch (err) {
-    console.error("ustawienia/datocms:", err.message);
-  }
-
   status.cloudinary = !!(
     process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET
   );
   status.mailer = !!(
     process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN
   );
-  const keys = res.locals.adminUser?.isSuper ? await listKeys() : [];
+
+  // UWAGA: bez try/catch błąd w listKeys() (brak tabeli admin_api_keys,
+  // zły SECRETS_ENCRYPTION_KEY → decrypt rzuca) = unhandled rejection
+  // w async route → Express 4 ubija proces → "upstream connect error".
+  let keys = [];
+  try {
+    keys = res.locals.adminUser?.isSuper ? await listKeys() : [];
+  } catch (err) {
+    console.error("ustawienia/klucze:", err.message);
+  }
 
   res.render("admin-ustawienia", {
     isAdmin: true,
