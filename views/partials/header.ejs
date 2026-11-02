@@ -1,17 +1,20 @@
 <%
-  /* ═══════════════════════════════════════════════════════════════
-     HEADER — wspólny pasek górny (uczestnik + admin).
-     Zaczyna się ZA sidebarem (offset w admin-nav.ejs).
 
-     Tytuł/ikona/opis wybierane AUTOMATYCZNIE po locals.active
-     (przekazywanym w każdym route) na podstawie config/admin-modules.js.
-     Nadpisanie ręczne opcjonalne: pageTitle / pageIcon / pageSubtitle.
+/* ═══════════════════════════════════════════════════════════════
+    HEADER — wspólny pasek górny (uczestnik + admin).
+    Zaczyna się ZA sidebarem (offset w admin-nav.ejs).
 
-     Na stronie wystarczy: include('partials/admin-nav', { active: 'kursy' })
-     oraz goły include('partials/header') — bez przekazywania danych.
+    Tytuł/ikona/opis wybierane AUTOMATYCZNIE po locals.active
+    (przekazywanym w każdym route) na podstawie config/admin-modules.js.
+    Nadpisanie ręczne opcjonalne: pageTitle / pageIcon / pageSubtitle.
 
-     LEWA:  ikona + tytuł + opis · PRAWA: data · akcje · 🔔 (admin) · awatar
-     ═══════════════════════════════════════════════════════════════ */
+    Na stronie wystarczy: include('partials/admin-nav', { active: 'kursy' })
+    oraz goły include('partials/header') — bez przekazywania danych.
+
+    LEWA:  ikona + tytuł + opis · PRAWA: data · akcje · 🔔 (admin) · awatar
+    ═══════════════════════════════════════════════════════════════
+*/
+
   const _prefix = locals.adminPrefix || '';
   const _admin  = !!_prefix;
   const _icon   = locals.adminIcon || (() => '');
@@ -50,7 +53,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
         </svg>
       </button>
-
       <% if (_pageIcon) { %>
       <span class="hidden sm:flex w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">
         <%- _icon(_pageIcon) %>
@@ -60,8 +62,10 @@
         <h1 class="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">
           <%= _title %>
         </h1>
+        <%# Opis modułu — tylko desktop; na telefonie/tablecie zjadał miejsce
+            i ściskał prawą stronę paska (awatar). %>
         <% if (_subtitle) { %>
-        <p class="text-xs text-gray-500 dark:text-slate-400 truncate"><%= _subtitle %></p>
+        <p class="hidden md:block text-xs text-gray-500 dark:text-slate-400 truncate"><%= _subtitle %></p>
         <% } %>
       </div>
       <% } else { %>
@@ -76,7 +80,7 @@
     </div>
 
     <%# ── PRAWA: moduły ── %>
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <%- include('./header/date-chip') %>
       <%- include('./header/header-actions') %>
       <% if (_admin) { %>
