@@ -1,5 +1,6 @@
-<%# Sekcja: OSTATNIA AKTYWNOŚĆ (połączona) %>
-<section class="module-card p-5">
+<%# Sekcja: OSTATNIA AKTYWNOŚĆ (połączona) — szerokość 2/3 (stoi obok infra.ejs)
+    Dane: locals.dash.activity %>
+<section class="lg:col-span-2 module-card p-5">
   <h2 class="module-title mb-4">Ostatnia aktywność</h2>
   <% if (!(dash.activity || []).length) { %>
     <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-6">Brak aktywności.</p>

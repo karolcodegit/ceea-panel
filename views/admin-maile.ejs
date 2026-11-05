@@ -1,352 +1,651 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-  <%- include('partials/head') %>
-  <title>Maile — Panel CEEA</title>
-  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
-  <style>
-    .dark .ql-toolbar { background: #1e293b; border-color: #334155; }
-    .dark .ql-container { background: #0f172a; border-color: #334155; }
-    .dark .ql-editor { background: #0f172a; color: #e2e8f0; }
-    .dark .ql-editor.ql-blank::before { color: #64748b; }
-    .dark .ql-stroke { stroke: #94a3b8; }
-    .dark .ql-fill { fill: #94a3b8; }
-    .dark .ql-picker { color: #94a3b8; }
-    .dark .ql-picker-options { background: #1e293b; border-color: #334155; }
+  <head>
+    <%- include('partials/head') %>
+    <title>Maile — Panel CEEA</title>
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+    <style>
+      /* Karty wyboru szablonu */
+      .tpl-card {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 1px solid #e7e9ee;
+        border-radius: 1rem;
+        padding: 0.9rem 1rem;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      }
+      .tpl-card:hover { border-color: #fca5a5; }
+      .tpl-card.is-active {
+        border-color: #dc2626;
+        background: #fef2f2;
+        box-shadow: inset 0 0 0 1px #dc2626;
+      }
+      .dark .tpl-card { background: #0f172a; border-color: #263248; }
+      .dark .tpl-card:hover { border-color: #7f1d1d; }
+      .dark .tpl-card.is-active {
+        background: rgba(220, 38, 38, 0.08);
+        border-color: #dc2626;
+      }
+      /* Quill dopasowany do panelu */
+      .ql-toolbar.ql-snow {
+        border: 1px solid #e7e9ee;
+        border-radius: 0.75rem 0.75rem 0 0;
+        background: #f9fafb;
+      }
+      .ql-container.ql-snow {
+        border: 1px solid #e7e9ee;
+        border-top: 0;
+        border-radius: 0 0 0.75rem 0.75rem;
+        min-height: 180px;
+        font-size: 0.9rem;
+      }
+      .dark .ql-toolbar.ql-snow { background: #0f172a; border-color: #263248; }
+      .dark .ql-container.ql-snow { border-color: #263248; background: rgba(15, 23, 42, 0.6); color: #fff; }
+      .dark .ql-snow .ql-stroke { stroke: #94a3b8; }
+      .dark .ql-snow .ql-picker { color: #94a3b8; }
+      /* Przyciski akcji modułu maili */
+      .mail-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex: 1 1 0%;
+        padding: 0.7rem 1.25rem;
+        border-radius: 0.85rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        transition: background 0.15s, border-color 0.15s, color 0.15s,
+          transform 0.15s, box-shadow 0.15s;
+      }
+      .mail-btn svg { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+      .mail-btn:disabled { opacity: 0.6; cursor: wait; }
+      .mail-btn-neutral {
+        background: #fff;
+        border-color: #d1d5db;
+        color: #374151;
+      }
+      .mail-btn-neutral:hover {
+        border-color: #dc2626;
+        color: #dc2626;
+        background: #fef2f2;
+      }
+      .dark .mail-btn-neutral {
+        background: #0f172a;
+        border-color: #334155;
+        color: #e2e8f0;
+      }
+      .dark .mail-btn-neutral:hover {
+        border-color: #dc2626;
+        color: #f87171;
+        background: rgba(220, 38, 38, 0.08);
+      }
+      .mail-btn-primary {
+        background: #dc2626;
+        border-color: #dc2626;
+        color: #fff;
+        box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25),
+          0 4px 12px -4px rgba(220, 38, 38, 0.35);
+      }
+      .mail-btn-primary:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        transform: translateY(-1px);
+      }
+      .mail-btn-primary:active { transform: translateY(0); }
+      /* Szkielet ładowania pól */
+      .field-skeleton {
+        height: 2.75rem;
+        border-radius: 0.75rem;
+        background: #f3f4f6;
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      .dark .field-skeleton { background: #1e293b; }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'maile' }) %> <%-
+    include('partials/header') %>
 
-    .ql-editor { min-height: 280px; font-size: 15px; line-height: 1.6; }
-    .ql-toolbar { border-radius: 0.5rem 0.5rem 0 0; background: #f9fafb; }
-    .ql-container { border-radius: 0 0 0.5rem 0.5rem; }
-    .template-card { transition: all .15s; cursor: pointer; border: 1px solid transparent; }
-    .template-card:hover { border-color: #e5e7eb; background: #f9fafb; }
-    .dark .template-card:hover { border-color: #334155; background: rgba(148,163,184,.08); }
-    .template-card.active { border-color: #dc2626; background: #fef2f2; }
-    .dark .template-card.active { background: rgba(220,38,38,.12); }
-    .stat-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; }
-  </style>
-</head>
-<body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-  <%- include('partials/admin-nav', { active: 'maile' }) %>
-  <%- include('partials/header') %>
-
-  <div class="lg:pl-64 pt-16">
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-
-      <% if (sent) { %>
-        <div class="mb-4 p-4 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-500/20">
-          ✓ Dodano <strong><%= sent %></strong> maili do kolejki. Zostaną wysłane automatycznie (max 50/dzień).
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <% if (sent) { %>
+        <div
+          class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"
+        >
+          ✅ Dodano do kolejki: <strong><%= sent %></strong>
+          <%= Number(sent) === 1 ? 'wiadomość' : 'wiadomości' %>.
         </div>
-      <% } %>
-      <% if (error) { %>
-        <div class="mb-4 p-4 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-500/20">
-          ✗ <%= error %>
+        <% } %> <% if (error) { %>
+        <div
+          class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"
+        >
+          ❌ <%= error %>
         </div>
-      <% } %>
+        <% } %>
 
-      <%# Pasek statystyk %>
-      <div class="flex flex-wrap items-center justify-end gap-2 mb-5">
-        <div class="flex flex-wrap gap-2" id="stats-bar">
-          <span class="stat-pill bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">
-            📬 W kolejce: <b id="stat-pending"><%= stats.pending %></b>
-          </span>
-          <span class="stat-pill bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300">
-            ✅ Dziś wysłano: <b id="stat-today"><%= stats.sentToday %></b> / <%= stats.limit %>
-          </span>
-          <span class="stat-pill bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300">
-            ❌ Błędy: <b id="stat-failed"><%= stats.failed %></b>
-          </span>
+        <%# ── Nagłówek + statystyki kolejki ── %>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-white">
+              Maile do uczestników
+            </h1>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+              Szablon → dane z Supabase → edycja → podgląd → kolejka
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs font-medium">
+            <span
+              class="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+            >
+              📬 W kolejce: <strong id="chipPending"><%= stats.pending %></strong>
+            </span>
+            <span
+              class="px-3 py-1.5 rounded-full bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300"
+            >
+              ✅ Dziś wysłano:
+              <strong
+                ><span id="chipSent"><%= stats.sentToday %></span> /
+                <%= stats.limit %></strong
+              >
+            </span>
+            <span
+              class="px-3 py-1.5 rounded-full bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+            >
+              ❌ Błędy: <strong id="chipFailed"><%= stats.failed %></strong>
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- LEWA KOLUMNA -->
-        <div class="lg:col-span-1 space-y-6">
-
-          <!-- Szablony -->
-          <section class="module-card p-5">
-            <h2 class="module-title mb-3">Szablon</h2>
-            <div class="space-y-2">
-              <div class="template-card active p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50" data-template="invitation">
-                <div class="font-medium text-sm text-gray-900 dark:text-white">📩 Zaproszenie na kurs</div>
-                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Oficjalne zaproszenie z danymi kursu</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <%# ════ LEWA KOLUMNA: szablon + odbiorcy ════ %>
+          <div class="space-y-6">
+            <section class="module-card p-4 sm:p-5">
+              <h2
+                class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3"
+              >
+                Szablon
+              </h2>
+              <div class="space-y-2.5">
+                <% templates.forEach((t, i) => { %>
+                <button
+                  type="button"
+                  class="tpl-card <%= i === 0 ? 'is-active' : '' %>"
+                  data-tpl="<%= t.key %>"
+                >
+                  <span
+                    class="block text-sm font-semibold text-gray-900 dark:text-white"
+                    ><%= t.icon %> <%= t.name %></span
+                  >
+                  <span
+                    class="block text-xs text-gray-500 dark:text-slate-400 mt-0.5"
+                    ><%= t.description %></span
+                  >
+                </button>
+                <% }) %>
               </div>
-              <div class="template-card p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50" data-template="logistics">
-                <div class="font-medium text-sm text-gray-900 dark:text-white">📍 Informacje logistyczne</div>
-                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Miejsce, data, program</div>
-              </div>
-              <div class="template-card p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50" data-template="custom">
-                <div class="font-medium text-sm text-gray-900 dark:text-white">✏️ Własna treść</div>
-                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Pełna dowolność z edytorem</div>
-              </div>
-            </div>
-            <input type="hidden" name="templateKey" id="templateKey" value="invitation">
-          </section>
+            </section>
 
-          <!-- Odbiorcy -->
-          <section class="module-card p-5">
-            <h2 class="module-title mb-3">Odbiorcy</h2>
-            <select id="courseId" name="courseId" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-white transition-colors">
-              <option value="all">Wszyscy z aktywnym dostępem</option>
-              <option value="test">🧪 Test — karol.znojkiewicz@outlook.com</option>
-              <% courses.forEach(c => { %>
-                <option value="<%= c.id %>" data-name="<%= c.nameCourse %>" data-date="<%= c.date || '' %>">
-                  <%= c.nameCourse %>
+            <section class="module-card p-4 sm:p-5">
+              <h2
+                class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3"
+              >
+                Odbiorcy
+              </h2>
+              <select
+                id="courseId"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+              >
+                <option value="all">Wszyscy z aktywnym dostępem</option>
+                <% courses.forEach(c => { %>
+                <option value="<%= c.id %>">
+                  <%= c.title %><%= c.is_active ? ' (aktywny)' : '' %>
                 </option>
-              <% }) %>
-            </select>
-            <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">Wybierz "Test" żeby wysłać tylko na maila testowego.</p>
-          </section>
-
-        </div>
-
-        <!-- PRAWA KOLUMNA -->
-        <div class="lg:col-span-2 space-y-6">
-
-          <form id="mailForm" method="POST" action="<%= adminPrefix %>/maile" class="module-card p-5 sm:p-6 space-y-4">
-            <input type="hidden" name="templateKey" id="formTemplateKey" value="invitation">
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Temat</label>
-              <input type="text" name="subject" id="subjectInput" required
-                class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
-                placeholder="np. Zaproszenie na kurs Medycyna okołooperacyjna">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Preheader <span class="text-gray-400 dark:text-slate-500 font-normal text-xs">(tekst podglądu w skrzynce odbiorczej)</span>
-              </label>
-              <input type="text" name="preheader" id="preheaderInput"
-                class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm transition bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
-                placeholder="Krótki tekst widoczny w liście maili przed otwarciem...">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Treść maila <span class="text-gray-400 dark:text-slate-500 font-normal text-xs">(możesz dowolnie edytować poniższą treść)</span>
-              </label>
-              <div id="editor"></div>
-              <textarea name="bodyHtml" id="bodyHtmlInput" class="hidden"></textarea>
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="button" id="previewBtn" class="btn btn-sm btn-neutral flex-1">
-                👁 Podgląd
-              </button>
-              <button type="submit" id="submitBtn" class="btn btn-sm btn-primary flex-1">
-                🚀 Dodaj do kolejki
-              </button>
-            </div>
-          </form>
-
-          <!-- Podgląd -->
-          <div id="previewBox" class="hidden module-card overflow-hidden">
-            <div class="bg-gray-50 dark:bg-slate-700/50 px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-              <span class="text-xs font-semibold text-gray-600 dark:text-slate-300 uppercase tracking-wider">Podgląd maila</span>
-              <button onclick="document.getElementById('previewBox').classList.add('hidden')" class="text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 text-lg leading-none">&times;</button>
-            </div>
-            <iframe id="previewFrame" class="w-full h-[500px] border-0 bg-gray-100 dark:bg-slate-900"></iframe>
+                <% }) %>
+                <option value="test">🧪 TEST — tylko adres testowy</option>
+              </select>
+              <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">
+                Wybierz „TEST”, żeby wysłać tylko na maila testowego.
+              </p>
+              <p
+                id="courseHint"
+                class="text-xs text-gray-400 dark:text-slate-500 mt-1"
+              ></p>
+            </section>
           </div>
 
-        </div>
-      </div>
+          <%# ════ PRAWA KOLUMNA: treść maila ════ %>
+          <section class="lg:col-span-2 module-card p-4 sm:p-5">
+            <div class="mb-4">
+              <label
+                for="subject"
+                class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                >Temat</label
+              >
+              <input
+                type="text"
+                id="subject"
+                placeholder="Temat wiadomości…"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20"
+              />
+            </div>
 
-      <%# Ostatnia aktywność %>
-      <section class="module-card overflow-hidden mt-6">
-        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50 flex justify-between items-center">
-          <h3 class="module-title">Ostatnia aktywność</h3>
-          <span class="text-xs text-gray-400 dark:text-slate-500">Ostatnie 20 wpisów</span>
+            <div class="mb-4">
+              <label
+                for="preheader"
+                class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                >Preheader
+                <span class="font-normal"
+                  >(tekst podglądu w skrzynce odbiorczej)</span
+                ></label
+              >
+              <input
+                type="text"
+                id="preheader"
+                placeholder="Krótki tekst widoczny na liście maili przed otwarciem…"
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20"
+              />
+            </div>
+
+            <%# Pola generowane dynamicznie z szablonu %>
+            <div id="fieldsWrap" class="space-y-4 mb-5">
+              <div class="field-skeleton"></div>
+              <div class="field-skeleton"></div>
+              <div class="field-skeleton"></div>
+            </div>
+
+            <p class="text-xs text-gray-400 dark:text-slate-500 mb-5">
+              Zmiana szablonu lub kursu nadpisuje pola wartościami domyślnymi z
+              Supabase.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                id="btnPreview"
+                onclick="showPreview()"
+                class="mail-btn mail-btn-neutral"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Podgląd maila</span>
+              </button>
+              <button
+                type="button"
+                id="btnSend"
+                onclick="submitSend()"
+                class="mail-btn mail-btn-primary"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 2 11 13" />
+                  <path d="m22 2-7 20-4-9-9-4 20-7z" />
+                </svg>
+                <span>Dodaj do kolejki</span>
+              </button>
+            </div>
+          </section>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead class="text-xs text-gray-500 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-700/50">
-              <tr>
-                <th class="px-5 py-3 font-medium">Data</th>
-                <th class="px-5 py-3 font-medium">Odbiorca</th>
-                <th class="px-5 py-3 font-medium">Status</th>
-                <th class="px-5 py-3 font-medium">Wiadomość</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-              <% if (logs && logs.length > 0) { %>
-                <% logs.forEach(log => { %>
-                  <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition">
-                    <td class="px-5 py-3 text-gray-600 dark:text-slate-400 whitespace-nowrap">
-                      <%= new Date(log.created_at).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %>
-                    </td>
-                    <td class="px-5 py-3 text-gray-900 dark:text-white font-medium break-all"><%= log.recipient_email || '-' %></td>
-                    <td class="px-5 py-3">
-                      <% if (log.status === 'sent') { %>
-                        <span class="badge badge-green">Wysłano</span>
-                      <% } else if (log.status === 'failed') { %>
-                        <span class="badge badge-red">Błąd</span>
-                      <% } else { %>
-                        <span class="badge badge-gray"><%= log.status %></span>
-                      <% } %>
-                    </td>
-                    <td class="px-5 py-3 text-gray-600 dark:text-slate-400 max-w-xs truncate" title="<%= log.message %>"><%= log.message %></td>
-                  </tr>
-                <% }) %>
-              <% } else { %>
-                <tr>
-                  <td colspan="4" class="px-5 py-8 text-center text-gray-400 dark:text-slate-500 text-sm">Brak aktywności. Wyślij pierwszą kampanię mailową.</td>
+
+        <%# ════ OSTATNIA AKTYWNOŚĆ ════ %>
+        <section class="module-card p-4 sm:p-5 mt-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">
+              Ostatnia aktywność
+            </h2>
+            <span class="text-xs text-gray-400 dark:text-slate-500"
+              >Ostatnie 20 wpisów</span
+            >
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr
+                  class="text-left text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500 border-b border-gray-100 dark:border-slate-700"
+                >
+                  <th class="py-2 pr-4 font-medium">Data</th>
+                  <th class="py-2 pr-4 font-medium">Odbiorca</th>
+                  <th class="py-2 pr-4 font-medium">Status</th>
+                  <th class="py-2 font-medium">Wiadomość</th>
                 </tr>
-              <% } %>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <% if (!logs || logs.length === 0) { %>
+                <tr>
+                  <td
+                    colspan="4"
+                    class="py-6 text-center text-sm text-gray-400 dark:text-slate-500"
+                  >
+                    Brak wpisów — nic jeszcze nie wysłano.
+                  </td>
+                </tr>
+                <% } %> <% (logs || []).forEach(l => { %>
+                <% const st = (l.status || '').toLowerCase(); %>
+                <% const badge = st === 'sent'
+                  ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300'
+                  : (st === 'failed' || st === 'error'
+                    ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300'
+                    : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'); %>
+                <tr
+                  class="border-b border-gray-50 dark:border-slate-800 last:border-0"
+                >
+                  <td
+                    class="py-2.5 pr-4 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap"
+                  >
+                    <%= l.created_at ? new
+                    Date(l.created_at).toLocaleString('pl-PL', { day: '2-digit',
+                    month: '2-digit', hour: '2-digit', minute: '2-digit' }) :
+                    '—' %>
+                  </td>
+                  <td
+                    class="py-2.5 pr-4 text-gray-700 dark:text-slate-300 break-all"
+                  >
+                    <%= l.recipient_email || l.email || '—' %>
+                  </td>
+                  <td class="py-2.5 pr-4">
+                    <span
+                      class="inline-block px-2 py-0.5 rounded-full text-xs font-medium <%= badge %>"
+                      ><%= l.status || '—' %></span
+                    >
+                  </td>
+                  <td class="py-2.5 text-gray-500 dark:text-slate-400 text-xs">
+                    <%= l.subject || l.template_key || '—' %> <% if
+                    (l.error_message) { %>
+                    <span class="block text-red-500"><%= l.error_message %></span>
+                    <% } %>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <%# ════ MODAL PODGLĄDU — dokładny HTML maila ════ %>
+    <div id="previewModal" class="hidden fixed inset-0 z-50">
+      <div
+        class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onclick="closePreview()"
+      ></div>
+      <div
+        class="relative mx-auto my-5 w-[min(720px,94vw)] max-h-[94vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        <div
+          class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-slate-700"
+        >
+          <div class="min-w-0">
+            <p class="text-xs text-gray-400 dark:text-slate-500">
+              Podgląd — przykładowy odbiorca:
+              <strong id="previewSample">Anna</strong>
+            </p>
+            <p
+              id="previewSubject"
+              class="text-sm font-semibold text-gray-900 dark:text-white truncate"
+            ></p>
+          </div>
+          <button
+            type="button"
+            onclick="closePreview()"
+            class="btn btn-sm btn-neutral shrink-0"
+          >
+            ✕ Zamknij
+          </button>
         </div>
-      </section>
+        <iframe
+          id="previewFrame"
+          title="Podgląd maila"
+          class="flex-1 w-full"
+          style="min-height: 70vh; background: #f3f4f6"
+        ></iframe>
+      </div>
+    </div>
 
-    </main>
-  </div>
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <script>
+      const PREFIX = "<%= adminPrefix %>";
+      const $ = (id) => document.getElementById(id);
 
-  <script>
-    const quill = new Quill('#editor', {
-      theme: 'snow',
-      placeholder: 'Wybierz szablon lub wpisz własną treść...',
-      modules: {
-        toolbar: [
-          [{ 'header': [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline', 'strike'],
-          [{ 'color': [] }, { 'background': [] }],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          ['link'],
-          ['clean']
-        ]
-      }
-    });
+      const INPUT_CLS =
+        "w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20";
+      const LABEL_CLS =
+        "block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5";
+      const HINT_CLS = "text-xs text-gray-400 dark:text-slate-500 mt-1";
 
-    const debounce = (fn, ms) => {
-      let t;
-      return (...args) => {
-        clearTimeout(t);
-        t = setTimeout(() => fn(...args), ms);
-      };
-    };
+      let currentTemplate =
+        document.querySelector(".tpl-card.is-active")?.dataset.tpl || "invite";
+      let quill = null;
+      let quillKey = null;
 
-    const updatePreview = debounce(async () => {
-      const key = document.getElementById('templateKey').value;
-      const courseSelect = document.getElementById('courseId');
-      const courseOption = courseSelect.options[courseSelect.selectedIndex];
-      const courseTitle = courseOption.dataset.name || 'Kurs CEEA';
+      const escHtml = (v) =>
+        String(v ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c])
+        );
 
-      const res = await fetch('<%= adminPrefix %>/maile/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateKey: key,
-          courseTitle,
-          firstName: 'Jan',
-          bodyHtml: quill.root.innerHTML,
-          subject: document.getElementById('subjectInput').value,
-          preheader: document.getElementById('preheaderInput').value
-        })
+      // ── Wybór szablonu ──
+      document.querySelectorAll(".tpl-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tpl-card")
+            .forEach((c) => c.classList.remove("is-active"));
+          card.classList.add("is-active");
+          currentTemplate = card.dataset.tpl;
+          loadTemplateData();
+        });
       });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById('previewBox').classList.remove('hidden');
-        document.getElementById('previewFrame').srcdoc = data.html;
-      }
-    }, 800);
 
-    quill.on('text-change', updatePreview);
-    document.getElementById('subjectInput').addEventListener('input', updatePreview);
-    document.getElementById('preheaderInput').addEventListener('input', updatePreview);
+      $("courseId").addEventListener("change", loadTemplateData);
 
-    document.querySelectorAll('.template-card').forEach(card => {
-      card.addEventListener('click', async () => {
-        document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-
-        const key = card.dataset.template;
-        document.getElementById('templateKey').value = key;
-        document.getElementById('formTemplateKey').value = key;
-
-        if (key === 'custom') {
-          document.getElementById('subjectInput').value = '';
-          document.getElementById('preheaderInput').value = '';
-          quill.root.innerHTML = '';
-          quill.enable();
-          return;
-        }
-
-        const courseSelect = document.getElementById('courseId');
-        const courseOption = courseSelect.options[courseSelect.selectedIndex];
-        const courseId = courseSelect.value;
-        const courseName = courseOption.dataset.name || 'Kurs CEEA';
-        const courseDate = courseOption.dataset.date || '22-24.10.2026';
-
+      // ── Pola szablonu (dane z Supabase) ──
+      async function loadTemplateData() {
+        $("fieldsWrap").innerHTML =
+          '<div class="field-skeleton"></div><div class="field-skeleton"></div><div class="field-skeleton"></div>';
+        quill = null;
+        quillKey = null;
         try {
-          const res = await fetch('<%= adminPrefix %>/maile/template-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ templateKey: key, courseId, courseName, courseDate })
+          const res = await fetch(`${PREFIX}/maile/template-data`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              templateKey: currentTemplate,
+              courseId: $("courseId").value,
+            }),
           });
-          const data = await res.json();
+          const d = await res.json();
+          if (!d.ok) throw new Error(d.error || "Błąd ładowania szablonu");
 
-          if (data.ok) {
-            document.getElementById('subjectInput').value = data.subject;
-            document.getElementById('preheaderInput').value = data.preheader;
-            quill.root.innerHTML = data.bodyHtml;
-            quill.enable();
-            updatePreview();
-          }
+          $("subject").value = d.subject || "";
+          $("preheader").value = d.preheader || "";
+          $("courseHint").textContent = d.course
+            ? `Dane z kursu: ${d.course.title}`
+            : "Brak kursu w Supabase — uzupełnij pola ręcznie.";
+          renderFields(d.fields || []);
         } catch (e) {
-          console.error('Błąd ładowania szablonu:', e);
+          $("fieldsWrap").innerHTML = `<p class="text-sm text-red-600 dark:text-red-400">${escHtml(
+            e.message
+          )}</p>`;
         }
-      });
-    });
-
-    document.getElementById('courseId').addEventListener('change', () => {
-      const active = document.querySelector('.template-card.active');
-      if (active && active.dataset.template !== 'custom') {
-        active.click();
       }
-    });
 
-    document.getElementById('previewBtn').addEventListener('click', async () => {
-      const key = document.getElementById('templateKey').value;
-      const courseSelect = document.getElementById('courseId');
-      const courseTitle = courseSelect.options[courseSelect.selectedIndex].dataset.name || 'Kurs CEEA';
+      function renderFields(fields) {
+        $("fieldsWrap").innerHTML = fields
+          .map((f) => {
+            const hint = f.hint
+              ? `<p class="${HINT_CLS}">${escHtml(f.hint)}</p>`
+              : "";
+            if (f.type === "html") {
+              return `<div>
+                <label class="${LABEL_CLS}">${escHtml(f.label)}</label>
+                <div id="quillEditor"></div>
+                ${hint}
+              </div>`;
+            }
+            if (f.type === "textarea") {
+              return `<div>
+                <label class="${LABEL_CLS}">${escHtml(f.label)}</label>
+                <textarea data-field="${escHtml(f.key)}" rows="${
+                f.rows || 3
+              }" class="${INPUT_CLS} resize-y">${escHtml(f.value)}</textarea>
+                ${hint}
+              </div>`;
+            }
+            return `<div>
+              <label class="${LABEL_CLS}">${escHtml(f.label)}</label>
+              <input type="text" data-field="${escHtml(
+                f.key
+              )}" value="${escHtml(f.value)}" class="${INPUT_CLS}" />
+              ${hint}
+            </div>`;
+          })
+          .join("");
 
-      const res = await fetch('<%= adminPrefix %>/maile/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateKey: key,
-          courseTitle,
-          firstName: 'Jan',
-          bodyHtml: quill.root.innerHTML,
-          subject: document.getElementById('subjectInput').value,
-          preheader: document.getElementById('preheaderInput').value
-        })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById('previewBox').classList.remove('hidden');
-        document.getElementById('previewFrame').srcdoc = data.html;
-        document.getElementById('previewFrame').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Edytor Quill dla pola typu html (szablon "Własna treść")
+        const htmlField = fields.find((f) => f.type === "html");
+        if (htmlField && window.Quill) {
+          quillKey = htmlField.key;
+          quill = new Quill("#quillEditor", {
+            theme: "snow",
+            placeholder: "Wpisz treść wiadomości…",
+            modules: {
+              toolbar: [
+                ["bold", "italic", "underline"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                ["link"],
+                ["clean"],
+              ],
+            },
+          });
+          if (htmlField.value) quill.root.innerHTML = htmlField.value;
+        }
       }
-    });
 
-    document.getElementById('mailForm').addEventListener('submit', (e) => {
-      document.getElementById('bodyHtmlInput').value = quill.root.innerHTML;
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Dodawanie do kolejki...';
-    });
+      // ── Zbiór wartości pól ──
+      function collectValues() {
+        const v = {};
+        document
+          .querySelectorAll("#fieldsWrap [data-field]")
+          .forEach((el) => (v[el.dataset.field] = el.value));
+        if (quill && quillKey) v[quillKey] = quill.root.innerHTML;
+        return v;
+      }
 
-    setInterval(async () => {
-      try {
-        const res = await fetch('<%= adminPrefix %>/maile/stats');
-        const s = await res.json();
-        document.getElementById('stat-pending').textContent = s.pending;
-        document.getElementById('stat-today').textContent = s.sentToday;
-        document.getElementById('stat-failed').textContent = s.failed;
-      } catch(e) {}
-    }, 30000);
-  </script>
-</body>
+      // ── Podgląd (dokładny HTML maila w iframe) ──
+      async function showPreview() {
+        const btn = $("btnPreview");
+        const label = btn.querySelector("span");
+        btn.disabled = true;
+        label.textContent = "Renderowanie…";
+        try {
+          const res = await fetch(`${PREFIX}/maile/preview`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              templateKey: currentTemplate,
+              courseId: $("courseId").value,
+              subject: $("subject").value,
+              preheader: $("preheader").value,
+              values: collectValues(),
+            }),
+          });
+          const d = await res.json();
+          if (!d.ok) throw new Error(d.error || "Błąd podglądu");
+          $("previewSubject").textContent = d.subject || "(bez tematu)";
+          $("previewSample").textContent = d.sampleName || "Anna";
+          $("previewFrame").srcdoc = d.html;
+          $("previewModal").classList.remove("hidden");
+          document.body.style.overflow = "hidden";
+        } catch (e) {
+          alert("Podgląd nieudany: " + e.message);
+        } finally {
+          btn.disabled = false;
+          label.textContent = "Podgląd maila";
+        }
+      }
+
+      function closePreview() {
+        $("previewModal").classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closePreview();
+      });
+
+      // ── Dodaj do kolejki ──
+      function submitSend() {
+        const courseId = $("courseId").value;
+        const msg =
+          courseId === "test"
+            ? "Wysłać TEST na adres testowy?"
+            : courseId === "all"
+            ? "Dodać do kolejki dla WSZYSTKICH z aktywnym dostępem?"
+            : "Dodać do kolejki dla zapisanych na wybrany kurs?";
+        if (!confirm(msg)) return;
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = `${PREFIX}/maile`;
+        const add = (name, value) => {
+          const i = document.createElement("input");
+          i.type = "hidden";
+          i.name = name;
+          i.value = value;
+          form.appendChild(i);
+        };
+        add("courseId", courseId);
+        add("templateKey", currentTemplate);
+        add("subject", $("subject").value);
+        add("preheader", $("preheader").value);
+        add("values", JSON.stringify(collectValues()));
+        document.body.appendChild(form);
+        form.submit();
+      }
+
+      // ── Odświeżanie statystyk kolejki ──
+      async function refreshStats() {
+        try {
+          const res = await fetch(`${PREFIX}/maile/stats`);
+          const s = await res.json();
+          if (typeof s.pending !== "undefined")
+            $("chipPending").textContent = s.pending;
+          if (typeof s.sentToday !== "undefined")
+            $("chipSent").textContent = s.sentToday;
+          if (typeof s.failed !== "undefined")
+            $("chipFailed").textContent = s.failed;
+        } catch {}
+      }
+      setInterval(refreshStats, 15000);
+
+      // ── start ──
+      loadTemplateData();
+    </script>
+  </body>
 </html>

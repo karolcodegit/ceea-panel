@@ -4,74 +4,91 @@
     <%- include('partials/head') %>
     <title>Panel administratora — CEEA</title>
   </head>
-  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors">
-    <%- include('partials/admin-nav', { active: 'home' }) %>
-    <%- include('partials/header') %>
+  <body
+    class="min-h-screen bg-gray-50 dark:bg-[#0B1120] dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-slate-900 dark:via-[#0f172a] dark:to-[#020617] transition-colors"
+  >
+    <%- include('partials/admin-nav', { active: 'home' }) %> <%-
+    include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <section class="module-card p-4 sm:p-5">
+          <%# ═══ Moduły dashboardu — nowa zakładka = nowy partial w dash/tabs/
+          ═══ %>
+          <div class="tabs mb-6" data-tabs-panels>
+            <a href="#" class="tabs-tab is-active" data-panel="general"
+              >Ogólne</a
+            >
+            <a href="#" class="tabs-tab" data-panel="books">Książki</a>
+            <a href="#" class="tabs-tab" data-panel="mails">Maile</a>
+            <%# kolejne moduły:
+            <a href="#" class="tabs-tab" data-panel="courses">Kursy</a> %>
+            <span class="tabs-ink" aria-hidden="true"></span>
+          </div>
 
-        <%# ═══ Moduły dashboardu — nowa zakładka = nowy partial w dash/tabs/ ═══ %>
-        <div class="tabs mb-6" data-tabs-panels>
-          <a href="#" class="tabs-tab is-active" data-panel="general">Ogólne</a>
-          <a href="#" class="tabs-tab" data-panel="books">Książki</a>
-          <a href="#" class="tabs-tab" data-panel="mails">Maile</a>
-          <%# kolejne moduły: <a href="#" class="tabs-tab" data-panel="courses">Kursy</a> %>
-          <span class="tabs-ink" aria-hidden="true"></span>
-        </div>
+          <%# ── MODUŁ: OGÓLNE ── %>
+          <div data-panel-content="general">
+            <%- include('partials/dash/tabs/general') %>
+          </div>
 
-        <%# ── MODUŁ: OGÓLNE ── %>
-        <div data-panel-content="general">
-          <%- include('partials/dash/tabs/general') %>
-        </div>
+          <%# ── MODUŁ: KSIĄŻKI ── %>
+          <div data-panel-content="books" class="hidden">
+            <%- include('partials/dash/tabs/books') %>
+          </div>
 
-        <%# ── MODUŁ: KSIĄŻKI ── %>
-        <div data-panel-content="books" class="hidden">
-          <%- include('partials/dash/tabs/books') %>
-        </div>
-
-        <%# ── MODUŁ: MAILE ── %>
-        <div data-panel-content="mails" class="hidden">
-          <%- include('partials/dash/tabs/mails') %>
-        </div>
-
+          <%# ── MODUŁ: MAILE ── %>
+          <div data-panel-content="mails" class="hidden">
+            <%- include('partials/dash/tabs/mails') %>
+          </div>
+        </section>
       </main>
     </div>
 
     <script>
       // wykresy słupkowe
-      document.querySelectorAll('#visitsChart [data-h], #bookOrdersChart [data-h]').forEach(function (el) {
-        el.style.height = el.dataset.h + '%';
-      });
+      document
+        .querySelectorAll("#visitsChart [data-h], #bookOrdersChart [data-h]")
+        .forEach(function (el) {
+          el.style.height = el.dataset.h + "%";
+        });
 
       // przełączanie modułów (zakładki)
       (function () {
-        var root = document.querySelector('[data-tabs-panels]');
+        var root = document.querySelector("[data-tabs-panels]");
         if (!root) return;
-        var ink = root.querySelector('.tabs-ink');
-        var tabs = root.querySelectorAll('.tabs-tab');
+        var ink = root.querySelector(".tabs-ink");
+        var tabs = root.querySelectorAll(".tabs-tab");
         function moveInk(el) {
           if (!el || !ink) return;
-          ink.style.left = el.offsetLeft + 'px';
-          ink.style.width = el.offsetWidth + 'px';
+          ink.style.left = el.offsetLeft + "px";
+          ink.style.width = el.offsetWidth + "px";
         }
         tabs.forEach(function (t) {
-          t.addEventListener('click', function (e) {
+          t.addEventListener("click", function (e) {
             e.preventDefault();
-            tabs.forEach(function (x) { x.classList.remove('is-active'); });
-            t.classList.add('is-active');
-            moveInk(t);
-            document.querySelectorAll('[data-panel-content]').forEach(function (p) {
-              p.classList.toggle('hidden', p.dataset.panelContent !== t.dataset.panel);
+            tabs.forEach(function (x) {
+              x.classList.remove("is-active");
             });
+            t.classList.add("is-active");
+            moveInk(t);
+            document
+              .querySelectorAll("[data-panel-content]")
+              .forEach(function (p) {
+                p.classList.toggle(
+                  "hidden",
+                  p.dataset.panelContent !== t.dataset.panel
+                );
+              });
           });
         });
-        moveInk(root.querySelector('.tabs-tab.is-active') || tabs[0]);
-        window.addEventListener('resize', function () {
-          moveInk(root.querySelector('.tabs-tab.is-active'));
+        moveInk(root.querySelector(".tabs-tab.is-active") || tabs[0]);
+        window.addEventListener("resize", function () {
+          moveInk(root.querySelector(".tabs-tab.is-active"));
         });
         if (document.fonts && document.fonts.ready) {
-          document.fonts.ready.then(function () { moveInk(root.querySelector('.tabs-tab.is-active')); });
+          document.fonts.ready.then(function () {
+            moveInk(root.querySelector(".tabs-tab.is-active"));
+          });
         }
       })();
     </script>

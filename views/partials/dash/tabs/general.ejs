@@ -1,18 +1,22 @@
-<%
-  const fmtMoney = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
-%>
+<%# ═══════════════════════════════════════════════════════════════
+    ZAKŁADKA: OGÓLNE — sam układ; treść w partials/dash/*.ejs
 
-<%# Hero — główne liczby %>
-<%- include('../../dash/hero-stats') %>
+    1. hero-stats  — pasek 6 statystyk + aktywny kurs
+    2. charts      — wykres odwiedzin (cała szerokość)
+    3. top-pages | dash-ga4     (po połowie)
+    4. activity  | infra        (2/3 + 1/3)
+    ═══════════════════════════════════════════════════════════════ %>
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-  <div class="space-y-6">
-    <%- include('../../dash/charts') %>
-  </div>
-  <div class="space-y-6">
-    <%- include('../../dash/courses') %>
-    <%- include('../../dash/infra') %>
-  </div>
+<%- include('../hero-stats.ejs') %>
+
+<%- include('../../dash/charts.ejs') %>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+  <%- include('../../dash/top-pages.ejs') %>
+  <%- include('../../dash/dash-ga4.ejs') %>
 </div>
 
-<%- include('../../dash/activity') %>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+  <%- include('../../dash/activity') %>
+  <%- include('../../dash/infra') %>
+</div>

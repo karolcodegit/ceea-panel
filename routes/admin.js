@@ -52,15 +52,54 @@ router.get("/", adminOnly, async (req, res) => {
 
   try {
     const monthAgo = new Date(Date.now() - 30 * 864e5);
+    const twoWeeksAgo = new Date(Date.now() - 14 * 864e5);
+
+    // Wszystkie niezależne zapytania lecą RÓWNOLEGLE (Promise.all) —
+    // wcześniej ~20 zapytań szło sekwencyjnie i stąd kilka sekund ładowania.
+    const [
+      { data: courses },
+      { count: enrollCount },
+      { data: activeCourse },
+      { data: paidPayments },
+      { count: usersCount },
+      { data: bookRows },
+      { data: bookOrders },
+      { data: paidBookOrders },
+      { count: awaitingBookOrders },
+      { data: bookOrders14 },
+      { data: lowBooks },
+      { count: sentMails },
+      { count: failedMails },
+      { count: queuedMails },
+      { data: recentMails },
+      { data: views },
+      { data: recentEnroll },
+      { data: recentPay },
+    ] = await Promise.all([
+      supabase.from("courses").select("course_id, title, available, is_archive"),
+      supabase.from("enrollments").select("id", { count: "exact", head: true }),
+      supabase.from("courses").select("course_id, title").eq("is_active", true).maybeSingle(),
+      supabase.from("payments").select("amount").eq("status", "paid").gte("created_at", monthAgo.toISOString()),
+      supabase.from("users").select("id", { count: "exact", head: true }),
+      supabase.from("books").select("id, name, stock_quantity"),
+      supabase.from("book_orders").select("id, order_number, email, amount, status, items, created_at").order("created_at", { ascending: false }).limit(5),
+      supabase.from("book_orders").select("amount, items, status").eq("status", "paid"),
+      supabase.from("book_orders").select("id", { count: "exact", head: true }).in("status", ["new", "awaiting_payment", "awaiting_transfer"]),
+      supabase.from("book_orders").select("created_at").gte("created_at", twoWeeksAgo.toISOString()),
+      supabase.from("books").select("name, stock_quantity").order("stock_quantity", { ascending: true }).limit(5),
+      supabase.from("mail_logs").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", monthAgo.toISOString()),
+      supabase.from("mail_logs").select("id", { count: "exact", head: true }).eq("status", "failed").gte("created_at", monthAgo.toISOString()),
+      supabase.from("mail_queue").select("id", { count: "exact", head: true }),
+      supabase.from("mail_logs").select("recipient_email, status, created_at").order("created_at", { ascending: false }).limit(8),
+      supabase.from("page_views").select("path, created_at").gte("created_at", monthAgo.toISOString()),
+      supabase.from("enrollments").select("created_at, users(email, name, surname), courses(title)").order("created_at", { ascending: false }).limit(5),
+      supabase.from("payments").select("created_at, amount, status, users(email)").order("created_at", { ascending: false }).limit(5),
+    ]);
 
     // ── KURSY ──
-    const { data: courses } = await supabase.from("courses").select("course_id, title, available, is_archive");
-    const { count: enrollCount } = await supabase.from("enrollments").select("id", { count: "exact", head: true });
-    const { data: activeCourse } = await supabase.from("courses").select("course_id, title").eq("is_active", true).maybeSingle();
     const { count: activePart } = activeCourse
       ? await supabase.from("enrollments").select("id", { count: "exact", head: true }).eq("course_id", activeCourse.course_id)
       : { count: 0 };
-    const { data: paidPayments } = await supabase.from("payments").select("amount").eq("status", "paid").gte("created_at", monthAgo.toISOString());
 
     dash.courses.total = (courses || []).length;
     dash.courses.enrollments = enrollCount || 0;
@@ -69,16 +108,10 @@ router.get("/", adminOnly, async (req, res) => {
     dash.courses.revenue = (paidPayments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
     // ── UŻYTKOWNICY ──
-    const { count: usersCount } = await supabase.from("users").select("id", { count: "exact", head: true });
     dash.usersTotal = usersCount || 0;
 
     // ── KSIĄŻKI ──
-    // UWAGA: jeśli Twoja tabela książek nazywa się inaczej (np. "products"), zmień poniżej.
-    const { data: bookRows } = await supabase.from("books").select("id, name, stock_quantity");
-    const { data: bookOrders } = await supabase.from("book_orders").select("id, order_number, email, amount, status, items, created_at").order("created_at", { ascending: false }).limit(5);
-    const { data: paidBookOrders } = await supabase.from("book_orders").select("amount, items, status").eq("status", "paid");
-    const { count: awaitingBookOrders } = await supabase.from("book_orders").select("id", { count: "exact", head: true }).in("status", ["new", "awaiting_payment", "awaiting_transfer"]);
-
+    // UWAGA: jeśli Twoja tabela książek nazywa się inaczej (np. "products"), zmień zapytania w Promise.all powyżej.
     const qty = (items) => (Array.isArray(items) ? items : []).reduce((s, i) => s + (Number(i.qty || i.quantity) || 1), 0);
     dash.books.titles = (bookRows || []).length;
     dash.books.soldUnits = (paidBookOrders || []).reduce((s, o) => s + qty(o.items), 0);
@@ -88,8 +121,6 @@ router.get("/", adminOnly, async (req, res) => {
     dash.books.recentOrders = bookOrders || [];
 
     // wykres zamówień książek — 14 dni
-    const { data: bookOrders14 } = await supabase.from("book_orders")
-      .select("created_at").gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString());
     const boAll = bookOrders14 || [];
     const nowBooks = new Date();
     for (let i = 13; i >= 0; i--) {
@@ -111,23 +142,15 @@ router.get("/", adminOnly, async (req, res) => {
       .map(([title, count]) => ({ title, count }));
 
     // niski stan magazynowy (lista z nazwami)
-    const { data: lowBooks } = await supabase.from("books")
-      .select("name, stock_quantity").order("stock_quantity", { ascending: true }).limit(5);
     dash.books.lowList = (lowBooks || []).filter(b => Number(b.stock_quantity) <= 5);
 
     // ── MAILE (lokalne logi; w przyszłości: sync MailerSend activity) ──
-    const { count: sentMails } = await supabase.from("mail_logs").select("id", { count: "exact", head: true }).eq("status", "sent").gte("created_at", monthAgo.toISOString());
-    const { count: failedMails } = await supabase.from("mail_logs").select("id", { count: "exact", head: true }).eq("status", "failed").gte("created_at", monthAgo.toISOString());
-    const { count: queuedMails } = await supabase.from("mail_queue").select("id", { count: "exact", head: true });
     dash.mails.sent30 = sentMails || 0;
     dash.mails.failed30 = failedMails || 0;
     dash.mails.queued = queuedMails || 0;
-    const { data: recentMails } = await supabase.from("mail_logs")
-      .select("recipient_email, status, created_at").order("created_at", { ascending: false }).limit(8);
     dash.mails.recent = recentMails || [];
 
-    // ── ODWIEDZINY ──
-    const { data: views } = await supabase.from("page_views").select("path, created_at").gte("created_at", monthAgo.toISOString());
+    // ── ODWIEDZINY (własny licznik page_views; GA4 doładowuje się osobno, async) ──
     const all = views || [];
     const now = new Date();
     const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
@@ -148,8 +171,6 @@ router.get("/", adminOnly, async (req, res) => {
     dash.topPages = Object.entries(byPath).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([path, count]) => ({ path, count }));
 
     // ── OSTATNIA AKTYWNOŚĆ ──
-    const { data: recentEnroll } = await supabase.from("enrollments").select("created_at, users(email, name, surname), courses(title)").order("created_at", { ascending: false }).limit(5);
-    const { data: recentPay } = await supabase.from("payments").select("created_at, amount, status, users(email)").order("created_at", { ascending: false }).limit(5);
     const acts = [
       ...(recentEnroll || []).map(e => ({ date: e.created_at, icon: "🎓", label: `Zapis: ${e.users?.name || ""} ${e.users?.surname || ""}`.trim(), sub: e.courses?.title || "", href: ADMIN_PREFIX + "/kursy" })),
       ...(dash.books.recentOrders || []).map(o => ({ date: o.created_at, icon: "📚", label: `Zamówienie książek: ${o.order_number || o.email}`, sub: `${qty(o.items)} szt · ${Number(o.amount).toFixed(2)} zł`, href: ADMIN_PREFIX + "/platnosci" })),
@@ -158,11 +179,7 @@ router.get("/", adminOnly, async (req, res) => {
     dash.activity = acts.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
     // ── INFRASTRUKTURA ──
-    let sbOk = false;
-    try {
-      const { error } = await supabase.from("users").select("id", { count: "exact", head: true });
-      sbOk = !error;
-    } catch (e) {}
+    const sbOk = usersCount !== null && usersCount !== undefined;
     dash.infra = [
       { name: "Supabase", ok: sbOk, desc: "Baza danych" },
       { name: "MailerSend", ok: !!(process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN), desc: "Wysyłka e-maili" },
@@ -182,6 +199,18 @@ router.get("/", adminOnly, async (req, res) => {
     active: "home",
     dash
   });
+});
+
+
+// ===== GA4 — statystyki Analytics dla pulpitu (JSON, ładowane async z frontu) =====
+router.get("/analytics-ga4", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const ga4 = require("../services/ga4");
+    res.json((await ga4.getDashboardStats()) || { configured: false });
+  } catch (err) {
+    console.error("pulpit/ga4:", err.message);
+    res.json({ configured: false, error: true });
+  }
 });
 
 // ===== USTAWIENIA ADMINA =====

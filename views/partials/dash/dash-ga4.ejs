@@ -1,0 +1,129 @@
+<%# Sekcja: GOOGLE ANALYTICS 4 — ładowana asynchronicznie (GET <prefix>/analytics-ga4)
+    Pulpit renderuje się od razu; ten blok pokazuje szkielet i dopełnia się sam.
+    Liczby użytkowników dziś/7/30 są przy wykresie odwiedzin — tutaj tylko dane,
+    których własny licznik nie ma: nowi użytkownicy, sesje, czas, źródła, urządzenia.
+    Dane: services/ga4.js (cache 10 min). %>
+<section class="module-card p-5 sm:p-6" id="ga4Section">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+    <div>
+      <h2 class="module-title">Google Analytics</h2>
+      <p class="text-sm text-gray-500 dark:text-slate-400">Ostatnie 30 dni · ceea.org.pl</p>
+    </div>
+    <a href="https://analytics.google.com/analytics/web/" target="_blank" rel="noopener"
+       class="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline shrink-0">Pełny raport ↗</a>
+  </div>
+
+  <%# ── Szkielet podczas ładowania ── %>
+  <div id="ga4Loading" class="animate-pulse" aria-hidden="true">
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="h-16 rounded-xl bg-gray-100 dark:bg-slate-800"></div>
+      <div class="h-16 rounded-xl bg-gray-100 dark:bg-slate-800"></div>
+      <div class="h-16 rounded-xl bg-gray-100 dark:bg-slate-800"></div>
+    </div>
+    <div class="h-28 rounded-xl bg-gray-100 dark:bg-slate-800 mb-4"></div>
+    <div class="h-20 rounded-xl bg-gray-100 dark:bg-slate-800"></div>
+  </div>
+
+  <%# ── Dane ── %>
+  <div id="ga4Content" class="hidden">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="module-item p-3 text-center">
+        <p class="text-lg font-bold text-red-600 dark:text-red-400" id="ga4New">–</p>
+        <p class="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">nowych użytkowników</p>
+      </div>
+      <div class="module-item p-3 text-center">
+        <p class="text-lg font-bold text-gray-900 dark:text-white" id="ga4Sessions">–</p>
+        <p class="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">sesji</p>
+      </div>
+      <div class="module-item p-3 text-center">
+        <p class="text-lg font-bold text-gray-900 dark:text-white" id="ga4Engage">–</p>
+        <p class="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">śr. czas</p>
+      </div>
+    </div>
+
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-3">Źródła ruchu</p>
+    <div id="ga4Sources"></div>
+
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mt-5 mb-3">Urządzenia</p>
+    <div id="ga4Devices"></div>
+
+    <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-4" id="ga4Meta"></p>
+  </div>
+
+  <%# ── Brak konfiguracji / błąd ── %>
+  <div id="ga4Empty" class="hidden text-center py-6">
+    <p class="text-sm text-gray-500 dark:text-slate-400">GA4 nie jest jeszcze podpięte do pulpitu.</p>
+    <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Uzupełnij GA4_PROPERTY_ID, GA4_CLIENT_EMAIL i GA4_PRIVATE_KEY w env panelu, zainstaluj @google-analytics/data i zrestartuj serwis.</p>
+  </div>
+</section>
+
+<script>
+(function () {
+  var loading = document.getElementById('ga4Loading');
+  var content = document.getElementById('ga4Content');
+  var empty = document.getElementById('ga4Empty');
+  if (!loading) return;
+
+  var fmt = function (n) { return new Intl.NumberFormat('pl-PL').format(n || 0); };
+  var fmtTime = function (sec) {
+    sec = Math.round(sec || 0);
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m ? (m + ' min ' + s + ' s') : (s + ' s');
+  };
+  var CHANNELS = {
+    'Organic Search': 'Wyszukiwarka (Google)',
+    'Direct': 'Wejścia bezpośrednie',
+    'Referral': 'Odesłania z innych stron',
+    'Organic Social': 'Media społecznościowe',
+    'Paid Search': 'Reklamy Google',
+    'Paid Social': 'Reklamy social',
+    'Email': 'E-mail',
+    'Display': 'Reklamy display',
+    'Unassigned': 'Inne',
+    '(other)': 'Inne'
+  };
+  var DEVICES = { desktop: 'Komputer', mobile: 'Telefon', tablet: 'Tablet', tv: 'TV' };
+
+  function barRows(el, rows, names) {
+    if (!rows.length) {
+      el.innerHTML = '<p class="text-sm text-gray-400 dark:text-slate-500">Brak danych.</p>';
+      return;
+    }
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.count); }, 1);
+    el.innerHTML = rows.map(function (r) {
+      var pct = Math.max(4, Math.round((r.count / max) * 100));
+      return '<div class="mb-3 last:mb-0">'
+        + '<div class="flex items-baseline justify-between gap-3 text-xs mb-1">'
+        + '<span class="text-gray-600 dark:text-slate-300 truncate">' + (names[r.name] || r.name) + '</span>'
+        + '<span class="font-semibold text-gray-900 dark:text-white shrink-0">' + fmt(r.count) + '</span>'
+        + '</div>'
+        + '<div class="h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">'
+        + '<div class="h-full rounded-full bg-red-500/80 dark:bg-red-500/70" style="width:' + pct + '%"></div>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  fetch('<%= adminPrefix %>/analytics-ga4', { headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      loading.classList.add('hidden');
+      if (!d || !d.configured) { empty.classList.remove('hidden'); return; }
+
+      document.getElementById('ga4New').textContent = fmt(d.newUsers30);
+      document.getElementById('ga4Sessions').textContent = fmt(d.sessions30);
+      document.getElementById('ga4Engage').textContent = fmtTime(d.avgEngagementSec);
+
+      barRows(document.getElementById('ga4Sources'), d.sources || [], CHANNELS);
+      barRows(document.getElementById('ga4Devices'), d.devices || [], DEVICES);
+
+      document.getElementById('ga4Meta').textContent =
+        'Aktualizacja: ' + new Date(d.fetchedAt).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+      content.classList.remove('hidden');
+    })
+    .catch(function () {
+      loading.classList.add('hidden');
+      empty.classList.remove('hidden');
+    });
+})();
+</script>

@@ -1,89 +1,155 @@
-const wrap = require("./layout");
-const invitation = require("./bodies/invitation");
-// const payment = require("./bodies/payment");
-const logistics = require("./bodies/logistics");
-const custom = require("./bodies/custom");
+// ═══════════════════════════════════════════════════════════════
+// services/email/index.js — API modułu mailowego panelu
+//
+// listTemplates()                          → lista szablonów do widoku
+// getTemplateDefaults(key, courseId)       → { subject, preheader, fields[], course }
+//                                             (dane domyślne z Supabase)
+// renderTemplate(key, { subject, preheader, values, course, recipient })
+//                                          → { subject, preheader, html, text }
+// fetchCourseForTemplates(courseId)        → kurs z Supabase (albo aktywny)
+// ═══════════════════════════════════════════════════════════════
 
-// ── Konwersja HTML → plain text (obniża spam score) ──
-function htmlToText(html) {
-  let text = html
-    .replace(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, url, inner) => {
-      const clean = inner.replace(/<[^>]+>/g, "").trim();
-      return clean ? `${clean} (${url})` : url;
-    })
-    .replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, "\n\n$1\n\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<p[^>]*>/gi, "")
-    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "• $1\n")
-    .replace(/<\/?(ul|ol)[^>]*>/gi, "\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/?(b|strong)>/gi, "**")
-    .replace(/<\/?(i|em)>/gi, "_")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+const supabase = require("../../config/supabase");
+const { TEMPLATES } = require("./templates");
 
-  const year = new Date().getFullYear();
-  text += `\n\n--\n`;
-  text += `Europejska Fundacja ds. Szkolenia w Anestezjologii\n`;
-  text += `ul. Sokolnicka 56, 62-021 Paczkowo\n`;
-  text += `NIP: 777-314-61-00 | REGON: 301341024 | KRS: 0000347155\n`;
-  text += `© ${year} CEEA Poznań. Wszelkie prawa zastrzeżone.\n`;
-  text += `W razie pytań: sekretariat@ceea.org.pl | tel. 61 869 13 57`;
-
-  return text;
-}
-
-const templates = {
-  invitation: {
-    body: invitation,
-    defaultSubject: ({ courseTitle }) => `Zaproszenie na kurs ${courseTitle}`,
-    defaultPreheader: ({ courseTitle }) => `Zaproszenie na kurs ${courseTitle} – CEEA Poznań`,
-  },
-  // payment_reminder: {
-  //   body: payment,
-  //   defaultSubject: ({ courseTitle }) => `Przypomnienie o płatności – ${courseTitle}`,
-  //   defaultPreheader: ({ courseTitle }) => `Prosimy o uregulowanie wpisowego na kurs ${courseTitle}`,
-  // },
-  logistics: {
-    body: logistics,
-    defaultSubject: ({ courseTitle }) => `Szczegóły kursu ${courseTitle}`,
-    defaultPreheader: ({ courseTitle }) => `Miejsce, godziny i program kursu ${courseTitle}`,
-  },
-  custom: {
-    body: custom,
-    defaultSubject: () => "",
-    defaultPreheader: () => "",
-  },
+const ALIASES = {
+  invite: "invite",
+  invitation: "invite",
+  zaproszenie: "invite",
+  logistics: "logistics",
+  logistic: "logistics",
+  logistyka: "logistics",
+  info: "logistics",
+  custom: "custom",
+  own: "custom",
+  free: "custom",
+  wlasne: "custom",
+  "własne": "custom",
 };
 
-function renderTemplate(key, data, customBodyHtml = null) {
-  const tpl = templates[key];
-  if (!tpl) throw new Error(`Nieznany szablon: ${key}`);
+function getTemplate(key) {
+  const tpl = TEMPLATES[ALIASES[String(key || "").toLowerCase()]];
+  if (!tpl) {
+    throw new Error(
+      `Nieznany szablon maila: "${key}". Dostępne: ${Object.keys(TEMPLATES).join(
+        ", "
+      )}`
+    );
+  }
+  return tpl;
+}
 
-  // Dla "custom" bierzemy treść z edytora, dla reszty predefiniowaną
-  const bodyContent = key === "custom" ? (customBodyHtml || "") : tpl.body(data);
-  const subject = data.subject || tpl.defaultSubject(data);
-  const preheader = data.preheader || tpl.defaultPreheader(data);
+function listTemplates() {
+  return Object.values(TEMPLATES).map(({ key, name, description, icon }) => ({
+    key,
+    name,
+    description,
+    icon,
+  }));
+}
 
+// ── Daty po polsku ──
+const MONTHS_PL = [
+  "stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca",
+  "lipca", "sierpnia", "września", "października", "listopada", "grudnia",
+];
+
+const fmtDay = (d) => `${d.getDate()} ${MONTHS_PL[d.getMonth()]} ${d.getFullYear()}`;
+
+function formatDateRangePL(start, end) {
+  if (!start) return "";
+  const s = new Date(start);
+  if (Number.isNaN(s.getTime())) return "";
+  if (!end) return fmtDay(s);
+  const e = new Date(end);
+  if (Number.isNaN(e.getTime())) return fmtDay(s);
+  if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
+    return `${s.getDate()}–${e.getDate()} ${MONTHS_PL[s.getMonth()]} ${s.getFullYear()}`;
+  }
+  return `${fmtDay(s)} – ${fmtDay(e)}`;
+}
+
+// ── Kurs z Supabase ──
+// Konkretny courseId → ten kurs; "all" / "test" / brak → aktywny kurs
+// (jako źródło danych dynamicznych: tytuł, termin, miejsce).
+async function fetchCourseForTemplates(courseId) {
+  try {
+    let q = supabase.from("courses").select("*");
+    if (courseId && courseId !== "all" && courseId !== "test") {
+      const n = parseInt(courseId, 10);
+      q = q.eq("course_id", Number.isNaN(n) ? courseId : n);
+    } else {
+      q = q.eq("is_active", true);
+    }
+    const { data, error } = await q
+      .order("start_date", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.error("email/kurs:", error.message);
+      return null;
+    }
+    const c = (data || [])[0];
+    if (!c) return null;
+    return {
+      id: c.course_id,
+      title: c.title || "Kurs CEEA",
+      location: c.location || "",
+      dateLabel: formatDateRangePL(c.start_date, c.end_date),
+      raw: c,
+    };
+  } catch (err) {
+    console.error("email/kurs:", err.message);
+    return null;
+  }
+}
+
+// ── Domyślne wartości pól dla szablonu + kursu ──
+async function getTemplateDefaults(templateKey, courseId) {
+  const tpl = getTemplate(templateKey);
+  const course = await fetchCourseForTemplates(courseId);
+  const d = tpl.defaults({ course });
   return {
-    subject,
-    preheader,
-    html: wrap(bodyContent, preheader),
-    text: htmlToText(bodyContent),
-    bodyContent, // surowe body (przydatne do edytora)
+    key: tpl.key,
+    name: tpl.name,
+    subject: d.subject,
+    preheader: d.preheader,
+    fields: tpl.fields.map((f) => ({ ...f, value: d.values[f.key] ?? "" })),
+    course: course
+      ? {
+          id: course.id,
+          title: course.title,
+          dateLabel: course.dateLabel,
+          location: course.location,
+        }
+      : null,
   };
 }
 
-// Zwraca domyślne wartości szablonu (do wypełnienia edytora)
-function getTemplateDefaults(key, data) {
-  const tpl = templates[key];
-  if (!tpl) return null;
-  return {
-    subject: tpl.defaultSubject(data),
-    preheader: tpl.defaultPreheader(data),
-    bodyHtml: key === "custom" ? "" : tpl.body(data),
-  };
+// ── Renderowanie maila ──
+// Puste subject/preheader → wartości domyślne szablonu.
+function renderTemplate(
+  templateKey,
+  { subject, preheader, values = {}, course = null, recipient = {} } = {}
+) {
+  const tpl = getTemplate(templateKey);
+  const d = tpl.defaults({ course });
+  return tpl.render({
+    subject: (subject || "").trim() || d.subject,
+    preheader: (preheader || "").trim() || d.preheader,
+    values,
+    course,
+    recipient: {
+      firstName: recipient.firstName || "",
+      lastName: recipient.lastName || "",
+      email: recipient.email || "",
+    },
+  });
 }
 
-module.exports = { renderTemplate, getTemplateDefaults, htmlToText, templates };
+module.exports = {
+  listTemplates,
+  getTemplate,
+  getTemplateDefaults,
+  renderTemplate,
+  fetchCourseForTemplates,
+};

@@ -2,8 +2,28 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
-const { fetchAllCourses } = require("../config/datocms");
 const { renderTemplate, getTemplateDefaults } = require("../services/email");
+
+// Kursy z Supabase (po migracji z DatoCMS). Mapowanie zachowuje pola
+// title/nameCourse/id/course_id — widok admin-maile.ejs może używać dowolnego.
+async function fetchCourses() {
+  const { data, error } = await supabase
+    .from("courses")
+    .select("course_id, title, is_active, start_date")
+    .order("start_date", { ascending: false });
+  if (error) {
+    console.error("maile/kursy:", error.message);
+    return [];
+  }
+  return (data || []).map((c) => ({
+    id: c.course_id,
+    course_id: c.course_id,
+    title: c.title,
+    nameCourse: c.title,
+    is_active: c.is_active,
+    start_date: c.start_date,
+  }));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ===== MAILE =====
@@ -12,7 +32,7 @@ const { renderTemplate, getTemplateDefaults } = require("../services/email");
 // ── Strona główna modułu mailowego ──
 router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
   try {
-    const courses = await fetchAllCourses();
+    const courses = await fetchCourses();
     const queue = req.app.get("emailQueue");
 
     let stats = { pending: 0, sentToday: 0, failed: 0, limit: 50 };
@@ -37,7 +57,7 @@ router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("[GET /maile] Błąd:", err);
-    const courses = await fetchAllCourses().catch(() => []);
+    const courses = [];
     res.render("admin-maile", {
       isAdmin: true,
       active: "maile",
@@ -200,13 +220,14 @@ router.post("/maile", adminOnly, requireAdmin, async (req, res) => {
 
       const rendered = renderTemplate(templateKey, data, bodyHtml);
 
+      const courseIdNum = parseInt(courseId, 10);
       await queue.enqueue({
         recipientEmail: user.email,
         recipientName: `${user.name || ""} ${user.surname || ""}`.trim(),
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
-        courseId: courseId === "all" ? null : parseInt(courseId),
+        courseId: courseId === "all" || Number.isNaN(courseIdNum) ? null : courseIdNum,
         templateKey,
       });
       enqueued++;

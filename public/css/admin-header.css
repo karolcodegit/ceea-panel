@@ -453,6 +453,291 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 }
 
 
+/* ===== HELP PAGE ===== */
+.help-hero {
+  background: 
+    radial-gradient(at 40% 20%, rgba(185, 28, 28, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(185, 28, 28, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(185, 28, 28, 0.06) 0px, transparent 50%);
+}
+
+.help-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.help-card:hover {
+  transform: translateY(-4px);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s ease;
+}
+.faq-answer.open {
+  max-height: 600px;
+}
+
+.faq-chevron {
+  transition: transform 0.3s ease;
+}
+.faq-chevron.rotate {
+  transform: rotate(180deg);
+}
+
+.scroll-mt-24 {
+  scroll-margin-top: 6rem;
+}
+
+/* Privacy page */
+.scroll-mt-24 {
+  scroll-margin-top: 6rem;
+}
+
+@media print {
+  .toc-link { display: none; }
+  header { position: static; }
+  section { break-inside: avoid; }
+}
+
+.nf-shape-svg {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: min(92vw, 60rem);
+  animation: nf-sway 12s ease-in-out infinite alternate;
+}
+@keyframes nf-sway {
+  from { transform: translate(-50%, -50%) scale(1) rotate(-1.5deg); }
+  to   { transform: translate(-50%, -50%) scale(1.05) rotate(1.5deg); }
+}
+
+.nf-shape-svg--back {
+  width: min(98vw, 66rem);
+  opacity: .55;
+  animation-duration: 16s;
+  animation-direction: alternate-reverse;
+}
+
+
+/* admin */
+
+.admin-bg {
+  background: linear-gradient(
+    135deg,
+    #1e3a8a 0%,
+    #3b82f6 50%,
+    #1d4ed8 100%
+  );
+}
+/* Na małych ekranach dodaj gradientowe tło */
+@media (max-width: 1023px) {
+  body {
+    background: linear-gradient(
+      135deg,
+      #fef2f2 0%,
+      #ffffff 50%,
+      #fef2f2 100%
+    );
+    min-height: 100vh;
+  }
+  .mobile-decoration {
+    position: fixed;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .mobile-decoration-1 {
+    background: #dc2626;
+    top: -50px;
+    right: -50px;
+  }
+  .mobile-decoration-2 {
+    background: #3b82f6;
+    bottom: -50px;
+    left: -50px;
+  }
+}
+.login-view {
+  display: none;
+}
+.login-view.active {
+  display: block;
+  animation: viewIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spinner w przycisku */
+.btn-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ikona "wysłano" */
+.sent-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto;
+}
+.sent-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.35);
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes popIn {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.sent-ring {
+  position: absolute;
+  inset: -10px;
+  border: 2px dashed rgba(220, 38, 38, 0.4);
+  border-radius: 50%;
+  animation: ringSpin 14s linear infinite;
+}
+@keyframes ringSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sent-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 3px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: badgeIn 0.4s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes badgeIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.sent-envelope {
+  animation: floatY 3s 0.6s ease-in-out infinite;
+}
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-view.active,
+  .sent-circle,
+  .sent-badge,
+  .sent-ring,
+  .sent-envelope {
+    animation: none;
+  }
+}
+
+/* end admin */
+
+
+
+/* --- Widoki logowania --- */
+.login-view {
+  display: none;
+}
+.login-view.active {
+  display: block;
+  animation: viewIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+
+
+@media (prefers-reduced-motion: reduce) {
+  .login-view.active,
+  .sent-circle,
+  .sent-badge,
+  .sent-ring,
+  .sent-envelope {
+    animation: none;
+  }
+}
+
+
+
+
+
+
+/* Efekt "shine" na kartach w dark mode */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    transition: left 0.7s;
+  }
+  .glass-card:hover::before {
+    left: 100%;
+  }
+}
+
 
 
 
@@ -590,4 +875,92 @@ select {
   background-position: right 0.75rem center !important;
   background-size: 1rem !important;
   padding-right: 2.5rem !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PULPIT — nowocześniejsze karty (nakładka)
+   Dokleić NA KOŃCU głównego CSS panelu (po .module-card / .stat-tile)
+   albo zapisać jako osobny plik i podlinkować jako OSTATNI w head.ejs.
+   Nadpisuje tylko wygląd — markup zostaje bez zmian.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Karty modułów: większy radius, warstwowy cień, żywsza obwódka ── */
+.module-card {
+  border: 1px solid #e7e9ee;
+  border-radius: 1.25rem;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, .04),
+    0 8px 24px -12px rgba(16, 24, 40, .10);
+  transition: box-shadow .25s ease, border-color .25s ease;
+}
+.module-card:hover {
+  border-color: #dde1e8;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, .05),
+    0 14px 34px -12px rgba(16, 24, 40, .14);
+}
+.dark .module-card {
+  background: rgba(15, 23, 42, .65);
+  border-color: #263248; /* jaśniejsza obwódka — karta "wychodzi" z ciemnego tła */
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, .5);
+}
+.dark .module-card:hover {
+  border-color: #334155;
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .6);
+}
+
+/* ── Kafelki statystyk: uniesienie na hover, ikona w barwie brandu ── */
+.stat-tile {
+  border: 1px solid #e7e9ee;
+  border-radius: 1rem;
+  padding: 1rem 1.125rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.stat-tile:hover {
+  transform: translateY(-2px);
+  border-color: #dde1e8;
+  box-shadow: 0 10px 24px -10px rgba(16, 24, 40, .15);
+}
+.dark .stat-tile { border-color: #263248; }
+.dark .stat-tile:hover { border-color: #334155; }
+
+.stat-tile-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: .625rem;
+  background: #fef2f2;   /* czerwony pastelowy spód — spójny z brandem CEEA */
+  color: #dc2626;
+}
+.dark .stat-tile-icon {
+  background: rgba(220, 38, 38, .14);
+  color: #f87171;
+}
+.stat-tile-label { font-size: .78rem; font-weight: 500; letter-spacing: .01em; }
+.stat-tile-value { font-size: 1.3rem; letter-spacing: -0.02em; }
+
+/* ── Tytuły sekcji: odrobinę większe i ścieśnione ── */
+.module-title { font-size: 1rem; letter-spacing: -0.01em; }
+
+/* ── Elementy wewnętrzne kart (mini-kafelki GA4 itp.) ── */
+.module-item { border-radius: .875rem; }
+.dark .module-item { border-color: #263248; }
+
+/* ── Słupki wykresów: gradient + delikatna reakcja na hover ── */
+#visitsChart > div,
+#bookOrdersChart > div {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 55%, #dc2626 100%);
+  border-radius: .375rem .375rem 0 0;
+  transition: filter .15s ease, transform .15s ease;
+}
+#visitsChart > div:hover,
+#bookOrdersChart > div:hover {
+  filter: brightness(1.07);
+  transform: scaleY(1.02);
+  transform-origin: bottom;
+}
+.dark #visitsChart > div,
+.dark #bookOrdersChart > div {
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
 }

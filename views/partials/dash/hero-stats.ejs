@@ -1,8 +1,10 @@
 <%#
-  Pasek głównych statystyk: Kursy / Zapisy / Użytkownicy / Książki sprzedane / Przychód 30 dni
+  Pasek głównych statystyk + aktywny kurs.
+  6 kafelków: Kursy / Zapisy / Uczestnicy aktywnego / Użytkownicy / Książki / Przychód
+  (wchłania dane z dawnego courses.ejs — ten partial można usunąć).
   Dane: locals.dash
 %>
-<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 <%= dash.courses.activeTitle ? 'mb-4' : 'mb-6' %>">
   <div class="stat-tile">
     <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></span>
     <div><p class="stat-tile-label">Kursy</p><p class="stat-tile-value"><%= dash.courses.total %></p></div>
@@ -12,15 +14,24 @@
     <div><p class="stat-tile-label">Zapisy łącznie</p><p class="stat-tile-value"><%= dash.courses.enrollments %></p></div>
   </div>
   <div class="stat-tile">
-    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></span>
-    <div><p class="stat-tile-label">Użytkownicy</p><p class="stat-tile-value"><%= dash.usersTotal || '—' %></p></div>
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></span>
+    <div><p class="stat-tile-label">Uczestnicy aktywnego</p><p class="stat-tile-value text-red-600 dark:text-red-400"><%= dash.courses.activeParticipants %></p></div>
   </div>
   <div class="stat-tile">
-    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/></svg></span>
-    <div><p class="stat-tile-label">Książki sprzedane</p><p class="stat-tile-value"><%= dash.books.soldUnits %></p></div>
+    <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></span>
+    <div><p class="stat-tile-label">Użytkownicy</p><p class="stat-tile-value"><%= dash.usersTotal || '—' %></p></div>
   </div>
   <div class="stat-tile">
     <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg></span>
     <div><p class="stat-tile-label">Przychód 30 dni</p><p class="stat-tile-value text-sm pt-1"><%= new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(dash.courses.revenue + dash.books.revenue) %></p></div>
   </div>
 </div>
+
+<%# Pasek aktywnego kursu %>
+<% if (dash.courses.activeTitle) { %>
+  <div class="module-card px-4 py-3 mb-6 flex items-center gap-2.5 text-sm">
+    <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+    <span class="text-gray-500 dark:text-slate-400 shrink-0">Aktywny kurs:</span>
+    <span class="font-semibold text-gray-900 dark:text-white truncate"><%= dash.courses.activeTitle %></span>
+  </div>
+<% } %>

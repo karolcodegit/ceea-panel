@@ -6,11 +6,10 @@ const { grantAccess } = require("../services/access");
 
 // ═══════════════════════════════════════════════════════════════
 // ===== KURSY — pełny moduł (lista + definicja + materiały + uczestnicy)
-// Źródło: tabela courses (Supabase). DatoCMS nieużywane.
+// Źródło: tabela courses (Supabase)
 // ═══════════════════════════════════════════════════════════════
 
 // Normalizacja kursu do formatu, który oczekują widoki materials/uczestnicy
-// (dawniej obiekt DatoCMS: id / nameCourse / date / image.url / available)
 function toViewCourse(c) {
   if (!c) return null;
   return {

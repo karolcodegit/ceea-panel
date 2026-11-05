@@ -1,0 +1,23 @@
+<%# Sekcja: NAJPOPULARNIEJSZE STRONY — 30 dni (karta połowicznej szerokości,
+    stoi obok dash-ga4.ejs; paski w tym samym stylu co GA4)
+    Dane: locals.dash.topPages %>
+<section class="module-card p-5 sm:p-6">
+  <h2 class="module-title mb-1">Najpopularniejsze strony</h2>
+  <p class="text-sm text-gray-500 dark:text-slate-400 mb-5">Ostatnie 30 dni</p>
+  <% if (!dash.topPages.length) { %>
+    <p class="text-sm text-gray-400 dark:text-slate-500 py-6 text-center">Brak danych.</p>
+  <% } else { %>
+    <% const maxP = Math.max(...dash.topPages.map(p => p.count), 1); %>
+    <% dash.topPages.forEach(p => { %>
+      <div class="mb-3 last:mb-0">
+        <div class="flex items-baseline justify-between gap-3 text-xs mb-1">
+          <span class="text-gray-600 dark:text-slate-300 truncate font-mono" title="<%= p.path %>"><%= p.path %></span>
+          <span class="font-semibold text-gray-900 dark:text-white shrink-0"><%= p.count %></span>
+        </div>
+        <div class="h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+          <div class="h-full rounded-full bg-red-500/80 dark:bg-red-500/70" style="width:<%= Math.max(4, Math.round((p.count / maxP) * 100)) %>%"></div>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</section>

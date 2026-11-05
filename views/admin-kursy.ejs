@@ -35,7 +35,7 @@
             <%- include('partials/ui/tabs', {
               tabs: [
                 { key: 'all',     label: 'Wszystkie',             href: adminPrefix + '/kursy?filter=all' },
-                { key: 'active',  label: 'Aktywne (rejestracja)', href: adminPrefix + '/kursy?filter=active' },
+                { key: 'active',  label: 'Aktywne', href: adminPrefix + '/kursy?filter=active' },
                 { key: 'archive', label: 'Archiwum',              href: adminPrefix + '/kursy?filter=archive' },
               ],
               activeTab: f
@@ -83,7 +83,7 @@
           (module-item) %>
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <% list.forEach(course => { %>
-            <article class="card group p-2.5">
+            <article class="module-card card group p-2.5">
               <div class="card-inner">
               <% if (course.image?.url) { %>
               <img

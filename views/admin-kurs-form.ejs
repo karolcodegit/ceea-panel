@@ -43,7 +43,7 @@
                   <% function genId() { const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; let s = ''; for (let i = 0; i < 22; i++) s += c[Math.floor(Math.random() * c.length)]; return s; } %>
                   <input type="text" name="new_course_id" required value="<%= genId() %>"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-red-400">
-                  <p class="text-xs text-gray-400 mt-1">Wygenerowano automatycznie (format jak DatoCMS) – możesz wpisać własny, np. ID z DatoCMS przy uzupełnianiu starych kursów. Po zapisaniu niezmienny.</p>
+                  <p class="text-xs text-gray-400 mt-1">Wygenerowano automatycznie. Po zapisaniu niezmienny.</p>
                 </div>
               <% } %>
               <div class="sm:col-span-2">
@@ -113,7 +113,7 @@
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">2. Program kursu</h2>
               <button type="button" id="addDayBtn" class="btn btn-xs btn-neutral">+ Dodaj dzień</button>
             </div>
-            <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Maksymalnie 3 dni. Wydarzenia: jedno na linię, pogrubienia <code>**tekst**</code> (jak w DatoCMS).</p>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mb-4">Maksymalnie 3 dni. Wydarzenia: jedno na linię, pogrubienia <code>**tekst**</code>.</p>
             <div id="daysContainer" class="space-y-4"></div>
           </section>
 
