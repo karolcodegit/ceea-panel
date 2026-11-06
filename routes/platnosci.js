@@ -3,10 +3,8 @@ const router = express.Router();
 const supabase = require("../config/supabase");
 const inpost = require("../services/inpost");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
-const { fetchAllCourses } = require("../config/datocms");
-
-const CEEA_API = process.env.CEEA_API_URL; // https://ceea-registration-course-...run.app
-const CEEA_ADMIN_KEY = process.env.CEEA_ADMIN_KEY; // = ADMIN_KEY z Cloud Run
+const CEEA_API = process.env.CEEA_API_URL;
+const CEEA_ADMIN_KEY = process.env.CEEA_ADMIN_KEY;
 
 const {
   generateInvoiceNumber,
