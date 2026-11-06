@@ -9,7 +9,7 @@ module.exports = [
     icon: "home",
     desc: "Przegląd systemu i odwiedzin strony",
     status: "ready",
-    hidden: true,   // tylko dla headera — nie rysuj w menu ani na dashboardzie
+    hidden: true, // tylko dla headera — nie rysuj w menu ani na dashboardzie
   },
   {
     key: "ustawienia",
@@ -91,6 +91,14 @@ module.exports = [
     icon: "faq",
     desc: "Lista wszystkich popularnych pytań",
     status: "ready",
+  },
+  {
+    key: "pomoc",
+    name: "Pomoc",
+    path: "/pomoc",
+    icon: "pomoc",
+    desc: "Treści strony /pomoc — kategorie i pytania FAQ panelu",
+    status: "ready", // docelowo także sekcja „Kontakt” (dane kontaktowe)
   },
   {
     key: "administratorzy",

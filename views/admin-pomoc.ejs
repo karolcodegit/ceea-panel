@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Pomoc — Panel CEEA</title>
+    <style>
+      .hp-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        white-space: nowrap;
+      }
+      .hp-btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
+      .hp-btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
+      .hp-btn-neutral { background: #fff; border-color: #d1d5db; color: #374151; }
+      .hp-btn-neutral:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+      .dark .hp-btn-neutral { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+      .dark .hp-btn-neutral:hover { border-color: #dc2626; color: #f87171; background: rgba(220, 38, 38, 0.08); }
+      .hp-btn-danger { background: #fff; border-color: #fecaca; color: #b91c1c; }
+      .hp-btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
+      .dark .hp-btn-danger { background: #0f172a; border-color: #7f1d1d; color: #f87171; }
+      .dark .hp-btn-danger:hover { background: rgba(220, 38, 38, 0.08); border-color: #dc2626; }
+      .hp-input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #111827;
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+      .hp-input:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08); }
+      .dark .hp-input { background: rgba(15, 23, 42, 0.6); border-color: #475569; color: #fff; }
+      .hp-label { display: block; font-size: 0.72rem; font-weight: 500; color: #6b7280; margin-bottom: 0.35rem; }
+      .dark .hp-label { color: #94a3b8; }
+      details.hp-item > summary { list-style: none; cursor: pointer; }
+      details.hp-item > summary::-webkit-details-marker { display: none; }
+      details.hp-item[open] > summary .hp-chevron { transform: rotate(180deg); }
+      .hp-chevron { transition: transform 0.15s; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+    <%- include('partials/admin-nav', { active: 'pomoc' }) %>
+    <%- include('partials/header') %>
+
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        
+        <%- include('partials/flash') %>
+        <section class="module-card p-4 sm:p-5">
+
+        <%# ── Nagłówek + liczniki ── %>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          
+          <div class="flex flex-wrap gap-2 text-xs font-medium">
+            <span class="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+              🗂️ Kategorie: <strong><%= categories.length %></strong>
+            </span>
+            <span class="px-3 py-1.5 rounded-full bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300">
+              ❓ Pytania: <strong><%= questions.length %></strong>
+            </span>
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700/40 dark:text-slate-300">
+              👁️ Opublikowane: <strong><%= questions.filter(q => q.is_published).length %></strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <%# ════ LEWA KOLUMNA: kategorie ════ %>
+          <div class="space-y-6">
+            <section class="module-card p-4 sm:p-5">
+              <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Kategorie</h2>
+
+              <% if (!categories.length) { %>
+              <p class="text-xs text-gray-400 dark:text-slate-500">Brak kategorii — dodaj pierwszą poniżej.</p>
+              <% } %>
+
+              <div class="space-y-2.5">
+                <% categories.forEach((cat) => { %>
+                <details class="hp-item rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40">
+                  <summary class="flex items-center gap-2.5 px-3 py-2.5">
+                    <span class="text-xs font-mono text-gray-400 dark:text-slate-500 w-6 text-right flex-shrink-0"><%= cat.sort_order %>.</span>
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate"><%= cat.title %></span>
+                      <span class="block text-[11px] text-gray-400 dark:text-slate-500">
+                        <%= questions.filter(q => q.category_id === cat.id).length %> pytań<% if (!cat.is_published) { %> · <span class="text-amber-500 font-medium">ukryta</span><% } %>
+                      </span>
+                    </span>
+                    <svg class="hp-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </summary>
+                  <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
+                    <form method="POST" action="<%= adminPrefix %>/pomoc/kategorie/<%= cat.id %>" class="space-y-2.5">
+                      <div>
+                        <label class="hp-label">Nazwa</label>
+                        <input type="text" name="title" value="<%= cat.title %>" required class="hp-input" />
+                      </div>
+                      <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label class="hp-label">Slug (kotwica)</label>
+                          <input type="text" name="slug" value="<%= cat.slug || '' %>" class="hp-input" placeholder="logowanie" />
+                        </div>
+                        <div>
+                          <label class="hp-label">Kolejność</label>
+                          <input type="number" name="sort_order" value="<%= cat.sort_order %>" class="hp-input" />
+                        </div>
+                      </div>
+                      <div>
+                        <label class="hp-label">Opis (opcjonalnie)</label>
+                        <input type="text" name="description" value="<%= cat.description || '' %>" class="hp-input" />
+                      </div>
+                      <div>
+                        <label class="hp-label">Ikona — klucz z config/icons.js</label>
+                        <input type="text" name="icon" value="<%= cat.icon || '' %>" class="hp-input" placeholder="zostaw puste = domyślna" />
+                      </div>
+                      <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300 cursor-pointer select-none">
+                        <input type="checkbox" name="is_published" value="1" <%= cat.is_published ? 'checked' : '' %> class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                        Opublikowana (widoczna na /pomoc)
+                      </label>
+                      <div class="flex gap-2 pt-1">
+                        <button type="submit" class="hp-btn hp-btn-primary flex-1">Zapisz</button>
+                        <button
+                          type="submit"
+                          formaction="<%= adminPrefix %>/pomoc/kategorie/<%= cat.id %>/usun"
+                          onclick="return confirm('Usunąć tę kategorię wraz ze wszystkimi pytaniami?')"
+                          class="hp-btn hp-btn-danger"
+                        >Usuń</button>
+                      </div>
+                    </form>
+                  </div>
+                </details>
+                <% }) %>
+              </div>
+            </section>
+
+            <section class="module-card p-4 sm:p-5">
+              <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Dodaj kategorię</h2>
+              <form method="POST" action="<%= adminPrefix %>/pomoc/kategorie" class="space-y-2.5">
+                <div>
+                  <label class="hp-label">Nazwa</label>
+                  <input type="text" name="title" required class="hp-input" placeholder="np. Płatności" />
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label class="hp-label">Slug (kotwica)</label>
+                    <input type="text" name="slug" class="hp-input" placeholder="platnosci" />
+                  </div>
+                  <div>
+                    <label class="hp-label">Kolejność</label>
+                    <input type="number" name="sort_order" value="<%= (categories[categories.length - 1]?.sort_order || 0) + 1 %>" class="hp-input" />
+                  </div>
+                </div>
+                <button type="submit" class="hp-btn hp-btn-primary w-full">Dodaj kategorię</button>
+              </form>
+            </section>
+          </div>
+
+          <%# ════ PRAWA KOLUMNA: pytania ════ %>
+          <div class="lg:col-span-2 space-y-6">
+            <section class="module-card p-4 sm:p-5">
+              <details class="hp-item">
+                <summary class="flex items-center justify-between">
+                  <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300">➕ Dodaj pytanie</h2>
+                  <svg class="hp-chevron w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <form method="POST" action="<%= adminPrefix %>/pomoc/pytania" class="space-y-3 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700/60">
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                      <label class="hp-label">Pytanie</label>
+                      <input type="text" name="question" required class="hp-input" placeholder="np. Jak zmienić hasło?" />
+                    </div>
+                    <div>
+                      <label class="hp-label">Kategoria</label>
+                      <select name="category_id" class="hp-input cursor-pointer">
+                        <option value="">— bez kategorii —</option>
+                        <% categories.forEach((cat) => { %>
+                        <option value="<%= cat.id %>"><%= cat.title %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="hp-label">Odpowiedź — Markdown (pogrubienie, listy, linki)</label>
+                    <textarea name="answer" rows="5" class="hp-input" placeholder="Treść odpowiedzi…"></textarea>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label class="hp-label">Callout (ramka)</label>
+                      <select name="callout_kind" class="hp-input cursor-pointer">
+                        <option value="">— brak —</option>
+                        <option value="info">ℹ️ info</option>
+                        <option value="warning">⚠️ warning</option>
+                        <option value="danger">🚨 danger</option>
+                      </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                      <label class="hp-label">Treść calloutu (opcjonalnie)</label>
+                      <input type="text" name="callout_content" class="hp-input" placeholder="np. Link do resetu ważny 15 minut" />
+                    </div>
+                  </div>
+                  <div class="flex items-end gap-3">
+                    <div class="w-28">
+                      <label class="hp-label">Kolejność</label>
+                      <input type="number" name="sort_order" value="1" class="hp-input" />
+                    </div>
+                    <button type="submit" class="hp-btn hp-btn-primary flex-1">Dodaj pytanie</button>
+                  </div>
+                </form>
+              </details>
+            </section>
+
+            <% if (!questions.length) { %>
+            <section class="module-card p-4 sm:p-5">
+              <p class="text-sm text-gray-400 dark:text-slate-500 text-center py-4">
+                Brak pytań — uruchom plik SQL w Supabase albo dodaj pierwsze pytanie powyżej.
+              </p>
+            </section>
+            <% } %>
+
+            <% categories.forEach((cat) => { %>
+            <% const catQuestions = questions.filter(q => q.category_id === cat.id); %>
+            <% if (catQuestions.length) { %>
+            <section class="module-card p-4 sm:p-5">
+              <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">
+                <%= cat.title %>
+                <span class="ml-1 text-xs font-normal text-gray-400 dark:text-slate-500">(<%= catQuestions.length %>)</span>
+              </h2>
+              <div class="space-y-2.5">
+                <% catQuestions.forEach((q) => { %>
+                <details class="hp-item rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40">
+                  <summary class="flex items-center gap-2.5 px-3 py-2.5">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 <%= q.is_published ? 'bg-green-500' : 'bg-gray-300 dark:bg-slate-600' %>"></span>
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-medium text-gray-900 dark:text-white truncate"><%= q.question %></span>
+                      <span class="block text-[11px] text-gray-400 dark:text-slate-500">
+                        kolejność: <%= q.sort_order %><% if (!q.answer) { %> · <span class="text-amber-500 font-medium">bez odpowiedzi</span><% } %><% if (q.callout_kind) { %> · callout: <%= q.callout_kind %><% } %>
+                      </span>
+                    </span>
+                    <svg class="hp-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </summary>
+                  <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
+                    <form method="POST" action="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>" class="space-y-3">
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                          <label class="hp-label">Pytanie</label>
+                          <input type="text" name="question" value="<%= q.question %>" required class="hp-input" />
+                        </div>
+                        <div>
+                          <label class="hp-label">Kategoria</label>
+                          <select name="category_id" class="hp-input cursor-pointer">
+                            <option value="">— bez kategorii —</option>
+                            <% categories.forEach((c2) => { %>
+                            <option value="<%= c2.id %>" <%= c2.id === q.category_id ? 'selected' : '' %>><%= c2.title %></option>
+                            <% }) %>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="hp-label">Odpowiedź — Markdown</label>
+                        <textarea name="answer" rows="5" class="hp-input"><%= q.answer %></textarea>
+                      </div>
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label class="hp-label">Callout (ramka)</label>
+                          <select name="callout_kind" class="hp-input cursor-pointer">
+                            <option value="" <%= !q.callout_kind ? 'selected' : '' %>>— brak —</option>
+                            <option value="info" <%= q.callout_kind === 'info' ? 'selected' : '' %>>ℹ️ info</option>
+                            <option value="warning" <%= q.callout_kind === 'warning' ? 'selected' : '' %>>⚠️ warning</option>
+                            <option value="danger" <%= q.callout_kind === 'danger' ? 'selected' : '' %>>🚨 danger</option>
+                          </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label class="hp-label">Treść calloutu</label>
+                          <input type="text" name="callout_content" value="<%= q.callout_content || '' %>" class="hp-input" />
+                        </div>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-3">
+                        <div class="w-28">
+                          <label class="hp-label">Kolejność</label>
+                          <input type="number" name="sort_order" value="<%= q.sort_order %>" class="hp-input" />
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300 cursor-pointer select-none pt-4">
+                          <input type="checkbox" name="is_published" value="1" <%= q.is_published ? 'checked' : '' %> class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                          Opublikowane
+                        </label>
+                        <div class="flex gap-2 flex-1 pt-1 sm:pt-0 sm:justify-end">
+                          <button type="submit" class="hp-btn hp-btn-primary flex-1 sm:flex-none">Zapisz</button>
+                          <button
+                            type="submit"
+                            formaction="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>/usun"
+                            onclick="return confirm('Usunąć to pytanie?')"
+                            class="hp-btn hp-btn-danger"
+                          >Usuń</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </details>
+                <% }) %>
+              </div>
+            </section>
+            <% } %>
+            <% }) %>
+
+            <% const orphanQuestions = questions.filter(q => !q.category_id || !categories.some(c => c.id === q.category_id)); %>
+            <% if (orphanQuestions.length) { %>
+            <section class="module-card p-4 sm:p-5">
+              <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">
+                Bez kategorii
+                <span class="ml-1 text-xs font-normal text-gray-400 dark:text-slate-500">(<%= orphanQuestions.length %>)</span>
+              </h2>
+              <div class="space-y-2.5">
+                <% orphanQuestions.forEach((q) => { %>
+                <details class="hp-item rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40">
+                  <summary class="flex items-center gap-2.5 px-3 py-2.5">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 <%= q.is_published ? 'bg-green-500' : 'bg-gray-300 dark:bg-slate-600' %>"></span>
+                    <span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate"><%= q.question %></span>
+                    <svg class="hp-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </summary>
+                  <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
+                    <form method="POST" action="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>" class="space-y-3">
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                          <label class="hp-label">Pytanie</label>
+                          <input type="text" name="question" value="<%= q.question %>" required class="hp-input" />
+                        </div>
+                        <div>
+                          <label class="hp-label">Kategoria</label>
+                          <select name="category_id" class="hp-input cursor-pointer">
+                            <option value="" selected>— bez kategorii —</option>
+                            <% categories.forEach((c2) => { %>
+                            <option value="<%= c2.id %>"><%= c2.title %></option>
+                            <% }) %>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="hp-label">Odpowiedź — Markdown</label>
+                        <textarea name="answer" rows="5" class="hp-input"><%= q.answer %></textarea>
+                      </div>
+                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label class="hp-label">Callout (ramka)</label>
+                          <select name="callout_kind" class="hp-input cursor-pointer">
+                            <option value="" <%= !q.callout_kind ? 'selected' : '' %>>— brak —</option>
+                            <option value="info" <%= q.callout_kind === 'info' ? 'selected' : '' %>>ℹ️ info</option>
+                            <option value="warning" <%= q.callout_kind === 'warning' ? 'selected' : '' %>>⚠️ warning</option>
+                            <option value="danger" <%= q.callout_kind === 'danger' ? 'selected' : '' %>>🚨 danger</option>
+                          </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label class="hp-label">Treść calloutu</label>
+                          <input type="text" name="callout_content" value="<%= q.callout_content || '' %>" class="hp-input" />
+                        </div>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-3">
+                        <div class="w-28">
+                          <label class="hp-label">Kolejność</label>
+                          <input type="number" name="sort_order" value="<%= q.sort_order %>" class="hp-input" />
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300 cursor-pointer select-none pt-4">
+                          <input type="checkbox" name="is_published" value="1" <%= q.is_published ? 'checked' : '' %> class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                          Opublikowane
+                        </label>
+                        <div class="flex gap-2 flex-1 pt-1 sm:pt-0 sm:justify-end">
+                          <button type="submit" class="hp-btn hp-btn-primary flex-1 sm:flex-none">Zapisz</button>
+                          <button
+                            type="submit"
+                            formaction="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>/usun"
+                            onclick="return confirm('Usunąć to pytanie?')"
+                            class="hp-btn hp-btn-danger"
+                          >Usuń</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </details>
+                <% }) %>
+              </div>
+            </section>
+            <% } %>
+          </div>
+        </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

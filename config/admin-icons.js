@@ -53,6 +53,8 @@ const ICONS = {
   "chevron-left": wrap("M15.75 19.5L8.25 12l7.5-7.5"),
   "chevron-right": wrap("M8.25 4.5l7.5 7.5-7.5 7.5"),
   "external-link": wrap("M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5-6L21 3m0 0l-3.75 3.75M21 3v6.75"),
+
+  pomoc: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
 };
 
 module.exports = (key) => ICONS[key] || ICONS.home;

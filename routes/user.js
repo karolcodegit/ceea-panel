@@ -31,17 +31,72 @@ function renderAnswer(q) {
 
 // Dane firmy — statyczne (wcześniej DatoCMS fetchCompany)
 const COMPANY = {
+  // ── pola używane przez widoki (nazwy historyczne, z DatoCMS) ──
+  nameCompany: "Europejska Fundacja ds. Szkolenia w Anestezjologii",
+  street: "ul. Sokolnicka",
+  numberHome: "56",
+  zipCode: "62-021",
+  city: "Paczkowo",
+  nip: "777-314-61-00",
+  krs: "0000347155",
+  mail: process.env.ORG_EMAIL || "sekretariat@ceea.org.pl",
+  openingHours: "pon.–pt. 8:00–16:00",
+  // ── aliasy / dodatkowe ──
   name: "Europejska Fundacja ds. Szkolenia w Anestezjologii",
   shortName: "CEEA Poznań",
   address: "ul. Sokolnicka 56, 62-021 Paczkowo",
-  nip: "777-314-61-00",
   regon: "301341024",
-  krs: "0000347155",
   email: process.env.ORG_EMAIL || "sekretariat@ceea.org.pl",
   phone: process.env.ORG_PHONE || "61 869 13 57",
   site: MAIN_SITE_URL,
 };
-const fetchCompany = async () => COMPANY;
+// Dane firmy — z Supabase (tabela company_settings, pierwszy rekord).
+// Mapowanie snake_case → historyczne nazwy pól używane przez widoki.
+// Statyczny COMPANY zostaje jako awaryjny fallback (pusta tabela / błąd).
+async function fetchCompany() {
+  try {
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("*")
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error("company_settings:", error.message);
+      return COMPANY;
+    }
+    if (!data) return COMPANY;
+
+    const streetLine = [data.street, data.number_home].filter(Boolean).join(" ");
+    const cityLine = [data.zip_code, data.city].filter(Boolean).join(" ");
+    return {
+      ...COMPANY,
+      // ── pola używane przez widoki (nazwy historyczne) ← kolumny z bazy ──
+      nameCompany: data.name_company || COMPANY.nameCompany,
+      street: data.street || COMPANY.street,
+      numberHome: data.number_home || COMPANY.numberHome,
+      zipCode: data.zip_code || COMPANY.zipCode,
+      city: data.city || COMPANY.city,
+      nip: data.nip || COMPANY.nip,
+      krs: data.krs || COMPANY.krs,
+      mail: data.email || COMPANY.mail,
+      openingHours: data.opening_hours || COMPANY.openingHours,
+      // ── aliasy / dodatkowe ──
+      name: data.name_company || COMPANY.name,
+      email: data.email || COMPANY.email,
+      regon: data.regon || "",
+      description: data.description || "",
+      bankAccountName: data.bank_account_name || "",
+      bankAccount: data.bank_account || "",
+      facebook: data.facebook || "",
+      youtube: data.youtube || "",
+      address: [streetLine, cityLine].filter(Boolean).join(", ") || COMPANY.address,
+    };
+  } catch (err) {
+    console.error("company_settings:", err.message);
+    return COMPANY;
+  }
+}
 
 // Kursy z Supabase. Mapowanie zachowuje pola używane przez widoki:
 // id (= course_id, do enrollments/payments), date (= start_date, do getYearFromDate),
@@ -83,9 +138,54 @@ async function fetchActiveCourse() {
   return { ...mapCourse(c), year: getYearFromDate(c.start_date) };
 }
 
-// Strona pomocy (FAQ) — treść była w DatoCMS; brak źródła po migracji.
-// Zwraca null → /pomoc renderuje się z pustymi kategoriami, bez crashu.
-const fetchHelpPage = async () => null;
+// Strona pomocy (FAQ) — kategorie i pytania z Supabase
+// (help_categories / help_questions, edytowalne w panelu — moduł „Pomoc").
+// Zwraca strukturę zgodną z dawnym DatoCMS: { page, categories, questions },
+// gdzie questions mają category.id oraz callout { kind, content }.
+async function fetchHelpPage() {
+  try {
+    const [{ data: cats, error: cErr }, { data: qs, error: qErr }] =
+      await Promise.all([
+        supabase
+          .from("help_categories")
+          .select("*")
+          .eq("is_published", true)
+          .order("sort_order")
+          .order("id"),
+        supabase
+          .from("help_questions")
+          .select("*")
+          .eq("is_published", true)
+          .order("sort_order")
+          .order("id"),
+      ]);
+    if (cErr) console.error("pomoc/kategorie:", cErr.message);
+    if (qErr) console.error("pomoc/pytania:", qErr.message);
+    if (!cats && !qs) return null;
+
+    return {
+      page: { title: "Centrum Pomocy — CEEA Panel" },
+      categories: (cats || []).map((c) => ({
+        id: c.id,
+        slug: c.slug || String(c.id),
+        title: c.title,
+        description: c.description,
+        icon: c.icon,
+      })),
+      questions: (qs || []).map((q) => ({
+        question: q.question,
+        answer: q.answer,
+        callout: q.callout_kind
+          ? { kind: q.callout_kind, content: q.callout_content || "" }
+          : null,
+        category: { id: q.category_id },
+      })),
+    };
+  } catch (err) {
+    console.error("pomoc:", err.message);
+    return null;
+  }
+}
 
 // Doładowanie profilu (name, surname, phone) do sesji — 1 lekkie zapytanie na request
 router.use(async (req, res, next) => {

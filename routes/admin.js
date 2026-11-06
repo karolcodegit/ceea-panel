@@ -628,6 +628,7 @@ router.use("/", require("./pracownicy")); // Pracownicy zarządzający organizac
 router.use("/", require("./firma")); // Dane firmy CEEA Poznań
 router.use("/", require("./media")); // Galeria z Cloudinary
 router.use("/", require("./serwis").router); //Tryb serwisowy
+router.use("/", require("./pomoc")); //Pytania i odpowiedzi - pomoc
 
 
 module.exports = router;
