@@ -3,9 +3,7 @@ const router = express.Router();
 const MarkdownIt = require("markdown-it");
 const supabase = require("../config/supabase");
 const { userOnly, requireAuth } = require("../middleware/auth");
-const { fetchCompany, fetchHelpPage, fetchActiveCourse } = require("../config/datocms");
 const { ICONS } = require("../config/icons");
-const { fetchAllCourses } = require("../config/datocms");
 const { getYearFromDate } = require("../utils/getYearFromDate");
 
 const rateLimit = require("express-rate-limit");
@@ -25,6 +23,69 @@ function renderAnswer(q) {
   const html = md.renderInline(c.content || "");
   return answerHtml + `<div class="callout callout-${c.kind}"><span>${icon}</span><div>${html}</div></div>`;
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// ── Dane po migracji z DatoCMS ──
+// ═══════════════════════════════════════════════════════════════
+
+// Dane firmy — statyczne (wcześniej DatoCMS fetchCompany)
+const COMPANY = {
+  name: "Europejska Fundacja ds. Szkolenia w Anestezjologii",
+  shortName: "CEEA Poznań",
+  address: "ul. Sokolnicka 56, 62-021 Paczkowo",
+  nip: "777-314-61-00",
+  regon: "301341024",
+  krs: "0000347155",
+  email: process.env.ORG_EMAIL || "sekretariat@ceea.org.pl",
+  phone: process.env.ORG_PHONE || "61 869 13 57",
+  site: MAIN_SITE_URL,
+};
+const fetchCompany = async () => COMPANY;
+
+// Kursy z Supabase. Mapowanie zachowuje pola używane przez widoki:
+// id (= course_id, do enrollments/payments), date (= start_date, do getYearFromDate),
+// available (fallback z is_active), slug — jeśli kolumna istnieje w tabeli.
+function mapCourse(c) {
+  return {
+    available: c.is_active,
+    ...c,
+    id: c.course_id,
+    date: c.start_date,
+  };
+}
+
+async function fetchAllCourses() {
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .order("start_date", { ascending: false });
+  if (error) {
+    console.error("user/kursy:", error.message);
+    return [];
+  }
+  return (data || []).map(mapCourse);
+}
+
+async function fetchActiveCourse() {
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("is_active", true)
+    .order("start_date", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.error("user/aktywny kurs:", error.message);
+    return null;
+  }
+  const c = (data || [])[0];
+  if (!c) return null;
+  return { ...mapCourse(c), year: getYearFromDate(c.start_date) };
+}
+
+// Strona pomocy (FAQ) — treść była w DatoCMS; brak źródła po migracji.
+// Zwraca null → /pomoc renderuje się z pustymi kategoriami, bez crashu.
+const fetchHelpPage = async () => null;
 
 // Doładowanie profilu (name, surname, phone) do sesji — 1 lekkie zapytanie na request
 router.use(async (req, res, next) => {
@@ -58,9 +119,12 @@ router.get("/", userOnly, async (req, res) => {
     title: "Logowanie — CEEA",
     error: null,
     message: null,
-    registrationUrl: course
-      ? `${MAIN_SITE_URL}/kursy/${course.year}/${course.slug}/rejestracja`
-      : null,
+    registrationUrl:
+      course && course.slug
+        ? `${MAIN_SITE_URL}/kursy/${course.year}/${course.slug}/rejestracja`
+        : course
+          ? `${MAIN_SITE_URL}/kursy`
+          : null,
   });
 });
 
