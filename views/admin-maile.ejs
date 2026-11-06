@@ -4,140 +4,22 @@
     <%- include('partials/head') %>
     <title>Maile — Panel CEEA</title>
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
-    <style>
-      /* Karty wyboru szablonu */
-      .tpl-card {
-        display: block;
-        width: 100%;
-        text-align: left;
-        border: 1px solid #e7e9ee;
-        border-radius: 1rem;
-        padding: 0.9rem 1rem;
-        background: #fff;
-        cursor: pointer;
-        transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-      }
-      .tpl-card:hover { border-color: #fca5a5; }
-      .tpl-card.is-active {
-        border-color: #dc2626;
-        background: #fef2f2;
-        box-shadow: inset 0 0 0 1px #dc2626;
-      }
-      .dark .tpl-card { background: #0f172a; border-color: #263248; }
-      .dark .tpl-card:hover { border-color: #7f1d1d; }
-      .dark .tpl-card.is-active {
-        background: rgba(220, 38, 38, 0.08);
-        border-color: #dc2626;
-      }
-      /* Quill dopasowany do panelu */
-      .ql-toolbar.ql-snow {
-        border: 1px solid #e7e9ee;
-        border-radius: 0.75rem 0.75rem 0 0;
-        background: #f9fafb;
-      }
-      .ql-container.ql-snow {
-        border: 1px solid #e7e9ee;
-        border-top: 0;
-        border-radius: 0 0 0.75rem 0.75rem;
-        min-height: 180px;
-        font-size: 0.9rem;
-      }
-      .dark .ql-toolbar.ql-snow { background: #0f172a; border-color: #263248; }
-      .dark .ql-container.ql-snow { border-color: #263248; background: rgba(15, 23, 42, 0.6); color: #fff; }
-      .dark .ql-snow .ql-stroke { stroke: #94a3b8; }
-      .dark .ql-snow .ql-picker { color: #94a3b8; }
-      /* Przyciski akcji modułu maili */
-      .mail-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        flex: 1 1 0%;
-        padding: 0.7rem 1.25rem;
-        border-radius: 0.85rem;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1.5px solid transparent;
-        transition: background 0.15s, border-color 0.15s, color 0.15s,
-          transform 0.15s, box-shadow 0.15s;
-      }
-      .mail-btn svg { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
-      .mail-btn:disabled { opacity: 0.6; cursor: wait; }
-      .mail-btn-neutral {
-        background: #fff;
-        border-color: #d1d5db;
-        color: #374151;
-      }
-      .mail-btn-neutral:hover {
-        border-color: #dc2626;
-        color: #dc2626;
-        background: #fef2f2;
-      }
-      .dark .mail-btn-neutral {
-        background: #0f172a;
-        border-color: #334155;
-        color: #e2e8f0;
-      }
-      .dark .mail-btn-neutral:hover {
-        border-color: #dc2626;
-        color: #f87171;
-        background: rgba(220, 38, 38, 0.08);
-      }
-      .mail-btn-primary {
-        background: #dc2626;
-        border-color: #dc2626;
-        color: #fff;
-        box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25),
-          0 4px 12px -4px rgba(220, 38, 38, 0.35);
-      }
-      .mail-btn-primary:hover {
-        background: #b91c1c;
-        border-color: #b91c1c;
-        transform: translateY(-1px);
-      }
-      .mail-btn-primary:active { transform: translateY(0); }
-      /* Szkielet ładowania pól */
-      .field-skeleton {
-        height: 2.75rem;
-        border-radius: 0.75rem;
-        background: #f3f4f6;
-        animation: pulse 1.4s ease-in-out infinite;
-      }
-      .dark .field-skeleton { background: #1e293b; }
-      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
-    </style>
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-    <%- include('partials/admin-nav', { active: 'maile' }) %> <%-
-    include('partials/header') %>
+    <%- include('partials/admin-nav', { active: 'maile' }) %> 
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <% if (sent) { %>
-        <div
-          class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"
-        >
-          ✅ Dodano do kolejki: <strong><%= sent %></strong>
-          <%= Number(sent) === 1 ? 'wiadomość' : 'wiadomości' %>.
-        </div>
-        <% } %> <% if (error) { %>
-        <div
-          class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"
-        >
-          ❌ <%= error %>
-        </div>
-        <% } %>
+        <section class="module-card p-4 sm:p-5">
+
+        <%- include('partials/flash') %>
 
         <%# ── Nagłówek + statystyki kolejki ── %>
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
-            <h1 class="text-lg font-bold text-gray-900 dark:text-white">
-              Maile do uczestników
-            </h1>
-            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-              Szablon → dane z Supabase → edycja → podgląd → kolejka
-            </p>
+            
+           
           </div>
           <div class="flex flex-wrap gap-2 text-xs font-medium">
             <span
@@ -379,6 +261,7 @@
               </tbody>
             </table>
           </div>
+        </section>
         </section>
       </main>
     </div>

@@ -964,3 +964,411 @@ select {
 .dark #bookOrdersChart > div {
   background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
 }
+
+
+/* ADMIN */
+.admin-bg {
+  background: radial-gradient(
+      60% 60% at 50% 0%,
+      rgba(59, 130, 246, 0.12),
+      transparent
+    ),
+    #020617;
+}
+
+/* dryfująca siatka kropek */
+.dots-layer {
+  background-image: radial-gradient(
+    rgba(148, 163, 184, 0.5) 1px,
+    transparent 1.2px
+  );
+  background-size: 28px 28px;
+  animation: dots-drift 22s linear infinite;
+}
+@keyframes dots-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+/* pływające bloby */
+.anim-float-a {
+  animation: float-a 14s ease-in-out infinite;
+}
+.anim-float-b {
+  animation: float-b 19s ease-in-out infinite;
+}
+@keyframes float-a {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(24px, -28px);
+  }
+}
+@keyframes float-b {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-28px, 20px);
+  }
+}
+
+/* radar znad karty */
+.radar-ring {
+  position: absolute;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 9999px;
+  animation: radar 4.5s ease-out infinite;
+}
+@keyframes radar {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* scanline na QR */
+.qr-frame {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  border-radius: 0.5rem;
+}
+.qr-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.8);
+  animation: qr-scan 2.4s ease-in-out infinite;
+}
+@keyframes qr-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    top: calc(100% - 2px);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 0;
+    opacity: 0;
+  }
+}
+
+/* przejście między krokami */
+.step-anim {
+  animation: step-in 0.35s ease;
+}
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* wejście przy ładowaniu */
+.anim-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* puls tarczy shield */
+.shield-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.3);
+  animation: shield-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes shield-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  75%,
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots-layer,
+  .anim-float-a,
+  .anim-float-b,
+  .radar-ring,
+  .qr-scan,
+  .step-anim,
+  .anim-rise,
+  .shield-ping {
+    animation: none !important;
+  }
+}
+
+/* MAILE */
+
+.tpl-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e7e9ee;
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.tpl-card:hover { border-color: #fca5a5; }
+.tpl-card.is-active {
+  border-color: #dc2626;
+  background: #fef2f2;
+  box-shadow: inset 0 0 0 1px #dc2626;
+}
+.dark .tpl-card { background: #0f172a; border-color: #263248; }
+.dark .tpl-card:hover { border-color: #7f1d1d; }
+.dark .tpl-card.is-active {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: #dc2626;
+}
+/* Quill dopasowany do panelu */
+.ql-toolbar.ql-snow {
+  border: 1px solid #e7e9ee;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: #f9fafb;
+}
+.ql-container.ql-snow {
+  border: 1px solid #e7e9ee;
+  border-top: 0;
+  border-radius: 0 0 0.75rem 0.75rem;
+  min-height: 180px;
+  font-size: 0.9rem;
+}
+.dark .ql-toolbar.ql-snow { background: #0f172a; border-color: #263248; }
+.dark .ql-container.ql-snow { border-color: #263248; background: rgba(15, 23, 42, 0.6); color: #fff; }
+.dark .ql-snow .ql-stroke { stroke: #94a3b8; }
+.dark .ql-snow .ql-picker { color: #94a3b8; }
+/* Przyciski akcji modułu maili */
+.mail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1 1 0%;
+  padding: 0.7rem 1.25rem;
+  border-radius: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+    transform 0.15s, box-shadow 0.15s;
+}
+.mail-btn svg { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+.mail-btn:disabled { opacity: 0.6; cursor: wait; }
+.mail-btn-neutral {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+.mail-btn-neutral:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+.dark .mail-btn-neutral {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+.dark .mail-btn-neutral:hover {
+  border-color: #dc2626;
+  color: #f87171;
+  background: rgba(220, 38, 38, 0.08);
+}
+.mail-btn-primary {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25),
+    0 4px 12px -4px rgba(220, 38, 38, 0.35);
+}
+.mail-btn-primary:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+}
+.mail-btn-primary:active { transform: translateY(0); }
+/* Szkielet ładowania pól */
+.field-skeleton {
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  background: #f3f4f6;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.dark .field-skeleton { background: #1e293b; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+
+
+/* PŁATNOŚCI */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
+
+
+
+/* LOGIN */
+
+/* prawa strona — kropki */
+.login-dots {
+  background-image: radial-gradient(#dc2626 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.dark .login-dots {
+  background-image: radial-gradient(
+    rgba(148, 163, 184, 0.5) 1px,
+    transparent 1px
+  );
+}
+
+/* lewa strona — dryfujące kropki */
+.dots-layer {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.85) 1.2px,
+    transparent 1.3px
+  );
+  background-size: 28px 28px;
+  animation: dots-drift 22s linear infinite;
+}
+@keyframes dots-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 56px 56px;
+  }
+}
+
+/* pływające bloby */
+.anim-float-a {
+  animation: float-a 14s ease-in-out infinite;
+}
+.anim-float-b {
+  animation: float-b 19s ease-in-out infinite;
+}
+@keyframes float-a {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(24px, -28px);
+  }
+}
+@keyframes float-b {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-28px, 20px);
+  }
+}
+
+/* linia EKG — jasny puls przesuwa się po śladzie */
+.ecg-pulse {
+  stroke-dasharray: 200 2000;
+  animation: ecg-run 6s linear infinite;
+}
+@keyframes ecg-run {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -2200;
+  }
+}
+
+/* karty delikatnie się unoszą */
+.anim-bob {
+  animation: bob 6s ease-in-out infinite;
+}
+.anim-bob-delay {
+  animation-delay: 1.6s;
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* wejście przy ładowaniu */
+.anim-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 0.8, 0.35, 1) both;
+}
+.anim-rise-1 {
+  animation-delay: 0.1s;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots-layer,
+  .anim-float-a,
+  .anim-float-b,
+  .ecg-pulse,
+  .anim-bob,
+  .anim-rise {
+    animation: none !important;
+  }
+}

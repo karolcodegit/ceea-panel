@@ -5,103 +5,216 @@
     <title>Pracownicy — Panel CEEA</title>
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-    <%- include('partials/admin-nav', { active: 'pracownicy' }) %>
-    <%- include('partials/header') %>
+    <%- include('partials/admin-nav', { active: 'pracownicy' }) %> <%-
+    include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <% const q = locals.query || {}; %>
-
-        <% if (q.success) { %>
-          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
-        <% } %>
-        <% if (q.error || locals.error) { %>
-          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
-        <% } %>
-
         <section class="module-card p-4 sm:p-5">
-
           <div class="flex flex-wrap items-center justify-end gap-3 mb-5">
-            <button onclick="openEmployeeModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj pracownika</button>
+            <button
+              onclick="openEmployeeModal()"
+              class="btn btn-sm btn-primary whitespace-nowrap"
+            >
+              + Dodaj pracownika
+            </button>
           </div>
 
-          <div class="module-item p-4 sm:p-5 mb-5 flex flex-wrap items-center gap-2">
+          <div
+            class="module-item p-4 sm:p-5 mb-5 flex flex-wrap items-center gap-2"
+          >
             <div class="relative flex-1 min-w-[220px]">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-              <input type="text" id="search" placeholder="szukaj po imieniu, nazwisku, emailu..."
-                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+              <span
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                >🔍</span
+              >
+              <input
+                type="text"
+                id="search"
+                placeholder="szukaj po imieniu, nazwisku, emailu..."
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+              />
             </div>
-            <button data-filter="all" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white">Wszyscy</button>
-            <button data-filter="active" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Aktywni</button>
-            <button data-filter="inactive" class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">Ukryci</button>
+            <button
+              data-filter="all"
+              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white"
+            >
+              Wszyscy
+            </button>
+            <button
+              data-filter="active"
+              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200"
+            >
+              Aktywni
+            </button>
+            <button
+              data-filter="inactive"
+              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200"
+            >
+              Ukryci
+            </button>
           </div>
 
           <div id="empTable"></div>
-
         </section>
 
-        <div id="empModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeEmployeeModal()"></div>
-          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj pracownika</h3>
-            <form method="POST" action="<%= adminPrefix %>/pracownicy" class="space-y-3">
+        <div
+          id="empModal"
+          class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+        >
+          <div
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onclick="closeEmployeeModal()"
+          ></div>
+          <div
+            class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+          >
+            <h3
+              id="modalTitle"
+              class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+            >
+              Dodaj pracownika
+            </h3>
+            <form
+              method="POST"
+              action="<%= adminPrefix %>/pracownicy"
+              class="space-y-3"
+            >
               <input type="hidden" name="id" id="fId" />
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Imię *</label>
-                  <input type="text" name="name" id="fName" required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Imię *</label
+                  >
+                  <input
+                    type="text"
+                    name="name"
+                    id="fName"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Nazwisko *</label>
-                  <input type="text" name="surname" id="fSurname" required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Nazwisko *</label
+                  >
+                  <input
+                    type="text"
+                    name="surname"
+                    id="fSurname"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tytuł (stopień)</label>
-                  <input type="text" name="degree" id="fDegree" placeholder="dr inż., lek., mgr…"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Tytuł (stopień)</label
+                  >
+                  <input
+                    type="text"
+                    name="degree"
+                    id="fDegree"
+                    placeholder="dr inż., lek., mgr…"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rola</label>
-                  <input type="text" name="role" id="fRole" value="Administracja"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Rola</label
+                  >
+                  <input
+                    type="text"
+                    name="role"
+                    id="fRole"
+                    value="Administracja"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Telefon</label>
-                  <input type="text" name="phone" id="fPhone"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Telefon</label
+                  >
+                  <input
+                    type="text"
+                    name="phone"
+                    id="fPhone"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Drugi telefon</label>
-                  <input type="text" name="second_phone" id="fSecondPhone"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Drugi telefon</label
+                  >
+                  <input
+                    type="text"
+                    name="second_phone"
+                    id="fSecondPhone"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">E-mail</label>
-                  <input type="text" name="email" id="fEmail"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >E-mail</label
+                  >
+                  <input
+                    type="text"
+                    name="email"
+                    id="fEmail"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Kolejność</label>
-                  <input type="number" name="sort_order" id="fSortOrder" min="0" value="0"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Kolejność</label
+                  >
+                  <input
+                    type="number"
+                    name="sort_order"
+                    id="fSortOrder"
+                    min="0"
+                    value="0"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer mt-5">
-                  <input type="checkbox" name="is_active" id="fActive" value="1" class="w-4 h-4 accent-red-600" checked />
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer mt-5"
+                >
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    id="fActive"
+                    value="1"
+                    class="w-4 h-4 accent-red-600"
+                    checked
+                  />
                   Widoczny na stronie
                 </label>
               </div>
 
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeEmployeeModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz</button>
+                <button
+                  type="button"
+                  onclick="closeEmployeeModal()"
+                  class="btn btn-sm btn-neutral flex-1"
+                >
+                  Anuluj
+                </button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                  Zapisz
+                </button>
               </div>
             </form>
           </div>
         </div>
-
       </main>
     </div>
 

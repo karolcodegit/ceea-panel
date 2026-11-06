@@ -10,7 +10,6 @@
     <%- include('partials/header') %>
 
     <%
-      const q = locals.query || {};
       const p = locals.profile || {};
       const backupLeft = Array.isArray(p.backup_codes) ? p.backup_codes.filter(b => !b.used).length : 0;
       const hasAvatar = !!(locals.cloudName && locals.uploadPreset);
@@ -18,14 +17,7 @@
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-
-        <% if (q.success) { %>
-          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
-        <% } %>
-        <% if (q.error) { %>
-          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error %></div>
-        <% } %>
-
+        
         <%# Kafelki %>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <div class="stat-tile">

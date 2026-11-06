@@ -266,6 +266,81 @@ const TEMPLATES = {
     },
   },
 
+  // ── 4. Materiały dostępne w panelu (po kursie) ──
+  materials: {
+    key: "materials",
+    name: "Materiały w panelu",
+    description: "Powiadomienie, że materiały z kursu są już w panelu",
+    icon: "📚",
+    fields: [
+      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
+      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 4 },
+      {
+        key: "note",
+        label: "Informacja o logowaniu",
+        type: "textarea",
+        rows: 2,
+        hint: "Opcjonalnie — puste pole zostanie pominięte w mailu",
+      },
+      { key: "buttonLabel", label: "Tekst przycisku", type: "text" },
+      { key: "buttonUrl", label: "Link przycisku", type: "text" },
+    ],
+    defaults({ course }) {
+      const title = course?.title || "Kurs CEEA";
+      return {
+        subject: `Materiały z kursu: ${title}`,
+        preheader: `Materiały z kursu ${title} są już dostępne w panelu`,
+        values: {
+          heading: "Materiały z kursu są już dostępne",
+          intro:
+            `dziękujemy za udział w kursie „${title}”.\n` +
+            `Informujemy, że materiały z kursu zostały dodane i są już dostępne w panelu uczestnika.`,
+          note: "Zaloguj się tym samym adresem e-mail, na który otrzymałeś tę wiadomość.",
+          buttonLabel: "Zaloguj się do panelu",
+          buttonUrl: PANEL_URL,
+        },
+      };
+    },
+    render({ subject, preheader, values, course, recipient }) {
+      const title = course?.title || "Kurs CEEA";
+      const content = `
+        ${greeting(recipient.firstName)}
+        <p>${nl2br(values.intro)}</p>
+        ${detailsBox([["Kurs", title]])}
+        ${values.note && values.note.trim() !== "" ? `<p>${nl2br(values.note)}</p>` : ""}
+        ${ctaButton(values.buttonLabel, values.buttonUrl)}
+        ${CLOSING}`;
+
+      const text = [
+        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
+        "",
+        values.intro || "",
+        "",
+        `Kurs: ${title}`,
+        values.note ? `\n${values.note}` : null,
+        values.buttonUrl
+          ? `${values.buttonLabel || "Panel"}: ${values.buttonUrl}`
+          : null,
+        "",
+        "Pozdrawiamy,",
+        "Zespół CEEA Poznań",
+      ]
+        .filter((l) => l !== null)
+        .join("\n");
+
+      return {
+        subject,
+        preheader,
+        html: renderEmail({
+          preheader,
+          title: values.heading || "",
+          content,
+        }).html,
+        text,
+      };
+    },
+  },
+
   // ── 3. Własna treść ──
   custom: {
     key: "custom",

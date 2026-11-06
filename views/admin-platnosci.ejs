@@ -3,49 +3,15 @@
   <head>
     <%- include('partials/head') %>
     <title>Płatności — Panel CEEA</title>
-    <style>
-      @media print {
-        .no-print {
-          display: none !important;
-        }
-        body {
-          background: white;
-        }
-      }
-    </style>
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-    <%- include('partials/admin-nav', { active: 'platnosci' }) %> <%-
-    include('partials/header') %>
+    <%- include('partials/admin-nav', { active: 'platnosci' }) %> 
+    <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <% const query = locals.query || {}; %> <%# ── Komunikaty POZA kartą ──
-        %> <% if (query.success) { %>
-        <div
-          class="mb-5 flex items-center gap-3 rounded-2xl border border-green-200 dark:border-green-500/25 bg-green-50/70 dark:bg-green-500/10 px-4 py-3 shadow-sm"
-        >
-          <span
-            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-600 dark:text-green-300 text-sm font-semibold"
-            >✓</span
-          >
-          <p class="text-sm font-medium text-green-800 dark:text-green-200">
-            <%= query.success %>
-          </p>
-        </div>
-        <% } %> <% if (query.error) { %>
-        <div
-          class="mb-5 flex items-center gap-3 rounded-2xl border border-red-200 dark:border-red-500/25 bg-red-50/70 dark:bg-red-500/10 px-4 py-3 shadow-sm"
-        >
-          <span
-            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-600 dark:text-red-300 text-sm font-semibold"
-            >!</span
-          >
-          <p class="text-sm font-medium text-red-800 dark:text-red-200">
-            <%= query.error %>
-          </p>
-        </div>
-        <% } %> <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki Kursy / Książki ═════
+        <%- include('partials/flash') %>
+        <%# ═════ BIAŁY PROSTOKĄT MODUŁU: zakładki Kursy / Książki ═════
         %>
         <section class="module-card p-4 sm:p-5">
           <%# Rząd: zakładki po lewej, druk po prawej %>

@@ -5,46 +5,66 @@
     <title>Książki — Panel CEEA</title>
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
-    <%- include('partials/admin-nav', { active: 'ksiazki' }) %>
+    <%- include('partials/admin-nav', { active: 'ksiazki' }) %> 
     <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <% const q = locals.query || {}; %>
-
-        <% if (q.success) { %>
-          <div class="mb-4 p-3 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 rounded-lg text-sm"><%= q.success %></div>
-        <% } %>
-        <% if (q.error || locals.error) { %>
-          <div class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm"><%= q.error || locals.error %></div>
-        <% } %>
-
         <section class="module-card p-4 sm:p-5">
-
           <div class="flex flex-wrap items-center justify-end gap-3 mb-5">
-            <button onclick="openBookModal()" class="btn btn-sm btn-primary whitespace-nowrap">+ Dodaj książkę</button>
+            <button
+              onclick="openBookModal()"
+              class="btn btn-sm btn-primary whitespace-nowrap"
+            >
+              + Dodaj książkę
+            </button>
           </div>
           <div class="module-item p-4 sm:p-5 mb-5">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
               <div>
-                <label for="search" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Szukaj</label>
+                <label
+                  for="search"
+                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                  >Szukaj</label
+                >
                 <div class="relative">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">🔍</span>
-                  <input type="text" id="search" placeholder="tytuł, autor, wydawnictwo..."
-                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500" />
+                  <span
+                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                    >🔍</span
+                  >
+                  <input
+                    type="text"
+                    id="search"
+                    placeholder="tytuł, autor, wydawnictwo..."
+                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+                  />
                 </div>
               </div>
               <div>
-                <label for="fAvail" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Dostępność</label>
-                <select id="fAvail" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <label
+                  for="fAvail"
+                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                  >Dostępność</label
+                >
+                <select
+                  id="fAvail"
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                >
                   <option value="all">Wszystkie</option>
                   <option value="available">Dostępne w sprzedaży</option>
                   <option value="unavailable">Niedostępne</option>
                 </select>
               </div>
               <div>
-                <label for="fStock" class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Stan magazynowy</label>
-                <select id="fStock" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer">
+                <label
+                  for="fStock"
+                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                  >Stan magazynowy</label
+                >
+                <select
+                  id="fStock"
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                >
                   <option value="all">Wszystkie</option>
                   <option value="zero">Stan: 0</option>
                   <option value="low">Stan &lt; 5</option>
@@ -55,86 +75,206 @@
           </div>
 
           <div id="booksTable"></div>
-
         </section>
 
-        <div id="bookModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeBookModal()"></div>
-          <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dodaj książkę</h3>
-            <form method="POST" action="<%= adminPrefix %>/ksiazki" class="space-y-3">
+        <div
+          id="bookModal"
+          class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+        >
+          <div
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onclick="closeBookModal()"
+          ></div>
+          <div
+            class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto"
+          >
+            <h3
+              id="modalTitle"
+              class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+            >
+              Dodaj książkę
+            </h3>
+            <form
+              method="POST"
+              action="<%= adminPrefix %>/ksiazki"
+              class="space-y-3"
+            >
               <input type="hidden" name="id" id="fId" />
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="sm:col-span-2">
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Tytuł *</label>
-                  <input type="text" name="name" id="fName" required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Tytuł *</label
+                  >
+                  <input
+                    type="text"
+                    name="name"
+                    id="fName"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Autor / Autorzy *</label>
-                  <input type="text" name="author" id="fAuthor" required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Autor / Autorzy *</label
+                  >
+                  <input
+                    type="text"
+                    name="author"
+                    id="fAuthor"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cena (zł) *</label>
-                  <input type="text" name="price" id="fPrice" required inputmode="decimal" placeholder="np. 180"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Cena (zł) *</label
+                  >
+                  <input
+                    type="text"
+                    name="price"
+                    id="fPrice"
+                    required
+                    inputmode="decimal"
+                    placeholder="np. 180"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rok wydania</label>
-                  <input type="number" name="year" id="fYear" min="1900" max="2040"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Rok wydania</label
+                  >
+                  <input
+                    type="number"
+                    name="year"
+                    id="fYear"
+                    min="1900"
+                    max="2040"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Wydawnictwo</label>
-                  <input type="text" name="publisher" id="fPublisher"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Wydawnictwo</label
+                  >
+                  <input
+                    type="text"
+                    name="publisher"
+                    id="fPublisher"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rodzaj okładki</label>
-                  <select name="cover_type" id="fCover"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none cursor-pointer">
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Rodzaj okładki</label
+                  >
+                  <select
+                    name="cover_type"
+                    id="fCover"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none cursor-pointer"
+                  >
                     <option value="">—</option>
                     <option value="Miękka">Miękka</option>
                     <option value="Twarda">Twarda</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Ilość sztuk</label>
-                  <input type="number" name="stock_quantity" id="fStockQty" min="0"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Ilość sztuk</label
+                  >
+                  <input
+                    type="number"
+                    name="stock_quantity"
+                    id="fStockQty"
+                    min="0"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">URL okładki</label>
-                  <input type="text" name="image_url" id="fImageUrl" placeholder="https://…"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none" />
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >URL okładki</label
+                  >
+                  <input
+                    type="text"
+                    name="image_url"
+                    id="fImageUrl"
+                    placeholder="https://…"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  />
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Dodatkowe informacje</label>
-                  <textarea name="additional_info" id="fInfo" rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"></textarea>
+                  <label
+                    class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1"
+                    >Dodatkowe informacje</label
+                  >
+                  <textarea
+                    name="additional_info"
+                    id="fInfo"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm outline-none"
+                  ></textarea>
                 </div>
               </div>
 
               <div class="flex flex-col sm:flex-row gap-3 pt-1">
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
-                  <input type="checkbox" name="available" id="fAvailable" value="1" class="w-4 h-4 accent-red-600" checked />
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="available"
+                    id="fAvailable"
+                    value="1"
+                    class="w-4 h-4 accent-red-600"
+                    checked
+                  />
                   Dostępna w sprzedaży
                 </label>
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
-                  <input type="checkbox" name="reprint" id="fReprint" value="1" class="w-4 h-4 accent-red-600" />
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="reprint"
+                    id="fReprint"
+                    value="1"
+                    class="w-4 h-4 accent-red-600"
+                  />
                   Czeka na dodruk
                 </label>
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
-                  <input type="checkbox" name="print_on_demand" id="fPod" value="1" class="w-4 h-4 accent-red-600" />
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    name="print_on_demand"
+                    id="fPod"
+                    value="1"
+                    class="w-4 h-4 accent-red-600"
+                  />
                   Druk na żądanie
                 </label>
               </div>
 
               <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeBookModal()" class="btn btn-sm btn-neutral flex-1">Anuluj</button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">Zapisz</button>
+                <button
+                  type="button"
+                  onclick="closeBookModal()"
+                  class="btn btn-sm btn-neutral flex-1"
+                >
+                  Anuluj
+                </button>
+                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                  Zapisz
+                </button>
               </div>
             </form>
           </div>
@@ -142,11 +282,8 @@
       </main>
     </div>
 
-    <%
-      const cdnCloud = locals.cloudName || "";
-      const cdnPreset = locals.uploadPreset || "";
-    %>
-    <% if (cdnCloud && cdnPreset) { %>
+    <% const cdnCloud = locals.cloudName || ""; const cdnPreset =
+    locals.uploadPreset || ""; %> <% if (cdnCloud && cdnPreset) { %>
     <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
     <% } %>
     <script>
@@ -268,28 +405,47 @@
       ['search', 'fAvail', 'fStock'].forEach(id => document.getElementById(id).addEventListener('input', render));
       render();
     </script>
-<script>
+    <script>
       (function () {
-        var input = document.getElementById('fImageUrl');
+        var input = document.getElementById("fImageUrl");
         if (!input || !window.cloudinary) return;
-        var wrap = document.createElement('div');
-        wrap.className = 'flex items-center gap-2 mt-2';
+        var wrap = document.createElement("div");
+        wrap.className = "flex items-center gap-2 mt-2";
         wrap.innerHTML =
           '<button type="button" id="upCover" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj do Cloudinary</button>' +
           '<span id="coverPrev" class="text-xs text-gray-400"></span>';
         input.parentNode.appendChild(wrap);
-        var prev = wrap.querySelector('#coverPrev');
-        function show() { prev.innerHTML = input.value ? '<img src="' + input.value + '" class="h-16 rounded border border-gray-200 dark:border-slate-700" />' : ''; }
-        document.getElementById('upCover').addEventListener('click', function () {
-          cloudinary.createUploadWidget(
-            { cloudName: CDN_CLOUD, uploadPreset: CDN_PRESET, folder: 'books', multiple: false,
-              maxFileSize: 5000000, clientAllowedFormats: ['jpg','jpeg','png','webp'] },
-            function (err, res) {
-              if (!err && res && res.event === 'success') { input.value = res.info.secure_url; show(); }
-            }
-          ).open();
-        });
-        input.addEventListener('input', show);
+        var prev = wrap.querySelector("#coverPrev");
+        function show() {
+          prev.innerHTML = input.value
+            ? '<img src="' +
+              input.value +
+              '" class="h-16 rounded border border-gray-200 dark:border-slate-700" />'
+            : "";
+        }
+        document
+          .getElementById("upCover")
+          .addEventListener("click", function () {
+            cloudinary
+              .createUploadWidget(
+                {
+                  cloudName: CDN_CLOUD,
+                  uploadPreset: CDN_PRESET,
+                  folder: "books",
+                  multiple: false,
+                  maxFileSize: 5000000,
+                  clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                },
+                function (err, res) {
+                  if (!err && res && res.event === "success") {
+                    input.value = res.info.secure_url;
+                    show();
+                  }
+                }
+              )
+              .open();
+          });
+        input.addEventListener("input", show);
         show();
       })();
     </script>

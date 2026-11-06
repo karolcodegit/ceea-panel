@@ -2,10 +2,21 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
-const { renderTemplate, getTemplateDefaults } = require("../services/email");
+const {
+  listTemplates,
+  getTemplateDefaults,
+  renderTemplate,
+  fetchCourseForTemplates,
+} = require("../services/email");
 
-// Kursy z Supabase (po migracji z DatoCMS). Mapowanie zachowuje pola
-// title/nameCourse/id/course_id — widok admin-maile.ejs może używać dowolnego.
+// Adres testowy — "TEST" w selectach wysyła tylko tutaj
+const TEST_EMAIL = "karol.znojkiewicz@outlook.com";
+const TEST_RECIPIENT = { firstName: "Karol", lastName: "Znojkiewicz", email: TEST_EMAIL };
+
+// Przykładowy odbiorca do podglądu — żeby widać było personalizację
+const PREVIEW_RECIPIENT = { firstName: "Anna", lastName: "Kowalska", email: "anna.kowalska@example.com" };
+
+// Kursy z Supabase (do selectów w widoku)
 async function fetchCourses() {
   const { data, error } = await supabase
     .from("courses")
@@ -25,12 +36,32 @@ async function fetchCourses() {
   }));
 }
 
+// values może przyjść jako obiekt (fetch JSON) albo string JSON (formularz)
+function parseValues(body) {
+  const v = body.values ?? body.valuesJson;
+  if (!v) return {};
+  if (typeof v === "object") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return {};
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ===== MAILE =====
 // ═══════════════════════════════════════════════════════════════
 
 // ── Strona główna modułu mailowego ──
 router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
+  const render = (params) =>
+    res.render("admin-maile", {
+      isAdmin: true,
+      active: "maile",
+      templates: listTemplates(),
+      ...params,
+    });
+
   try {
     const courses = await fetchCourses();
     const queue = req.app.get("emailQueue");
@@ -46,9 +77,7 @@ router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    res.render("admin-maile", {
-      isAdmin: true,
-      active: "maile",
+    render({
       courses,
       stats,
       logs: logs || [],
@@ -57,11 +86,8 @@ router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("[GET /maile] Błąd:", err);
-    const courses = [];
-    res.render("admin-maile", {
-      isAdmin: true,
-      active: "maile",
-      courses,
+    render({
+      courses: [],
       stats: { pending: 0, sentToday: 0, failed: 0, limit: 50 },
       logs: [],
       sent: null,
@@ -70,70 +96,39 @@ router.get("/maile", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
-// ── API: Pobierz predefiniowane dane szablonu ──
-router.post(
-  "/maile/template-data",
-  adminOnly,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { templateKey, courseId, courseName, courseDate } = req.body;
-
-      const data = {
-        courseTitle: courseName || "Kurs CEEA",
-        courseNumber:
-          courseId && courseId !== "all" && courseId !== "test"
-            ? courseId
-            : "6",
-        date: courseDate || "22-24.10.2026",
-        location: "Hotelu Ilonn w Poznaniu",
-        firstName: "Jan",
-        total: "2500",
-        orderNumber: "CEEA-2026-001",
-        panelUrl: "https://panel.ceea.org.pl",
-        agendaUrl: "",
-      };
-
-      const defaults = getTemplateDefaults(templateKey, data);
-      res.json({ ok: true, ...defaults });
-    } catch (err) {
-      res.status(400).json({ ok: false, error: err.message });
-    }
+// ── API: domyślne pola szablonu (dane z Supabase) ──
+router.post("/maile/template-data", adminOnly, requireAdmin, async (req, res) => {
+  try {
+    const { templateKey, courseId } = req.body;
+    const defaults = await getTemplateDefaults(templateKey, courseId);
+    res.json({ ok: true, ...defaults });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
   }
-);
+});
 
-// ── API: Podgląd maila ──
+// ── API: podgląd maila (dokładny HTML, jak wyjdzie w skrzynce) ──
 router.post("/maile/preview", adminOnly, requireAdmin, async (req, res) => {
   try {
-    const {
-      templateKey,
-      courseTitle,
-      firstName,
-      bodyHtml,
+    const { templateKey, courseId, subject, preheader } = req.body;
+    const values = parseValues(req.body);
+    const course = await fetchCourseForTemplates(courseId);
+
+    const rendered = renderTemplate(templateKey, {
       subject,
       preheader,
-    } = req.body;
+      values,
+      course,
+      recipient: PREVIEW_RECIPIENT,
+    });
 
-    const data = {
-      courseTitle: courseTitle || "Medycyna okołooperacyjna",
-      courseNumber: "6",
-      firstName: firstName || "Jan",
-      total: "2500",
-      orderNumber: "CEEA-2026-001",
-      panelUrl: "https://panel.ceea.org.pl",
-      date: "22-24.10.2026",
-      location: "Hotelu Ilonn w Poznaniu",
-      agendaUrl: "https://ceea.org.pl/program",
-      subject,
-      preheader,
-    };
-
-    const rendered = renderTemplate(templateKey, data, bodyHtml);
     res.json({
       ok: true,
       html: rendered.html,
       text: rendered.text,
       subject: rendered.subject,
+      preheader: rendered.preheader,
+      sampleName: PREVIEW_RECIPIENT.firstName,
     });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
@@ -143,31 +138,28 @@ router.post("/maile/preview", adminOnly, requireAdmin, async (req, res) => {
 // ── API: Dodaj do kolejki ──
 router.post("/maile", adminOnly, requireAdmin, async (req, res) => {
   try {
-    const { courseId, templateKey, subject, bodyHtml, preheader } = req.body;
+    const { courseId, templateKey, subject, preheader } = req.body;
+    const values = parseValues(req.body);
     const queue = req.app.get("emailQueue");
 
     if (!queue) {
       throw new Error("Kolejka mailowa nie jest zainicjalizowana");
     }
 
+    const course = await fetchCourseForTemplates(courseId);
+
     // TEST: wyślij tylko na testowy mail
     if (courseId === "test") {
-      const data = {
-        courseTitle: req.body.courseTitle || "Kurs CEEA",
-        firstName: "Karol",
-        total: req.body.total || "",
-        orderNumber: req.body.orderNumber || "",
-        panelUrl: "https://panel.ceea.org.pl",
-        date: req.body.date || "",
-        location: req.body.location || "",
-        agendaUrl: req.body.agendaUrl || "",
+      const rendered = renderTemplate(templateKey, {
         subject,
         preheader,
-      };
-      const rendered = renderTemplate(templateKey, data, bodyHtml);
+        values,
+        course,
+        recipient: TEST_RECIPIENT,
+      });
       await queue.enqueue({
-        recipientEmail: "karol.znojkiewicz@outlook.com",
-        recipientName: "Karol Znojkiewicz",
+        recipientEmail: TEST_EMAIL,
+        recipientName: `${TEST_RECIPIENT.firstName} ${TEST_RECIPIENT.lastName}`,
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
@@ -203,22 +195,17 @@ router.post("/maile", adminOnly, requireAdmin, async (req, res) => {
       const user = enrollment.users;
       if (!user || !user.email) continue;
 
-      const data = {
-        courseTitle: req.body.courseTitle || "Kurs CEEA",
-        courseNumber: req.body.courseNumber || "6",
-        firstName: user.name || "",
-        lastName: user.surname || "",
-        total: req.body.total || "",
-        orderNumber: req.body.orderNumber || "",
-        panelUrl: "https://panel.ceea.org.pl",
-        date: req.body.date || "",
-        location: req.body.location || "",
-        agendaUrl: req.body.agendaUrl || "",
+      const rendered = renderTemplate(templateKey, {
         subject,
         preheader,
-      };
-
-      const rendered = renderTemplate(templateKey, data, bodyHtml);
+        values,
+        course,
+        recipient: {
+          firstName: user.name || "",
+          lastName: user.surname || "",
+          email: user.email,
+        },
+      });
 
       const courseIdNum = parseInt(courseId, 10);
       await queue.enqueue({
@@ -227,7 +214,8 @@ router.post("/maile", adminOnly, requireAdmin, async (req, res) => {
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
-        courseId: courseId === "all" || Number.isNaN(courseIdNum) ? null : courseIdNum,
+        courseId:
+          courseId === "all" || Number.isNaN(courseIdNum) ? null : courseIdNum,
         templateKey,
       });
       enqueued++;

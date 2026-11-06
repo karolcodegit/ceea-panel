@@ -1,7 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const crypto = require("crypto");
 const supabase = require("../config/supabase");
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
+
+// ID w formacie DatoCMS (22 znaki, URL-safe) — generowane dla NOWYCH rekordów,
+// bo po migracji do Supabase nikt już go nie tworzy automatycznie.
+const newDatocmsId = () => crypto.randomBytes(16).toString("base64url");
 
 // ═══════════════════════════════════════════════════════════════
 // ===== KSIĄŻKI (tabela products) =====
@@ -62,7 +67,7 @@ router.post("/ksiazki", adminOnly, requireAdmin, async (req, res) => {
     }
 
     if (b.id) {
-      // Edycja
+      // Edycja — datocms_id zostaje bez zmian (powiązania z zamówieniami/stroną)
       const { error } = await supabase
         .from("products")
         .update(record)
@@ -71,8 +76,10 @@ router.post("/ksiazki", adminOnly, requireAdmin, async (req, res) => {
       return res.redirect(`${ADMIN_PREFIX}/ksiazki?success=${encodeURIComponent("Zapisano zmiany")}`);
     }
 
-    // Nowa pozycja
-    const { error } = await supabase.from("products").insert([record]);
+    // Nowa pozycja — generujemy datocms_id jak w DatoCMS
+    const { error } = await supabase
+      .from("products")
+      .insert([{ ...record, datocms_id: newDatocmsId() }]);
     if (error) throw error;
     res.redirect(`${ADMIN_PREFIX}/ksiazki?success=${encodeURIComponent("Dodano książkę")}`);
   } catch (err) {

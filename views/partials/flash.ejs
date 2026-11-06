@@ -1,0 +1,165 @@
+<%# ═══════════════════════════════════════════════════════════════
+   partials/flash.ejs — uniwersalne powiadomienia (toast z góry)
+
+   Czyta automatycznie: locals.query / locals.q / zmienne wprost:
+   success, error, warning, info  (+ "sent" z modułu maili)
+
+   Użycie: include partials/flash — najlepiej RAZ na końcu
+   partials/header.ejs, wtedy działa na każdej stronie.
+   ═══════════════════════════════════════════════════════════════ %>
+<%
+  const __src = (typeof locals !== "undefined" && locals) || {};
+  const __q = __src.query || __src.q || {};
+  const __pick = (k) => __q[k] || __src[k] || null;
+
+  const __flashes = [];
+  let __success = __pick("success");
+  if (!__success && __pick("sent")) {
+    const n = Number(__pick("sent"));
+    __success = `Dodano do kolejki: ${n} ${n === 1 ? "wiadomość" : "wiadomości"}.`;
+  }
+  if (__success) __flashes.push({ type: "success", msg: __success });
+  if (__pick("error")) __flashes.push({ type: "error", msg: __pick("error") });
+  if (__pick("warning")) __flashes.push({ type: "warning", msg: __pick("warning") });
+  if (__pick("info")) __flashes.push({ type: "info", msg: __pick("info") });
+
+  const __icons = { success: "✓", error: "!", warning: "⚠", info: "i" };
+%>
+<% if (__flashes.length) { %>
+<style>
+  .flash-wrap {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: min(560px, calc(100vw - 24px));
+    pointer-events: none;
+  }
+  .flash-toast {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: fit-content;
+    min-width: min(320px, 100%);
+    max-width: 100%;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid;
+    box-shadow: 0 10px 30px -10px rgba(16, 24, 40, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: auto;
+    animation: flashIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  }
+  .flash-toast:hover .flash-bar { animation-play-state: paused; }
+  @keyframes flashIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  .flash-toast.is-hiding {
+    transition: opacity 0.25s, transform 0.25s;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  .flash-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .flash-msg { margin: 0; font-size: 14px; font-weight: 500; flex: 1; line-height: 1.45; }
+  .flash-close {
+    flex-shrink: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.55;
+    padding: 4px;
+    color: inherit;
+  }
+  .flash-close:hover { opacity: 1; }
+  .flash-bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 100%;
+    transform-origin: left;
+    animation: flashBar 7s linear forwards;
+    opacity: 0.45;
+  }
+  @keyframes flashBar {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+  }
+
+  .flash-success { background: rgba(240, 253, 244, 0.94); border-color: #bbf7d0; color: #166534; }
+  .flash-success .flash-icon, .flash-success .flash-bar { background: rgba(34, 197, 94, 0.18); }
+  .flash-error { background: rgba(254, 242, 242, 0.94); border-color: #fecaca; color: #991b1b; }
+  .flash-error .flash-icon, .flash-error .flash-bar { background: rgba(239, 68, 68, 0.18); }
+  .flash-warning { background: rgba(255, 251, 235, 0.94); border-color: #fde68a; color: #92400e; }
+  .flash-warning .flash-icon, .flash-warning .flash-bar { background: rgba(245, 158, 11, 0.18); }
+  .flash-info { background: rgba(239, 246, 255, 0.94); border-color: #bfdbfe; color: #1e40af; }
+  .flash-info .flash-icon, .flash-info .flash-bar { background: rgba(59, 130, 246, 0.18); }
+
+  .dark .flash-success { background: rgba(20, 40, 28, 0.94); border-color: rgba(74, 222, 128, 0.25); color: #bbf7d0; }
+  .dark .flash-error { background: rgba(45, 20, 20, 0.94); border-color: rgba(248, 113, 113, 0.25); color: #fecaca; }
+  .dark .flash-warning { background: rgba(45, 35, 15, 0.94); border-color: rgba(251, 191, 36, 0.25); color: #fde68a; }
+  .dark .flash-info { background: rgba(20, 30, 50, 0.94); border-color: rgba(96, 165, 250, 0.25); color: #bfdbfe; }
+</style>
+
+<div class="flash-wrap">
+  <% __flashes.forEach((f, i) => { %>
+  <div
+    class="flash-toast flash-<%= f.type %>"
+    role="alert"
+    style="animation-delay: <%= i * 120 %>ms"
+  >
+    <span class="flash-icon"><%= __icons[f.type] %></span>
+    <p class="flash-msg"><%= f.msg %></p>
+    <button
+      type="button"
+      class="flash-close"
+      onclick="dismissFlash(this)"
+      aria-label="Zamknij"
+    >
+      ✕
+    </button>
+    <span class="flash-bar"></span>
+  </div>
+  <% }) %>
+</div>
+
+<script>
+  function dismissFlash(btn) {
+    const t = btn.closest(".flash-toast");
+    if (!t) return;
+    hideFlash(t);
+  }
+  function hideFlash(t) {
+    if (!t.isConnected) return;
+    t.classList.add("is-hiding");
+    setTimeout(() => t.remove(), 250);
+  }
+  document.querySelectorAll(".flash-toast").forEach((t) => {
+    let timer = setTimeout(() => hideFlash(t), 7000);
+    t.addEventListener("mouseenter", () => clearTimeout(timer));
+    t.addEventListener("mouseleave", () => {
+      timer = setTimeout(() => hideFlash(t), 2500);
+    });
+  });
+</script>
+<% } %>
