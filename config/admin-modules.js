@@ -1,6 +1,7 @@
 // Rejestr modułów panelu admina.
 // Nowy moduł = nowy wpis tutaj + route w routes/admin.js + widok w views/
 // status: "ready" (gotowe) | "beta" (testowo) | "wip" (w budowie – ukrywa się przed zwykłymi adminami)
+// hidden: true, // tylko dla headera — nie rysuj w menu ani na dashboardzie
 module.exports = [
   {
     key: "home",
@@ -9,7 +10,7 @@ module.exports = [
     icon: "home",
     desc: "Przegląd systemu i odwiedzin strony",
     status: "ready",
-    hidden: true, // tylko dla headera — nie rysuj w menu ani na dashboardzie
+    hidden: true,
   },
   {
     key: "ustawienia",
@@ -50,7 +51,7 @@ module.exports = [
     path: "/maile",
     icon: "envelope",
     desc: "Wysyłka wiadomości do uczestników kursów",
-    status: "beta", // wysyłka działa, planowana rozbudowa (masówki, automatyzacje)
+    status: "ready", // wysyłka działa, planowana rozbudowa (masówki, automatyzacje)
   },
   // {
   //   key: "certyfikaty",
@@ -94,11 +95,11 @@ module.exports = [
   },
   {
     key: "pomoc",
-    name: "Pomoc",
+    name: "FAQ panelu",
     path: "/pomoc",
-    icon: "pomoc",
+    icon: "faq-panel",
     desc: "Treści strony /pomoc — kategorie i pytania FAQ panelu",
-    status: "ready", // docelowo także sekcja „Kontakt” (dane kontaktowe)
+    status: "ready",
   },
   {
     key: "administratorzy",
@@ -114,6 +115,15 @@ module.exports = [
     path: "/media",
     icon: "media",
     desc: "Galeria cloudinary",
-    status: "beta",
+    status: "ready",
+  },
+  {
+    key: "kontakt",
+    name: "Pomoc",
+    path: "/kontakt",
+    icon: "support",
+    desc: "Kontakt do twórcy panelu i wsparcie techniczne",
+    status: "ready",
+    hidden: true,
   },
 ];

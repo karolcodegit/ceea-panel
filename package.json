@@ -1,6 +1,6 @@
 {
   "name": "ceea-panel",
-  "version": "2.0.0",
+  "version": "2.1.2",
   "description": "Panel uczestnika CEEA",
   "main": "server.js",
   "scripts": {

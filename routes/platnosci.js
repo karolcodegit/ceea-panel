@@ -30,7 +30,7 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
       courses.find((c) => c.is_active)?.course_id || null;
 
     // płatności za kursy
-    const { data: payments, error } = await supabase
+    const { data: paymentsRaw, error } = await supabase
       .from("payments")
       .select(
         "*, invoices!payments_invoice_id_fkey(*), users(name, surname, email, phone), courses(title)"
@@ -38,6 +38,27 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw error;
+    const payments = paymentsRaw || [];
+
+    // Faktury powiązane TYLKO przez invoices.payment_id (np. wygenerowane
+    // z modułu Faktury, który nie ustawia payments.invoice_id) — dociągnij
+    // je osobno i dopnij do płatności, żeby kolumna „Faktura" się zgadzała.
+    const missingIds = payments.filter((p) => !p.invoices).map((p) => p.id);
+    if (missingIds.length) {
+      const { data: extraInv, error: eiErr } = await supabase
+        .from("invoices")
+        .select("*")
+        .in("payment_id", missingIds)
+        .order("created_at", { ascending: false });
+      if (eiErr) console.error("[GET /platnosci] invoices fallback:", eiErr.message);
+      const byPayment = new Map();
+      (extraInv || []).forEach((i) => {
+        if (i.payment_id && !byPayment.has(i.payment_id)) byPayment.set(i.payment_id, i);
+      });
+      payments.forEach((p) => {
+        if (!p.invoices && byPayment.has(p.id)) p.invoices = byPayment.get(p.id);
+      });
+    }
 
     // płatności za książki
     const { data: bookOrders, error: boErr } = await supabase
@@ -51,7 +72,7 @@ router.get("/platnosci", adminOnly, requireAdmin, async (req, res) => {
       isAdmin: true,
       active: "platnosci",
       courses,
-      payments: payments || [],
+      payments,
       bookOrders: bookOrders || [],
       activeCourseId,
       query: req.query,

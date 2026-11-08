@@ -6,6 +6,7 @@ const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
 const secrets = require("../services/secrets");
 const { getFlags, setFlag } = require("../services/flags");
+const { version: PANEL_VERSION } = require("../package.json");
 
 // ── Kontekst wspólny dla całego panelu (moduły montowane NIŻEJ też go dostają,
 //    bo przechodzą przez ten middleware przed własnymi route'ami) ──
@@ -13,6 +14,11 @@ router.use((req, res, next) => {
   res.locals.adminPrefix = ADMIN_PREFIX;
   res.locals.adminModules = adminModules;
   res.locals.adminIcon = adminIcon;
+
+  // Dane dla stopki panelu (partials/footerAdmin.ejs) i strony /kontakt
+  res.locals.panelVersion = PANEL_VERSION;
+  res.locals.panelEnv = process.env.NODE_ENV === "production" ? "PROD" : "DEV";
+  res.locals.supportEmail = process.env.SUPPORT_EMAIL || "karol.znojkiewicz@outlook.com";
 
   const token = req.cookies?.adminToken;
   const session = req.app.locals.sessions.get(token);
@@ -629,6 +635,7 @@ router.use("/", require("./firma")); // Dane firmy CEEA Poznań
 router.use("/", require("./media")); // Galeria z Cloudinary
 router.use("/", require("./serwis").router); //Tryb serwisowy
 router.use("/", require("./pomoc")); //Pytania i odpowiedzi - pomoc
+router.use("/", require("./kontakt")); // Pomoc — kontakt do twórcy panelu
 
 
 module.exports = router;

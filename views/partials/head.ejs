@@ -43,8 +43,16 @@
     },
   };
 </script>
+
+<%# ── CookieScript: TYLKO poza panelem admina.
+     locals.adminPrefix ustawia middleware routes/admin.js — istnieje wyłącznie
+     na trasach /ceea-poznan-admin. Na stronach uczestnika (panel.ceea.org.pl)
+     baner ładuje się normalnie; w panelu admina nie zasłania stopki. ── %>
+<% if (!locals.adminPrefix) { %>
 <script type="text/javascript" charset="UTF-8"
   src="https://cdn.cookie-script.com/s/fb8b0a0dc09c9f0d3e13eeb8cbd6fe9f.js"
   async>
 </script>
+<% } %>
+
 <script src="/js/data-table.js"></script>

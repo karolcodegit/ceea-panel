@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
+const { adminOnly } = require("../middleware/auth");
+
+// CAŁY moduł tylko dla zalogowanych adminów (lista + mutacje)
+router.use(adminOnly);
 
 // ── helpers ──
 const s = (v) => String(v ?? "").trim();
@@ -62,7 +66,9 @@ router.get("/pomoc", async (req, res) => {
     if (qErr) console.error("admin/pomoc pytania:", qErr.message);
 
     res.render("admin-pomoc", {
-      title: "Pomoc — Panel CEEA",
+      isAdmin: true,
+      active: "pomoc",
+      title: "FAQ panelu — Panel CEEA",
       query: req.query,
       categories: categories || [],
       questions: questions || [],
@@ -70,7 +76,9 @@ router.get("/pomoc", async (req, res) => {
   } catch (err) {
     console.error("admin/pomoc:", err);
     res.render("admin-pomoc", {
-      title: "Pomoc — Panel CEEA",
+      isAdmin: true,
+      active: "pomoc",
+      title: "FAQ panelu — Panel CEEA",
       query: { error: "Nie udało się pobrać danych pomocy." },
       categories: [],
       questions: [],
