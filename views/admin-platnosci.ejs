@@ -4,7 +4,7 @@
     <%- include('partials/head') %>
     <title>Płatności — Panel CEEA</title>
   </head>
-  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+  <body>
     <%- include('partials/admin-nav', { active: 'platnosci' }) %> 
     <%- include('partials/header') %>
 
@@ -764,12 +764,54 @@
              URL.revokeObjectURL(a.href);
            }
 
+           // ── Dodatkowe opcje z payloadu formularza (dania, wyżywienie, zgody…) ──
+           // Klucze obsłużone osobno (faktura) — nie trafiają do kolumn dynamicznych
+           const INVOICE_PAYLOAD_KEYS = ['InvoiceName','invoiceName','InvoiceStreet','invoiceStreet',
+             'InvoiceNumberHome','invoiceNumberHome','InvoiceZipCode','invoiceZipCode',
+             'InvoiceCity','invoiceCity','InvoiceNip','invoiceNip'];
+           // Zbiera unię kluczy payloadu ze wszystkich eksportowanych wierszy
+           function payloadExtraKeys(rows) {
+             const keys = [];
+             rows.forEach(p => {
+               const pl = p.payload;
+               if (!pl || typeof pl !== 'object') return;
+               Object.keys(pl).forEach(k => {
+                 if (INVOICE_PAYLOAD_KEYS.includes(k)) return;
+                 const v = pl[k];
+                 if (v === null || v === undefined || v === '') return;
+                 if (!keys.includes(k)) keys.push(k);
+               });
+             });
+             return keys.sort();
+           }
+           // camelCase / PascalCase / snake_case → czytelny nagłówek
+           function prettyKey(k) {
+             return k
+               .replace(/([a-ząćęłńóśźż])([A-ZĄĆĘŁŃÓŚŹŻ])/g, '$1 $2')
+               .replace(/[_-]+/g, ' ')
+               .replace(/^./, c => c.toUpperCase());
+           }
+           function payloadVal(v) {
+             if (v === null || v === undefined) return '';
+             if (typeof v === 'boolean') return v ? 'Tak' : 'Nie';
+             if (Array.isArray(v)) {
+               return v.map(x => (x && typeof x === 'object')
+                 ? (x.name || x.dish || x.label || x.title || JSON.stringify(x))
+                 : String(x)).join(', ');
+             }
+             if (typeof v === 'object') return JSON.stringify(v);
+             return String(v);
+           }
+
            // Eksportuje wiersze aktualnie widoczne w tabeli (po filtrach)
            function exportCoursesCsv() {
+             const extraKeys = payloadExtraKeys(lastPayments);
              downloadCsv(
                'platnosci-kursy-pelne.csv',
                ['Data','Uczestnik','E-mail','Telefon','Kurs','Kwota (zł)','Status','Metoda',
                 'Nr faktury','Faktura: nazwa','Faktura: NIP','Faktura: adres',
+                'Data opłacenia','ID zewnętrzne',
+                ...extraKeys.map(k => 'Formularz: ' + prettyKey(k)),
                 'ID płatności','Numer zamówienia'],
                lastPayments.map(p => {
                  const d = invoiceData(p);
@@ -788,6 +830,8 @@
                    methodLabel[p.method] || p.method || '',
                    p.invoices ? p.invoices.invoice_number : '',
                    d.name, d.nip, addr,
+                   p.paid_at ? fmtDate(p.paid_at) : '',
+                   p.external_id || '',
                    p.id || '',
                    p.order_number || '',
                  ];
@@ -870,11 +914,14 @@
            hijackCsvExport('bookOrdersTable', exportBookOrdersCsv);
 
            (function relabelBuiltinCsvButtons() {
+             const CSV_ICON = '<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>';
              const relabel = () => {
                document
                  .querySelectorAll('#paymentsTable [data-dt-csv], #bookOrdersTable [data-dt-csv]')
                  .forEach(el => {
-                   if (!/pełny/i.test(el.textContent)) el.textContent = '⬇ Eksport pełny CSV';
+                   if (el.querySelector('svg')) return; // już podmienione
+                   el.className = 'btn btn-xs btn-success inline-flex items-center gap-1.5';
+                   el.innerHTML = CSV_ICON + '<span>Eksport pełny CSV</span>';
                  });
              };
              relabel();

@@ -3,72 +3,8 @@
   <head>
     <%- include('partials/head') %>
     <title>Pomoc — Panel CEEA</title>
-    <style>
-      .ct-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 1rem;
-        padding: 1.25rem;
-        transition: border-color 0.15s, box-shadow 0.15s;
-      }
-      .ct-card:hover { border-color: #d1d5db; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04); }
-      .dark .ct-card { background: rgba(15, 23, 42, 0.6); border-color: #1e293b; }
-      .dark .ct-card:hover { border-color: #334155; }
-      .ct-avatar {
-        width: 3.5rem; height: 3.5rem;
-        border-radius: 9999px;
-        object-fit: cover;
-        flex-shrink: 0;
-      }
-      .ct-initials {
-        width: 3.5rem; height: 3.5rem;
-        border-radius: 9999px;
-        display: flex; align-items: center; justify-content: center;
-        background: #fef2f2; color: #dc2626;
-        font-weight: 700; font-size: 1rem;
-        flex-shrink: 0;
-      }
-      .dark .ct-initials { background: rgba(220, 38, 38, 0.12); color: #f87171; }
-      .ct-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        padding: 0.5rem 1rem;
-        border-radius: 0.75rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1.5px solid transparent;
-        transition: background 0.15s, border-color 0.15s, color 0.15s;
-        white-space: nowrap;
-        text-decoration: none;
-      }
-      .ct-btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
-      .ct-btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
-      .ct-btn-neutral { background: #fff; border-color: #d1d5db; color: #374151; }
-      .ct-btn-neutral:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
-      .dark .ct-btn-neutral { background: #0f172a; border-color: #334155; color: #e2e8f0; }
-      .dark .ct-btn-neutral:hover { border-color: #dc2626; color: #f87171; background: rgba(220, 38, 38, 0.08); }
-      .ct-link {
-        display: flex; align-items: center; gap: 0.6rem;
-        padding: 0.6rem 0.75rem;
-        border-radius: 0.75rem;
-        font-size: 0.82rem; font-weight: 500;
-        color: #374151;
-        transition: background 0.15s, color 0.15s;
-        text-decoration: none;
-      }
-      .ct-link:hover { background: #fef2f2; color: #dc2626; }
-      .dark .ct-link { color: #cbd5e1; }
-      .dark .ct-link:hover { background: rgba(220, 38, 38, 0.08); color: #f87171; }
-      .ct-sys dt { font-size: 0.72rem; color: #6b7280; }
-      .dark .ct-sys dt { color: #94a3b8; }
-      .ct-sys dd { font-size: 0.82rem; font-weight: 600; color: #111827; font-family: ui-monospace, monospace; }
-      .dark .ct-sys dd { color: #e2e8f0; }
-    </style>
   </head>
-  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+  <body>
     <%- include('partials/admin-nav', { active: 'kontakt' }) %>
     <%- include('partials/header') %>
 

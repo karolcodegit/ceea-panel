@@ -3,59 +3,15 @@
   <head>
     <%- include('partials/head') %>
     <title>FAQ panelu — Panel CEEA</title>
-    <style>
-      .hp-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        padding: 0.5rem 1rem;
-        border-radius: 0.75rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1.5px solid transparent;
-        transition: background 0.15s, border-color 0.15s, color 0.15s;
-        white-space: nowrap;
-      }
-      .hp-btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
-      .hp-btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
-      .hp-btn-neutral { background: #fff; border-color: #d1d5db; color: #374151; }
-      .hp-btn-neutral:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
-      .dark .hp-btn-neutral { background: #0f172a; border-color: #334155; color: #e2e8f0; }
-      .dark .hp-btn-neutral:hover { border-color: #dc2626; color: #f87171; background: rgba(220, 38, 38, 0.08); }
-      .hp-btn-danger { background: #fff; border-color: #fecaca; color: #b91c1c; }
-      .hp-btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
-      .dark .hp-btn-danger { background: #0f172a; border-color: #7f1d1d; color: #f87171; }
-      .dark .hp-btn-danger:hover { background: rgba(220, 38, 38, 0.08); border-color: #dc2626; }
-      .hp-input {
-        width: 100%;
-        padding: 0.6rem 0.75rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        color: #111827;
-        font-size: 0.85rem;
-        outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s;
-      }
-      .hp-input:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08); }
-      .dark .hp-input { background: rgba(15, 23, 42, 0.6); border-color: #475569; color: #fff; }
-      .hp-label { display: block; font-size: 0.72rem; font-weight: 500; color: #6b7280; margin-bottom: 0.35rem; }
-      .dark .hp-label { color: #94a3b8; }
-      details.hp-item > summary { list-style: none; cursor: pointer; }
-      details.hp-item > summary::-webkit-details-marker { display: none; }
-      details.hp-item[open] > summary .hp-chevron { transform: rotate(180deg); }
-      .hp-chevron { transition: transform 0.15s; }
-    </style>
   </head>
-  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
+  <body>
     <%- include('partials/admin-nav', { active: 'pomoc' }) %>
     <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <%- include('partials/flash') %>
+        <section class="module-card p-4 sm:p-5">
 
         <%# ── Nagłówek + liczniki ── %>
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -395,6 +351,7 @@
             <% } %>
           </div>
         </div>
+        </section>
       </main>
     </div>
   </body>

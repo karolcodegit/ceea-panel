@@ -11,6 +11,47 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+body {
+  background-color: #f6f7fb;
+  background-image:
+    radial-gradient(620px 320px at 6% -6%, rgba(99, 102, 241, 0.10), transparent 60%),
+    radial-gradient(720px 360px at 96% -4%, rgba(220, 38, 38, 0.07), transparent 60%),
+    radial-gradient(900px 520px at 50% 112%, rgba(14, 165, 233, 0.07), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Nadpisuje kolor z klasy .bg-gray-50, dopóki jest jeszcze w widokach
+   (background-image z reguły wyżej Tailwind i tak nie nadpisuje). */
+body.bg-gray-50 {
+  background-color: #f6f7fb;
+}
+
+/* ── Ciemny motyw: głęboki gradient + poświaty ── */
+html.dark body {
+  background-color: #070b16;
+  background-image:
+    radial-gradient(700px 380px at 10% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(760px 400px at 95% -5%, rgba(220, 38, 38, 0.10), transparent 60%),
+    radial-gradient(1000px 600px at 50% 115%, rgba(14, 165, 233, 0.10), transparent 60%),
+    linear-gradient(180deg, #0b1120 0%, #020617 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Pulpit ma własny arbitrary-gradient w klasie body — też go nadpisujemy,
+   żeby cały panel miał jednolite tło. */
+html.dark body[class*="radial-gradient"] {
+  background-image:
+    radial-gradient(700px 380px at 10% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(760px 400px at 95% -5%, rgba(220, 38, 38, 0.10), transparent 60%),
+    radial-gradient(1000px 600px at 50% 115%, rgba(14, 165, 233, 0.10), transparent 60%),
+    linear-gradient(180deg, #0b1120 0%, #020617 100%);
+}
+
+
+
+
 h1, h2, h3 { letter-spacing: -0.02em; }
 
 /* ── Wspólny pasek górny (zaczyna się ZA sidebarem) ── */
@@ -1372,3 +1413,116 @@ select {
     animation: none !important;
   }
 }
+
+
+
+/* POMOC */
+
+.hp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.hp-btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
+.hp-btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
+.hp-btn-neutral { background: #fff; border-color: #d1d5db; color: #374151; }
+.hp-btn-neutral:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+.dark .hp-btn-neutral { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+.dark .hp-btn-neutral:hover { border-color: #dc2626; color: #f87171; background: rgba(220, 38, 38, 0.08); }
+.hp-btn-danger { background: #fff; border-color: #fecaca; color: #b91c1c; }
+.hp-btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
+.dark .hp-btn-danger { background: #0f172a; border-color: #7f1d1d; color: #f87171; }
+.dark .hp-btn-danger:hover { background: rgba(220, 38, 38, 0.08); border-color: #dc2626; }
+.hp-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #111827;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.hp-input:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08); }
+.dark .hp-input { background: rgba(15, 23, 42, 0.6); border-color: #475569; color: #fff; }
+.hp-label { display: block; font-size: 0.72rem; font-weight: 500; color: #6b7280; margin-bottom: 0.35rem; }
+.dark .hp-label { color: #94a3b8; }
+details.hp-item > summary { list-style: none; cursor: pointer; }
+details.hp-item > summary::-webkit-details-marker { display: none; }
+details.hp-item[open] > summary .hp-chevron { transform: rotate(180deg); }
+.hp-chevron { transition: transform 0.15s; }
+
+/* Kontakt */
+
+.ct-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ct-card:hover { border-color: #d1d5db; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04); }
+.dark .ct-card { background: rgba(15, 23, 42, 0.6); border-color: #1e293b; }
+.dark .ct-card:hover { border-color: #334155; }
+.ct-avatar {
+  width: 3.5rem; height: 3.5rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.ct-initials {
+  width: 3.5rem; height: 3.5rem;
+  border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fef2f2; color: #dc2626;
+  font-weight: 700; font-size: 1rem;
+  flex-shrink: 0;
+}
+.dark .ct-initials { background: rgba(220, 38, 38, 0.12); color: #f87171; }
+.ct-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.ct-btn-primary { background: #dc2626; border-color: #dc2626; color: #fff; }
+.ct-btn-primary:hover { background: #b91c1c; border-color: #b91c1c; }
+.ct-btn-neutral { background: #fff; border-color: #d1d5db; color: #374151; }
+.ct-btn-neutral:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+.dark .ct-btn-neutral { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+.dark .ct-btn-neutral:hover { border-color: #dc2626; color: #f87171; background: rgba(220, 38, 38, 0.08); }
+.ct-link {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.82rem; font-weight: 500;
+  color: #374151;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+.ct-link:hover { background: #fef2f2; color: #dc2626; }
+.dark .ct-link { color: #cbd5e1; }
+.dark .ct-link:hover { background: rgba(220, 38, 38, 0.08); color: #f87171; }
+.ct-sys dt { font-size: 0.72rem; color: #6b7280; }
+.dark .ct-sys dt { color: #94a3b8; }
+.ct-sys dd { font-size: 0.82rem; font-weight: 600; color: #111827; font-family: ui-monospace, monospace; }
+.dark .ct-sys dd { color: #e2e8f0; }
