@@ -4,7 +4,7 @@
     <%- include('partials/head') %>
     <title>Płatności — Panel CEEA</title>
   </head>
-  <body>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'platnosci' }) %> 
     <%- include('partials/header') %>
 
@@ -749,6 +749,7 @@
              return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
            }
            function csvNum(n) {
+             if (n === '' || n === null || n === undefined) return '';
              const x = Number(n);
              return isNaN(x) ? '' : x.toFixed(2).replace('.', ',');
            }
@@ -764,27 +765,24 @@
              URL.revokeObjectURL(a.href);
            }
 
-           // ── Dodatkowe opcje z payloadu formularza (dania, wyżywienie, zgody…) ──
-           // Klucze obsłużone osobno (faktura) — nie trafiają do kolumn dynamicznych
-           const INVOICE_PAYLOAD_KEYS = ['InvoiceName','invoiceName','InvoiceStreet','invoiceStreet',
-             'InvoiceNumberHome','invoiceNumberHome','InvoiceZipCode','invoiceZipCode',
-             'InvoiceCity','invoiceCity','InvoiceNip','invoiceNip'];
-           // Zbiera unię kluczy payloadu ze wszystkich eksportowanych wierszy
-           function payloadExtraKeys(rows) {
-             const keys = [];
-             rows.forEach(p => {
-               const pl = p.payload;
-               if (!pl || typeof pl !== 'object') return;
-               Object.keys(pl).forEach(k => {
-                 if (INVOICE_PAYLOAD_KEYS.includes(k)) return;
-                 const v = pl[k];
-                 if (v === null || v === undefined || v === '') return;
-                 if (!keys.includes(k)) keys.push(k);
-               });
-             });
-             return keys.sort();
-           }
-           // camelCase / PascalCase / snake_case → czytelny nagłówek
+           // ── Pola formularza rejestracji → kolumny eksportu ──
+           // Payload płatności używa dwóch konwencji kluczy (PascalCase / camelCase).
+           const plGet = (pl, ...keys) => {
+             if (!pl || typeof pl !== 'object') return '';
+             for (const k of keys) {
+               const v = pl[k];
+               if (v !== undefined && v !== null && v !== '') return v;
+             }
+             return '';
+           };
+           const yesNo = v => {
+             if (v === true || v === 'true') return 'Tak';
+             if (v === false || v === 'false') return 'Nie';
+             const s = String(v ?? '').trim();
+             if (/^(tak|yes)$/i.test(s)) return 'Tak';
+             if (/^(nie|no)$/i.test(s)) return 'Nie';
+             return s;
+           };
            function prettyKey(k) {
              return k
                .replace(/([a-ząćęłńóśźż])([A-ZĄĆĘŁŃÓŚŹŻ])/g, '$1 $2')
@@ -802,38 +800,92 @@
              if (typeof v === 'object') return JSON.stringify(v);
              return String(v);
            }
+           // Klucze obsłużone własnymi kolumnami + duplikaty + techniczne śmieci —
+           // nie trafiają do „Pozostałych pól formularza".
+           const PAYLOAD_SKIP = [
+             // techniczne / śmieci
+             'Token','token','FormErrors','formErrors','CourseId','courseId','CourseTitle','courseTitle',
+             'BaseAmount','baseAmount','Total','total','PaymentMethod','paymentMethod',
+             // duplikaty kolumn głównych (uczestnik, kontakt)
+             'Email','email','FirstName','firstName','SurName','surName','Surname','surname','Phone','phone',
+             // adres uczestnika — własne kolumny
+             'Street','street','NumberHome','numberHome','ZipCode','zipCode','City','city',
+             // faktura — własne kolumny
+             'WantsInvoice','wantsInvoice',
+             'InvoiceName','invoiceName','InvoiceStreet','invoiceStreet','InvoiceNumberHome','invoiceNumberHome',
+             'InvoiceZipCode','invoiceZipCode','InvoiceCity','invoiceCity','InvoiceNip','invoiceNip',
+             // pola mapowane na kolumny poniżej
+             'Dishes','dishes','Option1','option1','Option2','option2','Option3','option3',
+             'Npwz','npwz','Specjalist','specialist','YearSpecialist','yearSpecialist',
+             'Profession','profession','Birthday','birthday',
+             'BaseCourseCost','baseCourseCost','PaymentFee','paymentFee',
+             'WyrazamZgode','wyrazamZgode',
+           ];
+           // Cokolwiek nowego pojawi się kiedyś w formularzu — wpadnie tutaj,
+           // w formacie „Klucz: wartość; Klucz: wartość".
+           function payloadLeftovers(pl) {
+             if (!pl || typeof pl !== 'object') return '';
+             return Object.keys(pl)
+               .filter(k => !PAYLOAD_SKIP.includes(k))
+               .map(k => [k, pl[k]])
+               .filter(([, v]) => v !== null && v !== undefined && v !== '' && String(v) !== '{}')
+               .map(([k, v]) => prettyKey(k) + ': ' + payloadVal(v))
+               .join('; ');
+           }
 
            // Eksportuje wiersze aktualnie widoczne w tabeli (po filtrach)
            function exportCoursesCsv() {
-             const extraKeys = payloadExtraKeys(lastPayments);
              downloadCsv(
                'platnosci-kursy-pelne.csv',
-               ['Data','Uczestnik','E-mail','Telefon','Kurs','Kwota (zł)','Status','Metoda',
-                'Nr faktury','Faktura: nazwa','Faktura: NIP','Faktura: adres',
-                'Data opłacenia','ID zewnętrzne',
-                ...extraKeys.map(k => 'Formularz: ' + prettyKey(k)),
-                'ID płatności','Numer zamówienia'],
+               ['Numer zamówienia','Data zgłoszenia','Imię','Nazwisko','E-mail','Telefon','Kurs',
+                'Kwota (zł)','Status','Metoda płatności','Data opłacenia',
+                'Wyżywienie','Opcja dodatkowa 1','Opcja dodatkowa 2','Opcja dodatkowa 3',
+                'PWZ','Specjalista','Rok specjalizacji','Zawód','Data urodzenia',
+                'Adres','Kod pocztowy','Miasto',
+                'Faktura','Nr faktury','Faktura: nazwa','Faktura: NIP','Faktura: adres',
+                'Cena bazowa kursu (zł)','Opłata transakcyjna (zł)','Zgoda (formularz)','Pozostałe pola formularza'],
                lastPayments.map(p => {
+                 const pl = p.payload || {};
                  const d = invoiceData(p);
-                 const addr = [
+                 const invAddr = [
                    [d.street, d.numberHome].filter(Boolean).join(' '),
                    [d.zipCode, d.city].filter(Boolean).join(' '),
                  ].filter(Boolean).join(', ');
+                 const addr = [plGet(pl,'Street','street'), plGet(pl,'NumberHome','numberHome')]
+                   .filter(Boolean).join(' ');
+                 const wantsInvoice = yesNo(plGet(pl,'WantsInvoice','wantsInvoice'))
+                   || ((d.name || d.nip) ? 'Tak' : '');
                  return [
+                   p.order_number || '',
                    fmtDate(p.created_at),
-                   `${p.users?.name || ''} ${p.users?.surname || ''}`.trim(),
+                   p.users?.name || '',
+                   p.users?.surname || '',
                    p.users?.email || '',
                    p.users?.phone || '',
                    courseName(p),
                    csvNum(p.amount),
                    statusLabel[p.status] || p.status || '',
                    methodLabel[p.method] || p.method || '',
-                   p.invoices ? p.invoices.invoice_number : '',
-                   d.name, d.nip, addr,
                    p.paid_at ? fmtDate(p.paid_at) : '',
-                   p.external_id || '',
-                   p.id || '',
-                   p.order_number || '',
+                   payloadVal(plGet(pl,'Dishes','dishes')),
+                   yesNo(plGet(pl,'Option1','option1')),
+                   yesNo(plGet(pl,'Option2','option2')),
+                   yesNo(plGet(pl,'Option3','option3')),
+                   String(plGet(pl,'Npwz','npwz')),
+                   yesNo(plGet(pl,'Specjalist','specialist')),
+                   String(plGet(pl,'YearSpecialist','yearSpecialist')),
+                   String(plGet(pl,'Profession','profession')),
+                   String(plGet(pl,'Birthday','birthday')),
+                   addr,
+                   String(plGet(pl,'ZipCode','zipCode')),
+                   String(plGet(pl,'City','city')),
+                   wantsInvoice,
+                   p.invoices ? p.invoices.invoice_number : '',
+                   d.name, d.nip, invAddr,
+                   csvNum(plGet(pl,'BaseCourseCost','baseCourseCost')),
+                   csvNum(plGet(pl,'PaymentFee','paymentFee')),
+                   yesNo(plGet(pl,'WyrazamZgode','wyrazamZgode')),
+                   payloadLeftovers(pl),
                  ];
                })
              );
