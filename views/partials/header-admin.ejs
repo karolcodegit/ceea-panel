@@ -1,0 +1,85 @@
+<%
+
+/* ═══════════════════════════════════════════════════════════════
+    HEADER ADMIN — pasek górny panelu admina (/ceea-poznan-admin).
+    Zaczyna się ZA sidebarem (offset w admin-nav.ejs).
+
+    Tytuł/ikona/opis wybierane AUTOMATYCZNIE po locals.active
+    (przekazywanym w każdym route) na podstawie config/admin-modules.js.
+    Nadpisanie ręczne opcjonalne: pageTitle / pageIcon / pageSubtitle.
+
+    Na stronie wystarczy: include('partials/admin-nav', { active: 'kursy' })
+    oraz goły include('partials/header') — bez przekazywania danych.
+    (partials/header to lekki dispatcher: admin → ten plik,
+     uczestnik → header-user.ejs; można też include'ować ten plik wprost).
+
+    LEWA:  burger + ikona + tytuł + opis · PRAWA: akcje · 🔔 · awatar
+    ═══════════════════════════════════════════════════════════════
+*/
+
+  const _icon   = locals.adminIcon || (() => '');
+
+  // Automatyczne dopasowanie modułu z config/admin-modules.js po active z route'a
+  const _mods   = locals.adminModules || [];
+  const _active = locals.active || '';
+  const _mod    = _mods.find(m => m.key === _active) || null;
+
+  const _pageIcon = locals.pageIcon
+    || (_mod && _mod.icon)
+    || (_active === 'home' ? 'home' : '');
+  const _title = locals.pageTitle
+    || (_mod && _mod.name)
+    || (_active === 'home' ? 'Pulpit' : (locals.title || ''));
+  const _subtitle = locals.pageSubtitle
+    || (_mod && _mod.desc)
+    || '';
+%>
+
+
+
+<header
+  id="topHeader"
+  class="fixed top-0 inset-x-0 z-30 h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 transition-[left] duration-300"
+>
+  <div class="flex items-center justify-between h-full gap-3 px-4 lg:px-6">
+
+    <%# ── LEWA: burger + ikona + tytuł + opis ── %>
+    <div class="flex items-center gap-3 min-w-0">
+      <button
+        id="navOpen"
+        class="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+        aria-label="Otwórz menu"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+      <% if (_pageIcon) { %>
+      <span class="hidden sm:flex w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 items-center justify-center shrink-0 [&>svg]:w-5 [&>svg]:h-5">
+        <%- _icon(_pageIcon) %>
+      </span>
+      <% } %>
+      <div class="min-w-0">
+        <h1 class="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">
+          <%= _title %>
+        </h1>
+        <%# Opis modułu — tylko desktop; na telefonie/tablecie zjadał miejsce
+            i ściskał prawą stronę paska (awatar). %>
+        <% if (_subtitle) { %>
+        <p class="hidden md:block text-xs text-gray-500 dark:text-slate-400 truncate"><%= _subtitle %></p>
+        <% } %>
+      </div>
+    </div>
+
+    <%# ── PRAWA: moduły ── %>
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <!-- <%- include('./header/date-chip') %> -->
+      <%- include('./header/header-actions') %>
+      <%- include('./header/notification-bell') %>
+      <%- include('./header/user-menu') %>
+    </div>
+  </div>
+</header>
+
+<%- include('./flash.ejs') %>
+<%- include('./footer-admin.ejs') %>

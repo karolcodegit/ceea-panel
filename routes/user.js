@@ -100,13 +100,36 @@ async function fetchCompany() {
 
 // Kursy z Supabase. Mapowanie zachowuje pola używane przez widoki:
 // id (= course_id, do enrollments/payments), date (= start_date, do getYearFromDate),
+// nameCourse (= title, historyczna nazwa z DatoCMS — widoki jej używają),
+// dateLabel (polski zakres dat do wyświetlenia),
 // available (fallback z is_active), slug — jeśli kolumna istnieje w tabeli.
+const MONTHS_PL = [
+  "stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca",
+  "lipca", "sierpnia", "września", "października", "listopada", "grudnia",
+];
+const fmtDayPL = (d) => `${d.getDate()} ${MONTHS_PL[d.getMonth()]} ${d.getFullYear()}`;
+
+function formatDateRangePL(start, end) {
+  if (!start) return "";
+  const s = new Date(start);
+  if (Number.isNaN(s.getTime())) return "";
+  if (!end) return fmtDayPL(s);
+  const e = new Date(end);
+  if (Number.isNaN(e.getTime())) return fmtDayPL(s);
+  if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
+    return `${s.getDate()}–${e.getDate()} ${MONTHS_PL[s.getMonth()]} ${s.getFullYear()}`;
+  }
+  return `${fmtDayPL(s)} – ${fmtDayPL(e)}`;
+}
+
 function mapCourse(c) {
   return {
     available: c.is_active,
     ...c,
     id: c.course_id,
+    nameCourse: c.title || "Kurs CEEA",
     date: c.start_date,
+    dateLabel: formatDateRangePL(c.start_date, c.end_date),
   };
 }
 
