@@ -10,7 +10,12 @@
 // ═══════════════════════════════════════════════════════════════
 
 const supabase = require("../../config/supabase");
-const { TEMPLATES } = require("./templates");
+const { TEMPLATES, TRANSACTIONAL_TEMPLATES } = require("./templates");
+
+// Wszystkie szablony razem — getTemplate() szuka też wśród transakcyjnych
+// (systemowych, np. hasło). listTemplates() pokazuje TYLKO TEMPLATES,
+// żeby szablony systemowe nie pojawiały się w module „Maile".
+const ALL_TEMPLATES = { ...TEMPLATES, ...TRANSACTIONAL_TEMPLATES };
 
 const ALIASES = {
   invite: "invite",
@@ -23,6 +28,10 @@ const ALIASES = {
   materials: "materials",
   materialy: "materials",
   "materiały": "materials",
+  password: "password",
+  haslo: "password",
+  "hasło": "password",
+  reset: "password",
   custom: "custom",
   own: "custom",
   free: "custom",
@@ -31,7 +40,7 @@ const ALIASES = {
 };
 
 function getTemplate(key) {
-  const tpl = TEMPLATES[ALIASES[String(key || "").toLowerCase()]];
+  const tpl = ALL_TEMPLATES[ALIASES[String(key || "").toLowerCase()]];
   if (!tpl) {
     throw new Error(
       `Nieznany szablon maila: "${key}". Dostępne: ${Object.keys(TEMPLATES).join(

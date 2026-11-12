@@ -405,4 +405,89 @@ const TEMPLATES = {
   },
 };
 
-module.exports = { TEMPLATES };
+
+// ═══════════════════════════════════════════════════════════════
+// SZABLONY TRANSAKCYJNE (systemowe)
+// NIE pokazują się w module „Maile" (brak personalizacji zbiorczej) —
+// dostępne wyłącznie przez getTemplate() dla kodu serwera.
+// ═══════════════════════════════════════════════════════════════
+
+const TRANSACTIONAL_TEMPLATES = {
+  // ── Hasło do panelu uczestnika (pierwsze logowanie / reset) ──
+  password: {
+    key: "password",
+    name: "Hasło do panelu (systemowy)",
+    description: "Mail z hasłem do logowania — pierwsze logowanie i reset hasła",
+    icon: "🔑",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
+      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 3 },
+      {
+        key: "note",
+        label: "Notka pod hasłem",
+        type: "textarea",
+        rows: 2,
+        hint: "Opcjonalnie — puste pole zostanie pominięte w mailu",
+      },
+    ],
+    defaults() {
+      return {
+        subject: "Twoje hasło do Panelu Uczestnika — CEEA",
+        preheader: "Hasło do logowania w panelu uczestnika CEEA",
+        values: {
+          heading: "Twoje hasło do logowania",
+          intro:
+            "poniżej znajdziesz wygenerowane hasło do logowania w panelu uczestnika. " +
+            "Zaloguj się tym samym adresem e-mail, na który otrzymałeś tę wiadomość.",
+          note: "Hasło możesz w każdej chwili zmienić — po zalogowaniu przejdź do zakładki Profil i kliknij „Wyślij nowe hasło”.",
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const passwordBox = infoBox(`
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280">Twoje hasło</p>
+        <p style="margin:0;font-size:24px;font-family:Consolas,Monaco,'Courier New',monospace;letter-spacing:2px;color:#111827"><strong>${esc(
+          values.password || ""
+        )}</strong></p>`);
+
+      const content = `
+        ${greeting(recipient.firstName)}
+        <p>${nl2br(values.intro)}</p>
+        ${passwordBox}
+        ${values.note && values.note.trim() !== "" ? `<p>${nl2br(values.note)}</p>` : ""}
+        ${ctaButton("Zaloguj się do panelu", PANEL_URL)}
+        ${CLOSING}`;
+
+      const text = [
+        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
+        "",
+        values.intro || "",
+        "",
+        `Twoje hasło: ${values.password || ""}`,
+        "",
+        values.note || "",
+        "",
+        `Zaloguj się: ${PANEL_URL}`,
+        "",
+        "Pozdrawiamy,",
+        "Zespół CEEA Poznań",
+      ]
+        .filter((l) => l !== null && l !== "")
+        .join("\n");
+
+      return {
+        subject,
+        preheader,
+        html: renderEmail({
+          preheader,
+          title: values.heading || "",
+          content,
+        }).html,
+        text,
+      };
+    },
+  },
+};
+
+module.exports = { TEMPLATES, TRANSACTIONAL_TEMPLATES };

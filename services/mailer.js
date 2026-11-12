@@ -86,17 +86,31 @@ async function sendMail(payload) {
   }
 }
 
-// ── Wysyłka przez szablon (treść MIESZKA W services/email/templates/) ──
-const { getTemplate } = require("./email/templates");
+// ── Wysyłka przez szablon (treść MIESZKA W services/email/) ──
+// WAŻNE: getTemplate eksportuje ./email/index.js (nie ./email/templates!).
+// Szablon to OBIEKT z metodami defaults()/render() — nie funkcja.
+const { getTemplate } = require("./email");
 
 function sendPasswordEmail(to, password, extra = {}) {
-  const tpl = getTemplate("password")({ password, ...extra });
+  const tpl = getTemplate("password");
+  const d = tpl.defaults({ course: null });
+  const rendered = tpl.render({
+    subject: d.subject,
+    preheader: d.preheader,
+    values: { ...d.values, password },
+    course: null,
+    recipient: {
+      firstName: extra.firstName || "",
+      lastName: extra.surname || "",
+      email: to,
+    },
+  });
   return sendMail({
     to,
     toName: extra.firstName ? `${extra.firstName} ${extra.surname || ""}`.trim() : undefined,
-    subject: tpl.subject,
-    html: tpl.html,
-    text: tpl.text,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
   });
 }
 
