@@ -3,17 +3,15 @@ const router = express.Router();
 const MarkdownIt = require("markdown-it");
 const supabase = require("../config/supabase");
 const { userOnly, requireAuth } = require("../middleware/auth");
-const { ICONS } = require("../config/icons");
+const { resolveIcon } = require("../config/user-icons");
 const { getYearFromDate } = require("../utils/getYearFromDate");
-
+const { wrapIcon } = require("../config/user-icons");
 const rateLimit = require("express-rate-limit");
 const { sendPasswordEmail } = require("../services/mailer");
 const { generatePassword, hashPassword, verifyPassword } = require("../services/passwords");
-
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 const MAIN_SITE_URL = "https://ceea.org.pl";
 const CALLOUT_ICONS = { info: "ℹ️", warning: "⚠️", danger: "🚨" };
-const DEFAULT_ICON = `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
 
 function renderAnswer(q) {
   const answerHtml = md.render(q.answer || "");
@@ -29,9 +27,7 @@ function renderAnswer(q) {
 // ── Dane po migracji z DatoCMS ──
 // ═══════════════════════════════════════════════════════════════
 
-// Dane firmy — statyczne (wcześniej DatoCMS fetchCompany)
 const COMPANY = {
-  // ── pola używane przez widoki (nazwy historyczne, z DatoCMS) ──
   nameCompany: "Europejska Fundacja ds. Szkolenia w Anestezjologii",
   street: "ul. Sokolnicka",
   numberHome: "56",
@@ -41,7 +37,6 @@ const COMPANY = {
   krs: "0000347155",
   mail: process.env.ORG_EMAIL || "sekretariat@ceea.org.pl",
   openingHours: "pon.–pt. 8:00–16:00",
-  // ── aliasy / dodatkowe ──
   name: "Europejska Fundacja ds. Szkolenia w Anestezjologii",
   shortName: "CEEA Poznań",
   address: "ul. Sokolnicka 56, 62-021 Paczkowo",
@@ -401,7 +396,7 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
         materials: (materials || []).filter((m) => m.course_id === c.id),
       }));
 
-    res.render("dashboard", {
+    res.render("user-dashboard", {
       title: "Moje kursy — CEEA",
       user: req.session.user,
       active: myCourses.filter((c) => c.available),
@@ -409,7 +404,7 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("Błąd serwera (dashboard):", err);
-    res.render("dashboard", { title: "Moje kursy — CEEA", user: req.session.user, active: [], archive: [] });
+    res.render("user-dashboard", { title: "Moje kursy — CEEA", user: req.session.user, active: [], archive: [] });
   }
 });
 
@@ -488,7 +483,7 @@ router.get("/pomoc", async (req, res) => {
       slug: cat.slug || cat.id,
       title: cat.title,
       description: cat.description,
-      icon: ICONS[cat.icon] || DEFAULT_ICON,
+      icon: resolveIcon(cat.icon),
       questions: questionsByCategory[cat.id] || [],
     }));
 

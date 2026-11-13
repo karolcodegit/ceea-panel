@@ -39,6 +39,7 @@ app.use(setAdminPathFlag);
 // ===== INICJALIZACJA (najpierw Mapy, potem reszta) =====
 app.locals.admins = new Map();
 app.locals.sessions = new Map();
+app.locals.getIcon = require("./config/user-icons").getIcon;
 
 const emailQueue = new EmailQueue(supabase);
 app.set("emailQueue", emailQueue);

@@ -1,0 +1,151 @@
+<%
+
+/* ═══════════════════════════════════════════════════════════════
+    USER NAV — lewe menu panelu uczestnika (kursanta).
+
+    Użycie w widoku (zaraz pod include header):
+      include('partials/user-nav', { nav: 'kursy' })
+
+    Renderuje się TYLKO dla zalogowanego użytkownika (locals.user) —
+    strony publiczne bez usera nie dostaną ani menu, ani offsetu.
+
+    Desktop: stały sidebar w-64 + automatyczny offset treści
+    (body padding-left i #userHeader left — w <style> poniżej).
+    Mobile: wysuwana szuflada (burger #navOpen w header-user.ejs).
+
+    Ikony pochodzą z wspólnego modułu user-icons (getIcon).
+    W server.js wystaw go do widoków (JEDNA LINIA, dopasuj ścieżkę):
+      app.locals.getIcon = require("./utils/user-icons").getIcon;
+
+    Nowa pozycja menu = wpis w _ITEMS. soon: true → wyszarzona
+    pozycja z plakietką „Wkrótce" (bez linku) — do czasu powstania
+    modułu (np. faktury).
+    ═══════════════════════════════════════════════════════════════
+*/
+
+if (locals.user) {
+  const _nav = locals.nav || '';
+
+  const _ITEMS = [
+    { key: 'kursy',      label: 'Moje kursy',  href: '/kursy',      icon: 'book' },
+    { key: 'faktury',    label: 'Faktury',     href: '/faktury',    icon: 'invoice', soon: true },
+    { key: 'profil',     label: 'Profil',      href: '/profil',     icon: 'user' },
+    { key: 'ustawienia', label: 'Ustawienia',  href: '/ustawienia', icon: 'cog' },
+  ];
+
+  // Ikony z wspólnego modułu (app.locals.getIcon w server.js).
+  // Moduł zwraca albo pełny <svg>…</svg> (login, settings), albo
+  // same dane ścieżki (book, invoice, user, cog, help, logout).
+  // Pełny svg przepuszczamy jak jest; ścieżkę opakowujemy tutaj.
+  // Fallback: gdyby getIcon nie był wystawiony w app.locals.
+  const _FALLBACK = {
+    book:    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+    invoice: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    user:    'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+    cog:     'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+    help:    'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    logout:  'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1',
+  };
+
+  const _hasGetIcon = typeof getIcon === 'function';
+  const _svg = (key) => {
+    const raw = _hasGetIcon ? (getIcon(key) || '') : (_FALLBACK[key] || '');
+    if (raw.trim().startsWith('<svg')) return raw; // pełny svg z modułu — bez zmian
+    return `<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="${raw}"/></svg>`;
+  };
+%>
+
+<%# ── Offset treści pod stały sidebar (tylko desktop) ── %>
+<style>
+  @media (min-width: 1024px) {
+    body { padding-left: 16rem; }
+    #userHeader { left: 16rem; }
+  }
+</style>
+
+<aside
+  id="userNav"
+  class="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 transform -translate-x-full lg:translate-x-0 transition-transform duration-300"
+>
+  <%# ── Logo CEEA (zamiast karty użytkownika) ── %>
+  <div class="h-16 px-5 flex items-center border-b border-gray-100 dark:border-slate-800 shrink-0">
+    <a href="/kursy" class="flex items-center gap-3 min-w-0" aria-label="CEEA — Panel uczestnika">
+      <span class="bg-white rounded-md px-1.5 py-1 shrink-0 flex items-center">
+        <img src="/images/logo-header-color-black.jpg" alt="CEEA Logo" class="h-6 w-auto" />
+      </span>
+    </a>
+  </div>
+
+  <%# ── Menu główne ── %>
+  <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+    <% _ITEMS.forEach(item => { const _on = _nav === item.key; %>
+      <% if (item.soon) { %>
+      <span
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 dark:text-slate-500 cursor-not-allowed select-none"
+        title="Moduł w przygotowaniu"
+      >
+        <%- _svg(item.icon) %>
+        <span class="flex-1"><%= item.label %></span>
+        <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500">Wkrótce</span>
+      </span>
+      <% } else { %>
+      <a
+        href="<%= item.href %>"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+          <%= _on
+            ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300'
+            : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white' %>"
+        <% if (_on) { %>aria-current="page"<% } %>
+      >
+        <%- _svg(item.icon) %>
+        <span class="flex-1"><%= item.label %></span>
+        <% if (_on) { %><span class="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400"></span><% } %>
+      </a>
+      <% } %>
+    <% }) %>
+  </nav>
+
+  <%# ── Stopka menu ── %>
+  <div class="p-3 border-t border-gray-100 dark:border-slate-800 space-y-1">
+    <a
+      href="/pomoc"
+      class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+    >
+      <%- _svg('help') %>
+      <span class="flex-1">Pomoc</span>
+    </a>
+    <a
+      href="/wyloguj"
+      class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+    >
+      <%- _svg('logout') %>
+      <span class="flex-1">Wyloguj się</span>
+    </a>
+  </div>
+</aside>
+
+<%# ── Backdrop (mobile) ── %>
+<div id="userNavBackdrop" class="fixed inset-0 z-30 bg-black/40 hidden lg:hidden"></div>
+
+<script>
+(function () {
+  var nav = document.getElementById('userNav');
+  var backdrop = document.getElementById('userNavBackdrop');
+  var btn = document.getElementById('navOpen');
+  if (!nav || !backdrop || !btn) return;
+  function openNav() {
+    nav.classList.remove('-translate-x-full');
+    backdrop.classList.remove('hidden');
+  }
+  function closeNav() {
+    nav.classList.add('-translate-x-full');
+    backdrop.classList.add('hidden');
+  }
+  btn.addEventListener('click', function () {
+    nav.classList.contains('-translate-x-full') ? openNav() : closeNav();
+  });
+  backdrop.addEventListener('click', closeNav);
+})();
+</script>
+
+<% } %>
