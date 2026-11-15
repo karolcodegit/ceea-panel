@@ -114,4 +114,98 @@ function sendPasswordEmail(to, password, extra = {}) {
   });
 }
 
-module.exports = { sendMail, sendPasswordEmail, sendViaZepto, sendViaMailerSend };
+// ── Wspólny helper dla maili transakcyjnych ──
+// Renderuje szablon systemowy (TRANSACTIONAL_TEMPLATES) i wysyła.
+// extraValues → dane dynamiczne doklejane do domyślnych values szablonu.
+async function _sendTemplateEmail(templateKey, to, extraValues = {}, extra = {}) {
+  const tpl = getTemplate(templateKey);
+  const d = tpl.defaults({ course: null });
+  const rendered = tpl.render({
+    subject: d.subject,
+    preheader: d.preheader,
+    values: { ...d.values, ...extraValues },
+    course: null,
+    recipient: {
+      firstName: extra.firstName || "",
+      lastName: extra.surname || "",
+      email: to,
+    },
+  });
+  return sendMail({
+    to,
+    toName: extra.firstName ? `${extra.firstName} ${extra.surname || ""}`.trim() : undefined,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+  });
+}
+
+// Anulowanie przesyłki InPost — zamówienie zostaje opłacone
+function sendShipmentCanceledEmail(to, order, extra = {}) {
+  return _sendTemplateEmail("shipment_canceled", to, {
+    orderNumber: order.order_number || "",
+    trackingNumber: order.tracking_number || "",
+  }, {
+    firstName: order.name || order.first_name || extra.firstName || "",
+    surname: order.surname || extra.surname || "",
+  });
+}
+
+// Anulowanie CAŁEGO zamówienia książek
+// wasPaid=true → w treści informacja o zwrocie środków
+function sendOrderCanceledEmail(to, order, { wasPaid = false, ...extra } = {}) {
+  return _sendTemplateEmail("order_canceled", to, {
+    orderNumber: order.order_number || "",
+    amountLabel: order.amount != null ? `${Number(order.amount).toFixed(2).replace(".", ",")} zł` : "",
+    note: wasPaid
+      ? "Zamówienie było opłacone — zwrot środków na konto, z którego dokonano płatności, zaksięgujemy w ciągu kilku dni roboczych. W razie pytań prosimy o kontakt z sekretariatem."
+      : "Zamówienie nie zostało opłacone, więc nie pobierzemy żadnych środków. Jeśli to pomyłka, możesz złożyć zamówienie ponownie w księgarni.",
+  }, {
+    firstName: order.name || order.first_name || extra.firstName || "",
+    surname: order.surname || extra.surname || "",
+  });
+}
+
+// Zamówienie książek oznaczone jako WYSŁANE (osobna akcja „Wysłane" w panelu)
+function sendShipmentSentEmail(to, order, extra = {}) {
+  const m = String(order.delivery_method || "").toLowerCase();
+  const deliveryLabel =
+    m.includes("paczkomat") || m.includes("parcel") || m.includes("inpost")
+      ? `Paczkomat InPost${order.parcel_locker_code ? ` (${order.parcel_locker_code})` : ""}`
+      : m.includes("kurier") || m.includes("courier")
+      ? "Kurier InPost"
+      : order.delivery_method || "";
+  return _sendTemplateEmail("shipment_sent", to, {
+    orderNumber: order.order_number || "",
+    trackingNumber: order.tracking_number || "",
+    deliveryLabel,
+    trackingUrl: order.tracking_number
+      ? `https://inpost.pl/sledzenie-przesylek?number=${encodeURIComponent(order.tracking_number)}`
+      : "",
+  }, {
+    firstName: order.name || order.first_name || extra.firstName || "",
+    surname: order.surname || extra.surname || "",
+  });
+}
+
+// Usunięcie uczestnika z listy kursu
+// wasPaid=true → w treści informacja o zwrocie wpłaty
+function sendCourseRemovedEmail(to, { firstName = "", surname = "", courseTitle = "", wasPaid = false } = {}) {
+  return _sendTemplateEmail("course_removed", to, {
+    courseTitle,
+    note: wasPaid
+      ? "Twoja wpłata za kurs została zaksięgowana — zwrot środków na konto, z którego dokonano płatności, zaksięgujemy w ciągu kilku dni roboczych. W razie pytań prosimy o kontakt z sekretariatem."
+      : "Twoja płatność nie została zaksięgowana, więc nie pobierzemy żadnych środków. Jeśli chcesz wziąć udział w kursie, możesz zapisać się ponownie na stronie.",
+  }, { firstName, surname });
+}
+
+module.exports = {
+  sendMail,
+  sendPasswordEmail,
+  sendShipmentCanceledEmail,
+  sendShipmentSentEmail,
+  sendOrderCanceledEmail,
+  sendCourseRemovedEmail,
+  sendViaZepto,
+  sendViaMailerSend,
+};

@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════
-// services/email/templates.js — 3 szablony maili panelu
+// services/email/templates.js — definicje szablonów maili panelu
 //
-// Zasada: wspólny LAYOUT pochodzi z ./layout (renderEmail: logo,
-// karta, stopka). Szablon buduje WYŁĄCZNIE "content" maila.
+// Szablon to OBIEKT:
+//   {
+//     key, name, description, icon,
+//     fields: [{ key, label, type: "text"|"textarea"|"html", rows?, hint? }],
+//     defaults({ course })        → { subject, preheader, values },
+//     render({ subject, preheader, values, course, recipient })
+//                                 → { subject, preheader, html, text }
+//   }
 //
-// Szablon = {
-//   key, name, description, icon,
-//   fields: [ { key, label, type: 'text'|'textarea'|'html', rows?, hint? } ],
-//   defaults({ course }) → { subject, preheader, values: { <fieldKey>: string } },
-//   render({ subject, preheader, values, course, recipient }) → { subject, preheader, html, text }
-// }
-//
-// course    = { id, title, location, dateLabel } | null  (z Supabase)
-// recipient = { firstName, lastName, email }              (personalizacja)
+// TEMPLATES               → widoczne w module „Maile" (wysyłka grupowa)
+// TRANSACTIONAL_TEMPLATES → systemowe (hasło, anulowania) — NIE pojawiają
+//                           się w module „Maile", wywoływane z kodu panelu.
 // ═══════════════════════════════════════════════════════════════
 
 const { renderEmail, infoBox, button, esc } = require("./layout");
@@ -21,344 +21,319 @@ const SITE_URL = "https://ceea.org.pl";
 const PANEL_URL = process.env.PANEL_URL || "https://panel.ceea.org.pl";
 
 // ── Pomocnicze ──
+const nl2br = (v) => esc(v).replace(/\r?\n/g, "<br />");
 
-// textarea → bezpieczny HTML: escapowanie + nowe linie jako <br />
-const nl2br = (v) => esc(v ?? "").replace(/\r?\n/g, "<br />");
+function greeting(recipient = {}) {
+  const name = (recipient.firstName || "").trim();
+  return `<p>Dzień dobry${name ? ` ${esc(name)}` : ""},</p>`;
+}
 
-const greeting = (firstName) =>
-  `<p>Dzień dobry${firstName ? ` ${esc(firstName)}` : ""},</p>`;
+const CLOSING = `
+  <p style="margin-top:28px">Pozdrawiamy,<br /><strong>Zespół CEEA Poznań</strong></p>`;
 
-const CLOSING = `<p>Pozdrawiamy,<br /><strong>Zespół CEEA Poznań</strong></p>`;
-
-// Ramka ze szczegółami (puste wartości są pomijane)
-const detailsBox = (rows) => {
-  const visible = rows.filter(([, v]) => v && String(v).trim() !== "");
-  if (!visible.length) return "";
+// Ramka z danymi (wiersze: [etykieta, wartość]) — np. termin, miejsce, numer.
+function detailsBox(rows) {
   return infoBox(`
-    <table role="presentation" cellpadding="0" cellspacing="0">
-      ${visible
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${rows
+        .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "")
         .map(
           ([label, value]) => `
-      <tr>
-        <td style="padding:3px 14px 3px 0;font-size:14px;color:#6b7280;white-space:nowrap;vertical-align:top">${esc(
-          label
-        )}:</td>
-        <td style="padding:3px 0;font-size:14.5px;color:#111827;vertical-align:top"><strong>${esc(
-          value
-        )}</strong></td>
-      </tr>`
+        <tr>
+          <td style="padding:4px 0;font-size:13px;color:#991b1b;text-transform:uppercase;letter-spacing:1px;font-weight:700;width:40%">${esc(label)}</td>
+          <td style="padding:4px 0;font-size:15px;color:#111827;font-weight:600">${esc(value)}</td>
+        </tr>`
         )
         .join("")}
     </table>`);
-};
+}
 
-// Sekcja z nagłówkiem — renderowana tylko gdy ma treść
-const section = (label, html) =>
-  html && html.trim() !== ""
-    ? `<p style="margin:20px 0 6px"><strong>${esc(label)}</strong></p><p>${html}</p>`
-    : "";
+// Sekcja z pogrubionym nagłówkiem
+function section(title, inner) {
+  return `
+  <p style="margin:24px 0 8px;font-size:16px;font-weight:700;color:#111827">${esc(title)}</p>
+  ${inner}`;
+}
 
-const ctaButton = (label, url) => (label && url ? button(label, url) : "");
+// CTA — opakowanie na button() z layoutu (czytelniejsze w szablonach)
+function ctaButton(label, url) {
+  if (!label || !url) return "";
+  return button(label, url);
+}
 
-// prosty strip HTML dla wersji tekstowej
-const htmlToText = (html) =>
-  String(html || "")
+// Tekstowa wersja maila (strip HTML)
+function htmlToText(html) {
+  return String(html || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
-    .replace(/<li>/gi, "• ")
-    .replace(/<\/li>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n\n")
+    .replace(/<\/tr>/gi, "\n")
+    .replace(/<\/td>/gi, " ")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#847;|&zwnj;/g, "")
+    .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
 
 // ═══════════════════════════════════════════════════════════════
-// SZABLONY
+// TEMPLATES — widoczne w module „Maile"
 // ═══════════════════════════════════════════════════════════════
 
 const TEMPLATES = {
-  // ── 1. Zaproszenie na kurs ──
+  // ── Zaproszenie na kurs ──
   invite: {
     key: "invite",
     name: "Zaproszenie na kurs",
-    description: "Oficjalne zaproszenie z ramką szczegółów kursu",
-    icon: "📩",
+    description: "Oficjalne zaproszenie z terminem i miejscem kursu oraz przyciskiem do panelu.",
+    icon: "✉️",
     fields: [
-      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
-      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 5 },
+      { key: "heading", label: "Nagłówek", type: "text" },
       {
-        key: "courseDate",
-        label: "Termin kursu",
-        type: "text",
-        hint: "Pobrany z Supabase — możesz zmienić",
-      },
-      { key: "courseLocation", label: "Miejsce kursu", type: "text" },
-      { key: "buttonLabel", label: "Tekst przycisku", type: "text" },
-      { key: "buttonUrl", label: "Link przycisku", type: "text" },
-    ],
-    defaults({ course }) {
-      const title = course?.title || "Kurs CEEA";
-      return {
-        subject: `Zaproszenie na kurs: ${title}`,
-        preheader: `${title} — zapisy otwarte`,
-        values: {
-          heading: "Zaproszenie na kurs",
-          intro:
-            `Serdecznie zapraszamy na kurs „${title}” organizowany przez Europejską Fundację ds. Szkolenia w Anestezjologii.\n` +
-            `Zapisy są już otwarte, a liczba miejsc jest ograniczona — zachęcamy do wcześniejszej rejestracji.`,
-          courseDate: course?.dateLabel || "",
-          courseLocation: course?.location || "Hotel Ilonn, Poznań",
-          buttonLabel: "Zapisz się na kurs",
-          buttonUrl: `${SITE_URL}/kursy`,
-        },
-      };
-    },
-    render({ subject, preheader, values, course, recipient }) {
-      const title = course?.title || "Kurs CEEA";
-      const content = `
-        ${greeting(recipient.firstName)}
-        <p>${nl2br(values.intro)}</p>
-        ${detailsBox([
-          ["Kurs", title],
-          ["Termin", values.courseDate],
-          ["Miejsce", values.courseLocation],
-        ])}
-        <p>Szczegółowy program kursu oraz formularz zgłoszeniowy znajdziesz na naszej stronie.</p>
-        ${ctaButton(values.buttonLabel, values.buttonUrl)}
-        ${CLOSING}`;
-
-      const text = [
-        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
-        "",
-        values.intro || "",
-        "",
-        `Kurs: ${title}`,
-        values.courseDate ? `Termin: ${values.courseDate}` : null,
-        values.courseLocation ? `Miejsce: ${values.courseLocation}` : null,
-        "",
-        "Szczegółowy program kursu oraz formularz zgłoszeniowy znajdziesz na naszej stronie.",
-        values.buttonUrl
-          ? `${values.buttonLabel || "Zobacz więcej"}: ${values.buttonUrl}`
-          : null,
-        "",
-        "Pozdrawiamy,",
-        "Zespół CEEA Poznań",
-      ]
-        .filter((l) => l !== null)
-        .join("\n");
-
-      return {
-        subject,
-        preheader,
-        html: renderEmail({
-          preheader,
-          title: values.heading || "",
-          content,
-        }).html,
-        text,
-      };
-    },
-  },
-
-  // ── 2. Informacje logistyczne ──
-  logistics: {
-    key: "logistics",
-    name: "Informacje logistyczne",
-    description: "Miejsce, data, program — dla zapisanych uczestników",
-    icon: "📍",
-    fields: [
-      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
-      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 4 },
-      {
-        key: "courseDate",
-        label: "Termin kursu",
-        type: "text",
-        hint: "Pobrany z Supabase — możesz zmienić",
-      },
-      { key: "courseLocation", label: "Miejsce kursu", type: "text" },
-      {
-        key: "program",
-        label: "Program / plan dnia",
-        type: "textarea",
-        rows: 4,
-        hint: "Opcjonalnie — puste pole zostanie pominięte w mailu",
-      },
-      {
-        key: "extra",
-        label: "Dodatkowe informacje",
+        key: "intro",
+        label: "Wstęp",
         type: "textarea",
         rows: 3,
-        hint: "np. parking, wyżywienie, materiały — puste pole zostanie pominięte",
+        hint: "Akapit powitalny — możesz użyć zmiennych z kursu (podstawiane automatycznie niżej).",
       },
-      { key: "buttonLabel", label: "Tekst przycisku", type: "text" },
-      { key: "buttonUrl", label: "Link przycisku", type: "text" },
+      {
+        key: "details",
+        label: "Szczegóły / program (opcjonalnie)",
+        type: "textarea",
+        rows: 4,
+        hint: "Każdy wiersz to osobny punkt listy.",
+      },
+      { key: "ctaLabel", label: "Tekst przycisku", type: "text" },
+      { key: "ctaUrl", label: "Adres przycisku", type: "text" },
     ],
     defaults({ course }) {
-      const title = course?.title || "Kurs CEEA";
+      const title = course?.title || "kurs CEEA";
       return {
-        subject: `Informacje logistyczne: ${title}`,
-        preheader: `Termin, miejsce i program kursu ${title}`,
+        subject: `Zaproszenie na ${title} — CEEA`,
+        preheader: "Zapraszamy do udziału w kursie — szczegóły w środku.",
         values: {
-          heading: "Informacje logistyczne",
-          intro:
-            `dziękujemy za zapisanie się na kurs „${title}”. ` +
-            `Poniżej przesyłamy najważniejsze informacje organizacyjne przed kursem.`,
-          courseDate: course?.dateLabel || "",
-          courseLocation: course?.location || "Hotel Ilonn, Poznań",
-          program: "",
-          extra: "",
-          buttonLabel: "Panel uczestnika",
-          buttonUrl: PANEL_URL,
+          heading: "Zaproszenie na kurs",
+          intro: `serdecznie zapraszamy do udziału w kursie „${title}". Poniżej znajdziesz najważniejsze informacje organizacyjne.`,
+          details: "",
+          ctaLabel: "Przejdź do panelu uczestnika",
+          ctaUrl: PANEL_URL,
         },
       };
     },
     render({ subject, preheader, values, course, recipient }) {
-      const title = course?.title || "Kurs CEEA";
-      const content = `
-        ${greeting(recipient.firstName)}
-        <p>${nl2br(values.intro)}</p>
-        ${detailsBox([
-          ["Kurs", title],
-          ["Termin", values.courseDate],
-          ["Miejsce", values.courseLocation],
-        ])}
-        ${section("Program", nl2br(values.program))}
-        ${section("Dodatkowe informacje", nl2br(values.extra))}
-        <p>W razie pytań pozostajemy do dyspozycji — wystarczy odpowiedzieć na tego maila.</p>
-        ${ctaButton(values.buttonLabel, values.buttonUrl)}
-        ${CLOSING}`;
+      const details = String(values.details || "").trim();
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([
+          ["Kurs", course?.title],
+          ["Termin", course?.dateLabel],
+          ["Miejsce", course?.location],
+        ]),
+        details
+          ? section(
+              "Szczegóły",
+              `<ul style="margin:0 0 16px;padding-left:22px">${details
+                .split(/\r?\n/)
+                .filter((l) => l.trim())
+                .map(
+                  (l) =>
+                    `<li style="font-size:15px;color:#374151;margin-bottom:6px">${esc(l.trim())}</li>`
+                )
+                .join("")}</ul>`
+            )
+          : "",
+        ctaButton(values.ctaLabel, values.ctaUrl),
+        CLOSING,
+      ].join("\n");
 
-      const text = [
-        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
-        "",
-        values.intro || "",
-        "",
-        `Kurs: ${title}`,
-        values.courseDate ? `Termin: ${values.courseDate}` : null,
-        values.courseLocation ? `Miejsce: ${values.courseLocation}` : null,
-        values.program ? `\nProgram:\n${values.program}` : null,
-        values.extra ? `\nDodatkowe informacje:\n${values.extra}` : null,
-        "",
-        "W razie pytań pozostajemy do dyspozycji — wystarczy odpowiedzieć na tego maila.",
-        values.buttonUrl
-          ? `${values.buttonLabel || "Zobacz więcej"}: ${values.buttonUrl}`
-          : null,
-        "",
-        "Pozdrawiamy,",
-        "Zespół CEEA Poznań",
-      ]
-        .filter((l) => l !== null)
-        .join("\n");
-
-      return {
-        subject,
+      const { html } = renderEmail({
         preheader,
-        html: renderEmail({
-          preheader,
-          title: values.heading || "",
-          content,
-        }).html,
-        text,
-      };
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
     },
   },
 
-  // ── 4. Materiały dostępne w panelu (po kursie) ──
+  // ── Informacje organizacyjne (logistyka) ──
+  logistics: {
+    key: "logistics",
+    name: "Informacje organizacyjne",
+    description: "Logistyka przed kursem: dojazd, godziny, sala, parking, obiady.",
+    icon: "🧭",
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      {
+        key: "schedule",
+        label: "Godziny / plan dnia",
+        type: "textarea",
+        rows: 4,
+        hint: "Każdy wiersz to osobny punkt listy.",
+      },
+      {
+        key: "arrival",
+        label: "Dojazd i lokalizacja",
+        type: "textarea",
+        rows: 3,
+      },
+      {
+        key: "notes",
+        label: "Dodatkowe uwagi (opcjonalnie)",
+        type: "textarea",
+        rows: 3,
+      },
+      { key: "ctaLabel", label: "Tekst przycisku", type: "text" },
+      { key: "ctaUrl", label: "Adres przycisku", type: "text" },
+    ],
+    defaults({ course }) {
+      const title = course?.title || "kurs CEEA";
+      return {
+        subject: `Informacje organizacyjne — ${title}`,
+        preheader: "Dojazd, godziny i praktyczne wskazówki przed kursem.",
+        values: {
+          heading: "Informacje organizacyjne",
+          intro: `zbliża się kurs „${title}". Poniżej zebraliśmy najważniejsze informacje organizacyjne — prosimy o zapoznanie się z nimi przed przyjazdem.`,
+          schedule:
+            "Rejestracja uczestników: 8:15–8:45\nRozpoczęcie kursu: 9:00\nZakończenie (orientacyjnie): 17:00",
+          arrival:
+            course?.location
+              ? `Miejsce szkolenia: ${course.location}.`
+              : "Miejsce szkolenia podajemy w panelu uczestnika i na stronie kursu.",
+          notes: "",
+          ctaLabel: "Sprawdź w panelu uczestnika",
+          ctaUrl: PANEL_URL,
+        },
+      };
+    },
+    render({ subject, preheader, values, course, recipient }) {
+      const list = (v) =>
+        String(v || "")
+          .split(/\r?\n/)
+          .filter((l) => l.trim())
+          .map(
+            (l) =>
+              `<li style="font-size:15px;color:#374151;margin-bottom:6px">${esc(l.trim())}</li>`
+          )
+          .join("");
+      const schedule = list(values.schedule);
+      const notes = String(values.notes || "").trim();
+
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([
+          ["Kurs", course?.title],
+          ["Termin", course?.dateLabel],
+          ["Miejsce", course?.location],
+        ]),
+        schedule
+          ? section("Plan dnia", `<ul style="margin:0 0 16px;padding-left:22px">${schedule}</ul>`)
+          : "",
+        String(values.arrival || "").trim()
+          ? section("Dojazd i lokalizacja", `<p>${nl2br(values.arrival)}</p>`)
+          : "",
+        notes ? section("Dodatkowe uwagi", `<p>${nl2br(notes)}</p>`) : "",
+        ctaButton(values.ctaLabel, values.ctaUrl),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+
+  // ── Materiały szkoleniowe ──
   materials: {
     key: "materials",
-    name: "Materiały w panelu",
-    description: "Powiadomienie, że materiały z kursu są już w panelu",
+    name: "Materiały szkoleniowe",
+    description: "Wysyłka linków do materiałów przed/po kursie.",
     icon: "📚",
     fields: [
-      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
-      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 4 },
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
       {
-        key: "note",
-        label: "Informacja o logowaniu",
+        key: "materialsList",
+        label: "Lista materiałów",
         type: "textarea",
-        rows: 2,
-        hint: "Opcjonalnie — puste pole zostanie pominięte w mailu",
+        rows: 4,
+        hint: "Każdy wiersz to osobna pozycja listy.",
       },
-      { key: "buttonLabel", label: "Tekst przycisku", type: "text" },
-      { key: "buttonUrl", label: "Link przycisku", type: "text" },
+      { key: "ctaLabel", label: "Tekst przycisku", type: "text" },
+      { key: "ctaUrl", label: "Adres przycisku", type: "text" },
     ],
     defaults({ course }) {
-      const title = course?.title || "Kurs CEEA";
+      const title = course?.title || "kursu CEEA";
       return {
-        subject: `Materiały z kursu: ${title}`,
-        preheader: `Materiały z kursu ${title} są już dostępne w panelu`,
+        subject: `Materiały szkoleniowe — ${title}`,
+        preheader: "Udostępniliśmy materiały do kursu — zobacz, co przygotowaliśmy.",
         values: {
-          heading: "Materiały z kursu są już dostępne",
-          intro:
-            `dziękujemy za udział w kursie „${title}”.\n` +
-            `Informujemy, że materiały z kursu zostały dodane i są już dostępne w panelu uczestnika.`,
-          note: "Zaloguj się tym samym adresem e-mail, na który otrzymałeś tę wiadomość.",
-          buttonLabel: "Zaloguj się do panelu",
-          buttonUrl: PANEL_URL,
+          heading: "Materiały szkoleniowe",
+          intro: `udostępniliśmy materiały szkoleniowe do kursu „${title}". Znajdziesz je w panelu uczestnika po zalogowaniu.`,
+          materialsList:
+            "Skrypty i prezentacje z wykładów\nWytyczne i algorytmy postępowania\nMateriały uzupełniające",
+          ctaLabel: "Otwórz materiały w panelu",
+          ctaUrl: `${PANEL_URL}/materialy`,
         },
       };
     },
     render({ subject, preheader, values, course, recipient }) {
-      const title = course?.title || "Kurs CEEA";
-      const content = `
-        ${greeting(recipient.firstName)}
-        <p>${nl2br(values.intro)}</p>
-        ${detailsBox([["Kurs", title]])}
-        ${values.note && values.note.trim() !== "" ? `<p>${nl2br(values.note)}</p>` : ""}
-        ${ctaButton(values.buttonLabel, values.buttonUrl)}
-        ${CLOSING}`;
+      const items = String(values.materialsList || "")
+        .split(/\r?\n/)
+        .filter((l) => l.trim())
+        .map(
+          (l) =>
+            `<li style="font-size:15px;color:#374151;margin-bottom:6px">${esc(l.trim())}</li>`
+        )
+        .join("");
 
-      const text = [
-        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
-        "",
-        values.intro || "",
-        "",
-        `Kurs: ${title}`,
-        values.note ? `\n${values.note}` : null,
-        values.buttonUrl
-          ? `${values.buttonLabel || "Panel"}: ${values.buttonUrl}`
-          : null,
-        "",
-        "Pozdrawiamy,",
-        "Zespół CEEA Poznań",
-      ]
-        .filter((l) => l !== null)
-        .join("\n");
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        course?.title
+          ? detailsBox([["Kurs", course.title], ["Termin", course.dateLabel]])
+          : "",
+        items
+          ? section("Dostępne materiały", `<ul style="margin:0 0 16px;padding-left:22px">${items}</ul>`)
+          : "",
+        ctaButton(values.ctaLabel, values.ctaUrl),
+        CLOSING,
+      ].join("\n");
 
-      return {
-        subject,
+      const { html } = renderEmail({
         preheader,
-        html: renderEmail({
-          preheader,
-          title: values.heading || "",
-          content,
-        }).html,
-        text,
-      };
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
     },
   },
 
-  // ── 3. Własna treść ──
+  // ── Własna treść (edytor Quill w panelu) ──
   custom: {
     key: "custom",
     name: "Własna treść",
-    description: "Pełna dowolność z edytorem",
+    description: "Dowolna wiadomość — treść formatujesz edytorem w panelu.",
     icon: "✏️",
     fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
       {
-        key: "heading",
-        label: "Nagłówek w treści maila",
-        type: "text",
-        hint: "Zostaw puste, żeby ukryć nagłówek",
-      },
-      {
-        key: "content",
-        label: "Treść maila",
+        key: "body",
+        label: "Treść wiadomości",
         type: "html",
-        hint: "Edytor tekstu sformatowanego — pogrubienia, listy, linki",
+        hint: "Formatowanie: pogrubienie, kursywa, listy, linki.",
       },
     ],
     defaults() {
@@ -367,125 +342,268 @@ const TEMPLATES = {
         preheader: "",
         values: {
           heading: "",
-          content: "",
+          body: "",
         },
       };
     },
-    render({ subject, preheader, values, recipient }) {
-      const body =
-        values.content && values.content.replace(/<[^>]+>/g, "").trim() !== ""
-          ? values.content
-          : "<p>(pusta treść)</p>";
-
-      const content = `
-        ${greeting(recipient.firstName)}
-        ${body}
-        ${CLOSING}`;
-
-      const text = [
-        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
-        "",
-        htmlToText(values.content),
-        "",
-        "Pozdrawiamy,",
-        "Zespół CEEA Poznań",
+    render({ subject, preheader, values, course, recipient }) {
+      // body to HTML z edytora Quill — celowo NIE escapujemy
+      const content = [
+        greeting(recipient),
+        String(values.body || ""),
+        CLOSING,
       ].join("\n");
 
-      return {
-        subject,
+      const { html } = renderEmail({
         preheader,
-        html: renderEmail({
-          preheader,
-          title: values.heading || "",
-          content,
-        }).html,
-        text,
-      };
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
     },
   },
 };
 
-
 // ═══════════════════════════════════════════════════════════════
-// SZABLONY TRANSAKCYJNE (systemowe)
-// NIE pokazują się w module „Maile" (brak personalizacji zbiorczej) —
-// dostępne wyłącznie przez getTemplate() dla kodu serwera.
+// TRANSACTIONAL_TEMPLATES — systemowe, NIE widoczne w module „Maile"
+// Wywoływane z kodu (mailer.js): dane dynamiczne doklejane do values.
 // ═══════════════════════════════════════════════════════════════
 
 const TRANSACTIONAL_TEMPLATES = {
-  // ── Hasło do panelu uczestnika (pierwsze logowanie / reset) ──
+  // ── Hasło do panelu (generowane / reset) ──
   password: {
     key: "password",
-    name: "Hasło do panelu (systemowy)",
-    description: "Mail z hasłem do logowania — pierwsze logowanie i reset hasła",
+    name: "Hasło do panelu",
+    description: "Systemowy mail z wygenerowanym hasłem do panelu uczestnika.",
     icon: "🔑",
     transactional: true,
     fields: [
-      { key: "heading", label: "Nagłówek w treści maila", type: "text" },
-      { key: "intro", label: "Treść wstępu", type: "textarea", rows: 3 },
-      {
-        key: "note",
-        label: "Notka pod hasłem",
-        type: "textarea",
-        rows: 2,
-        hint: "Opcjonalnie — puste pole zostanie pominięte w mailu",
-      },
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga pod hasłem", type: "textarea", rows: 2 },
     ],
     defaults() {
       return {
-        subject: "Twoje hasło do Panelu Uczestnika — CEEA",
-        preheader: "Hasło do logowania w panelu uczestnika CEEA",
+        subject: "Twoje hasło do panelu CEEA",
+        preheader: "Wygenerowaliśmy dla Ciebie hasło do panelu uczestnika.",
         values: {
           heading: "Twoje hasło do logowania",
           intro:
-            "poniżej znajdziesz wygenerowane hasło do logowania w panelu uczestnika. " +
-            "Zaloguj się tym samym adresem e-mail, na który otrzymałeś tę wiadomość.",
-          note: "Hasło możesz w każdej chwili zmienić — po zalogowaniu przejdź do zakładki Profil i kliknij „Wyślij nowe hasło”.",
+            "poniżej znajdziesz wygenerowane hasło do logowania w panelu uczestnika. Zaloguj się tym samym adresem e-mail, na który otrzymałeś tę wiadomość.",
+          note:
+            "Hasło możesz w każdej chwili zmienić — po zalogowaniu przejdź do zakładki Profil i kliknij „Wyślij nowe hasło”.",
         },
       };
     },
     render({ subject, preheader, values, recipient }) {
       const passwordBox = infoBox(`
-        <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280">Twoje hasło</p>
-        <p style="margin:0;font-size:24px;font-family:Consolas,Monaco,'Courier New',monospace;letter-spacing:2px;color:#111827"><strong>${esc(
-          values.password || ""
-        )}</strong></p>`);
+        <p style="margin:0 0 6px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#991b1b;font-weight:700">Twoje hasło</p>
+        <p style="margin:0;font-size:26px;font-weight:700;font-family:'Courier New',Courier,monospace;letter-spacing:2px;color:#111827">${esc(values.password)}</p>
+      `);
 
-      const content = `
-        ${greeting(recipient.firstName)}
-        <p>${nl2br(values.intro)}</p>
-        ${passwordBox}
-        ${values.note && values.note.trim() !== "" ? `<p>${nl2br(values.note)}</p>` : ""}
-        ${ctaButton("Zaloguj się do panelu", PANEL_URL)}
-        ${CLOSING}`;
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        passwordBox,
+        values.note ? `<p>${nl2br(values.note)}</p>` : "",
+        ctaButton("Zaloguj się do panelu", PANEL_URL),
+        CLOSING,
+      ].join("\n");
 
-      const text = [
-        `Dzień dobry${recipient.firstName ? " " + recipient.firstName : ""},`,
-        "",
-        values.intro || "",
-        "",
-        `Twoje hasło: ${values.password || ""}`,
-        "",
-        values.note || "",
-        "",
-        `Zaloguj się: ${PANEL_URL}`,
-        "",
-        "Pozdrawiamy,",
-        "Zespół CEEA Poznań",
-      ]
-        .filter((l) => l !== null && l !== "")
-        .join("\n");
-
-      return {
-        subject,
+      const { html } = renderEmail({
         preheader,
-        html: renderEmail({
-          preheader,
-          title: values.heading || "",
-          content,
-        }).html,
-        text,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+
+  // ── Anulowanie przesyłki InPost (zamówienie książek) ──
+  shipment_canceled: {
+    key: "shipment_canceled",
+    name: "Anulowanie przesyłki",
+    description: "Systemowy mail po anulowaniu przesyłki InPost w panelu.",
+    icon: "📦",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga (opcjonalnie)", type: "textarea", rows: 2 },
+    ],
+    defaults() {
+      return {
+        subject: "Twoja przesyłka została anulowana — CEEA",
+        preheader: "Anulowaliśmy przesyłkę z Twojego zamówienia.",
+        values: {
+          heading: "Przesyłka anulowana",
+          intro:
+            "informujemy, że przesyłka powiązana z Twoim zamówieniem została anulowana. Twoje zamówienie pozostaje opłacone i nie tracisz żadnych książek — przygotujemy nową przesyłkę.",
+          note:
+            "Jeśli nie spodziewałeś/aś się tej wiadomości albo masz pytania, odpisz na tego maila lub zadzwoń do sekretariatu.",
+        },
       };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([
+          ["Zamówienie", values.orderNumber],
+          ["Numer przesyłki", values.trackingNumber],
+        ]),
+        values.note ? `<p>${nl2br(values.note)}</p>` : "",
+        ctaButton("Twoje zamówienia", `${PANEL_URL}/ksiazki`),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+
+  // ── Anulowanie zamówienia książek ──
+  order_canceled: {
+    key: "order_canceled",
+    name: "Anulowanie zamówienia",
+    description: "Systemowy mail po anulowaniu całego zamówienia książek.",
+    icon: "🛑",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga o zwrocie", type: "textarea", rows: 2 },
+    ],
+    defaults() {
+      return {
+        subject: "Twoje zamówienie zostało anulowane — CEEA",
+        preheader: "Anulowaliśmy Twoje zamówienie w księgarni CEEA.",
+        values: {
+          heading: "Zamówienie anulowane",
+          intro:
+            "informujemy, że Twoje zamówienie w księgarni CEEA zostało anulowane.",
+          note: "", // uzupełnia mailer: wariant ze zwrotem / bez zwrotu
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([
+          ["Zamówienie", values.orderNumber],
+          ["Kwota", values.amountLabel],
+        ]),
+        values.note ? `<p>${nl2br(values.note)}</p>` : "",
+        ctaButton("Odwiedź księgarnię", `${SITE_URL}/ksiazki`),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+
+  // ── Zamówienie książek WYSŁANE (osobna akcja w panelu) ──
+  shipment_sent: {
+    key: "shipment_sent",
+    name: "Wysyłka zamówienia",
+    description: "Systemowy mail po oznaczeniu zamówienia książek jako wysłane.",
+    icon: "🚚",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga o panelu", type: "textarea", rows: 3 },
+    ],
+    defaults() {
+      return {
+        subject: "Twoja paczka jest w drodze — CEEA",
+        preheader: "Wysłaliśmy Twoje zamówienie — sprawdź, gdzie jest paczka.",
+        values: {
+          heading: "Paczka wysłana",
+          intro:
+            "dziękujemy za zakupy w księgarni CEEA. Twoje zamówienie zostało właśnie wysłane.",
+          note:
+            "Status przesyłki możesz na bieżąco sprawdzić w panelu uczestnika — zaloguj się tym samym adresem e-mail, którego użyłeś przy zamówieniu. Jeśli nie masz jeszcze hasła, na stronie logowania kliknij „Wyślij nowe hasło”.",
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      // trackingUrl wstrzykuje mailer; bez numeru śledzenia → panel uczestnika
+      const ctaLabel = values.trackingUrl ? "Śledź przesyłkę" : "Twoje zamówienia";
+      const ctaUrl = values.trackingUrl || `${PANEL_URL}/ksiazki`;
+
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([
+          ["Zamówienie", values.orderNumber],
+          ["Dostawa", values.deliveryLabel],
+          ["Numer śledzenia", values.trackingNumber],
+        ]),
+        values.note ? `<p>${nl2br(values.note)}</p>` : "",
+        ctaButton(ctaLabel, ctaUrl),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+
+  // ── Usunięcie uczestnika z kursu ──
+  course_removed: {
+    key: "course_removed",
+    name: "Usunięcie z listy uczestników",
+    description: "Systemowy mail po usunięciu uczestnika z listy kursu (panel → Płatności).",
+    icon: "👋",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga (opcjonalnie)", type: "textarea", rows: 2 },
+    ],
+    defaults() {
+      return {
+        subject: "Twoje zgłoszenie na kurs zostało anulowane — CEEA",
+        preheader: "Usunęliśmy Twoje zgłoszenie z listy uczestników kursu.",
+        values: {
+          heading: "Zgłoszenie anulowane",
+          intro:
+            "informujemy, że Twoje zgłoszenie zostało usunięte z listy uczestników kursu.",
+          note: "", // uzupełnia mailer: wariant ze zwrotem / bez zwrotu
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        detailsBox([["Kurs", values.courseTitle]]),
+        values.note ? `<p>${nl2br(values.note)}</p>` : "",
+        ctaButton("Zobacz inne kursy", `${SITE_URL}/kursy`),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
     },
   },
 };

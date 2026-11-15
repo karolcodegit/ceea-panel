@@ -44,6 +44,13 @@
   
         this._build();
       }
+
+      // ── Wyrównanie kolumny: 'left' (domyślnie) | 'center' | 'right' ──
+      _alignCls(col) {
+        return col.align === 'right' ? 'text-right'
+             : col.align === 'center' ? 'text-center'
+             : 'text-left';
+      }
   
       // ── Budowa DOM ──
       _build() {
@@ -79,7 +86,7 @@
         const head = this.el.querySelector('[data-dt-head]');
         c.columns.forEach(col => {
           const th = document.createElement('th');
-          th.className = `px-4 py-3 ${col.align === 'right' ? 'text-right' : ''} ${col.sortable !== false ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-white' : ''}`;
+          th.className = `px-4 py-3 ${this._alignCls(col)} ${col.sortable !== false ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-white' : ''}`;
           th.innerHTML = `<span data-dt-label>${col.label}</span>`;
           if (col.sortable !== false) {
             th.addEventListener('click', () => this._sort(col.key));
@@ -159,7 +166,7 @@
           tr.className = c.rowClass;
           c.columns.forEach(col => {
             const td = document.createElement('td');
-            td.className = `px-4 py-3 ${col.align === 'right' ? 'text-right' : ''} ${col.cellClass || ''}`;
+            td.className = `px-4 py-3 ${this._alignCls(col)} ${col.cellClass || ''}`;
             td.innerHTML = col.render ? col.render(row) : (row[col.key] ?? '—');
             tr.appendChild(td);
           });
@@ -173,7 +180,7 @@
           const tr = document.createElement('tr');
           c.columns.forEach(col => {
             const td = document.createElement('td');
-            td.className = `px-4 py-2.5 text-xs font-semibold text-gray-700 dark:text-slate-300 ${col.align === 'right' ? 'text-right' : ''}`;
+            td.className = `px-4 py-2.5 text-xs font-semibold text-gray-700 dark:text-slate-300 ${this._alignCls(col)}`;
             if (col.summary === 'sum') {
               const sum = this.filtered.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
               td.textContent = `SUMA: ${fmtPLN(sum)}`;
@@ -295,7 +302,10 @@
     }
     if (list.length === 1) return oneBtn(list[0]);
 
-    return '<div class="row-menu">' +
+    // inline-block: dzięki temu komórka z text-right/center NAPRAWDĘ wyrówna
+    // menu ⋮ (zwykły div blokowy ignoruje text-align rodzica i ucieka w lewo).
+    // text-align:left w środku — pozycje menu zostają czytelnie do lewej.
+    return '<div class="row-menu" style="display:inline-block;text-align:left">' +
       '<button type="button" class="row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Akcje">' +
         '<svg fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>' +
       '</button>' +

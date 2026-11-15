@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title>Płatność <%= payment.order_number || payment.id %> — Panel CEEA</title>
+  </head>
+  <body>
+    <%- include('partials/admin-nav', { active: 'platnosci' }) %>
+    <%- include('partials/header', {
+      pageTitle: 'Płatność ' + (payment.order_number || ''),
+      pageSubtitle: 'Kursy · ' + ((payment.users && payment.users.email) || ''),
+      pageIcon: 'platnosci'
+    }) %>
+
+    <%
+      const q = locals.query || {};
+      const u = payment.users || {};
+      const c = payment.courses || {};
+      const inv = locals.invoice || null;
+      const pl = (payment.payload && typeof payment.payload === 'object') ? payment.payload : {};
+
+      const statusBadgeMap = {
+        paid: 'badge-green',
+        awaiting_transfer: 'badge-amber',
+        awaiting_payment: 'badge-amber',
+        canceled: 'badge-red',
+        expired: 'badge-red',
+      };
+      const statusLabelMap = {
+        paid: 'Zapłacone',
+        awaiting_transfer: 'Oczekuje na przelew',
+        awaiting_payment: 'Oczekuje online',
+        canceled: 'Anulowane',
+        expired: 'Wygasło',
+      };
+      const methodLabelMap = { transfer: 'Przelew', tpay: 'Online (tpay)' };
+
+      const isPaid = payment.status === 'paid';
+      const isAwaiting = ['awaiting_transfer', 'awaiting_payment'].includes(payment.status);
+      const isCanceled = ['canceled', 'expired'].includes(payment.status);
+
+      const fmtMoney = (n) => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
+      const fmtDate = (d) => d ? new Date(d).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+      // ── payload formularza zgłoszeniowego (dwie konwencje kluczy) ──
+      const plGet = (...keys) => {
+        for (const k of keys) { const v = pl[k]; if (v !== undefined && v !== null && v !== '') return v; }
+        return '';
+      };
+      const yesNo = (v) => {
+        if (v === true || v === 'true') return 'Tak';
+        if (v === false || v === 'false') return 'Nie';
+        const s = String(v ?? '').trim();
+        if (/^(tak|yes)$/i.test(s)) return 'Tak';
+        if (/^(nie|no)$/i.test(s)) return 'Nie';
+        return s;
+      };
+      const payloadVal = (v) => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'boolean') return v ? 'Tak' : 'Nie';
+        if (Array.isArray(v)) return v.map(x => (x && typeof x === 'object') ? (x.name || x.dish || x.label || x.title || JSON.stringify(x)) : String(x)).join(', ');
+        if (typeof v === 'object') return JSON.stringify(v);
+        return String(v);
+      };
+      const prettyKey = (k) => k
+        .replace(/([a-ząćęłńóśźż])([A-ZĄĆĘŁŃÓŚŹŻ])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/^./, ch => ch.toUpperCase());
+
+      // klucze pokazane własnymi sekcjami / kolumnami + techniczne
+      const KNOWN_KEYS = [
+        'Token','token','FormErrors','formErrors','CourseId','courseId','CourseTitle','courseTitle',
+        'BaseAmount','baseAmount','Total','total','PaymentMethod','paymentMethod',
+        'Email','email','FirstName','firstName','SurName','surName','Surname','surname','Phone','phone',
+        'Street','street','NumberHome','numberHome','ZipCode','zipCode','City','city',
+        'WantsInvoice','wantsInvoice',
+        'InvoiceName','invoiceName','InvoiceStreet','invoiceStreet','InvoiceNumberHome','invoiceNumberHome',
+        'InvoiceZipCode','invoiceZipCode','InvoiceCity','invoiceCity','InvoiceNip','invoiceNip',
+        'Dishes','dishes','Option1','option1','Option2','option2','Option3','option3',
+        'Npwz','npwz','Specjalist','specialist','YearSpecialist','yearSpecialist',
+        'Profession','profession','Birthday','birthday',
+        'BaseCourseCost','baseCourseCost','PaymentFee','paymentFee',
+        'WyrazamZgode','wyrazamZgode',
+      ];
+      const leftovers = Object.keys(pl)
+        .filter(k => !KNOWN_KEYS.includes(k))
+        .map(k => [k, pl[k]])
+        .filter(([, v]) => v !== null && v !== undefined && v !== '' && String(v) !== '{}');
+
+      const addrStreet = [plGet('Street','street'), plGet('NumberHome','numberHome')].filter(Boolean).join(' ');
+      const addrCity = [plGet('ZipCode','zipCode'), plGet('City','city')].filter(Boolean).join(' ');
+
+      const invD = {
+        name: String(plGet('InvoiceName','invoiceName')).trim(),
+        street: String(plGet('InvoiceStreet','invoiceStreet')).trim(),
+        numberHome: String(plGet('InvoiceNumberHome','invoiceNumberHome')).trim(),
+        zipCode: String(plGet('InvoiceZipCode','invoiceZipCode')).trim(),
+        city: String(plGet('InvoiceCity','invoiceCity')).trim(),
+        nip: String(plGet('InvoiceNip','invoiceNip')).trim(),
+      };
+      const invAddr = [
+        [invD.street, invD.numberHome].filter(Boolean).join(' '),
+        [invD.zipCode, invD.city].filter(Boolean).join(' '),
+      ].filter(Boolean).join('\n');
+      const wantsInvoice = yesNo(plGet('WantsInvoice','wantsInvoice')) || ((invD.name || invD.nip) ? 'Tak' : '');
+
+      // kroki: zgłoszenie → opłacone → faktura
+      const currentStep = isCanceled ? -1 : (isPaid ? (inv ? 2 : 1) : 0);
+
+      // helper wiersza read-only
+      const escH = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const rowHtml = (label, value, extraCls) => {
+        const v = (value === undefined || value === null || String(value).trim() === '') ? '—' : String(value);
+        return `<div${extraCls ? ` class="${extraCls}"` : ''}><label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">${label}</label><input readonly value="${escH(v)}" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white text-sm outline-none"></div>`;
+      };
+      const hasAny = (...vals) => vals.some(v => v !== undefined && v !== null && String(v).trim() !== '');
+    %>
+
+    <div class="lg:pl-64 pt-16">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <section class="module-card p-4 sm:p-5">
+
+        <div class="mb-5">
+          <a href="<%= adminPrefix %>/platnosci" class="btn btn-sm btn-neutral">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            Wróć do płatności
+          </a>
+        </div>
+
+        <%# ── Status / timeline ── %>
+        <section class="module-card p-5 mb-6">
+          <% if (isCanceled) { %>
+            <div class="flex items-center gap-2 text-red-600 dark:text-red-400 font-semibold text-sm">
+              <span>✕</span> Płatność <%= statusLabelMap[payment.status] === 'Wygasło' ? 'wygasła' : 'anulowana' %>
+            </div>
+          <% } else { %>
+            <% if (isAwaiting) { %>
+              <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between gap-3 flex-wrap">
+                <span>⏳ <%= statusLabelMap[payment.status] || payment.status %> — po zaksięgowaniu uczestnik otrzyma mail z potwierdzeniem.</span>
+                <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/zaplacono"
+                      onsubmit="return confirm('Oznaczyć jako zapłacone? Kursant otrzyma mail z potwierdzeniem.')">
+                  <input type="hidden" name="back" value="kursy">
+                  <button type="submit" class="btn btn-sm btn-primary">Zaksięguj wpłatę</button>
+                </form>
+              </div>
+            <% } %>
+            <div class="steps">
+              <div class="step <%= currentStep > 0 ? 'is-done' : 'is-current' %>">Zgłoszenie</div>
+              <div class="step <%= currentStep > 1 ? 'is-done' : (currentStep === 1 ? 'is-current' : '') %>">Opłacone</div>
+              <div class="step <%= currentStep === 2 ? 'is-done' : '' %>">Faktura wystawiona</div>
+            </div>
+          <% } %>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <%# ═══ LEWA KOLUMNA ═══ %>
+          <div class="lg:col-span-2 space-y-6">
+
+            <%# Kafelki %>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg></span>
+                <div><p class="stat-tile-label">Kwota</p><p class="stat-tile-value"><%= fmtMoney(payment.amount) %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+                <div><p class="stat-tile-label">Status</p><p class="stat-tile-value text-sm pt-1"><%= statusLabelMap[payment.status] || payment.status %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+                <div><p class="stat-tile-label">Data zgłoszenia</p><p class="stat-tile-value text-sm pt-1"><%= fmtDate(payment.created_at) %></p></div>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-tile-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
+                <div><p class="stat-tile-label">Opłacono</p><p class="stat-tile-value text-sm pt-1"><%= fmtDate(payment.paid_at) %></p></div>
+              </div>
+            </div>
+
+            <%# Dane uczestnika — read-only %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Dane uczestnika</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <%- rowHtml('Imię i nazwisko', `${u.name || ''} ${u.surname || ''}`.trim()) %>
+                <%- rowHtml('Telefon', u.phone) %>
+                <%- rowHtml('E-mail', u.email, 'sm:col-span-2') %>
+                <%- rowHtml('Konto od', u.created_at ? fmtDate(u.created_at) : '') %>
+                <%- rowHtml('Na liście uczestników kursu', locals.enrolled === null ? '' : (locals.enrolled ? 'Tak' : 'Nie — usunięty z listy')) %>
+              </div>
+            </section>
+
+            <%# Dane z formularza zgłoszeniowego (payload) %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Dane z formularza zgłoszeniowego</h2>
+
+              <% if (hasAny(addrStreet, addrCity)) { %>
+                <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">Adres</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  <%- rowHtml('Ulica', addrStreet) %>
+                  <%- rowHtml('Kod pocztowy / Miasto', addrCity) %>
+                </div>
+              <% } %>
+
+              <% if (hasAny(plGet('Npwz','npwz'), plGet('Specjalist','specialist'), plGet('YearSpecialist','yearSpecialist'), plGet('Profession','profession'), plGet('Birthday','birthday'))) { %>
+                <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">Dane zawodowe</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  <%- rowHtml('Numer PWZ', plGet('Npwz','npwz')) %>
+                  <%- rowHtml('Specjalista', yesNo(plGet('Specjalist','specialist'))) %>
+                  <%- rowHtml('Rok specjalizacji', plGet('YearSpecialist','yearSpecialist')) %>
+                  <%- rowHtml('Zawód', plGet('Profession','profession')) %>
+                  <%- rowHtml('Data urodzenia', plGet('Birthday','birthday')) %>
+                </div>
+              <% } %>
+
+              <% if (hasAny(plGet('Dishes','dishes'), plGet('Option1','option1'), plGet('Option2','option2'), plGet('Option3','option3'))) { %>
+                <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">Opcje kursu</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  <%- rowHtml('Wyżywienie', payloadVal(plGet('Dishes','dishes'))) %>
+                  <%- rowHtml('Opcja dodatkowa 1', yesNo(plGet('Option1','option1'))) %>
+                  <%- rowHtml('Opcja dodatkowa 2', yesNo(plGet('Option2','option2'))) %>
+                  <%- rowHtml('Opcja dodatkowa 3', yesNo(plGet('Option3','option3'))) %>
+                </div>
+              <% } %>
+
+              <% if (hasAny(plGet('BaseCourseCost','baseCourseCost'), plGet('PaymentFee','paymentFee'), plGet('WyrazamZgode','wyrazamZgode'))) { %>
+                <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">Rozliczenie i zgody</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  <%- rowHtml('Cena bazowa kursu', hasAny(plGet('BaseCourseCost','baseCourseCost')) ? fmtMoney(plGet('BaseCourseCost','baseCourseCost')) : '') %>
+                  <%- rowHtml('Opłata transakcyjna', hasAny(plGet('PaymentFee','paymentFee')) ? fmtMoney(plGet('PaymentFee','paymentFee')) : '') %>
+                  <%- rowHtml('Zgoda (formularz)', yesNo(plGet('WyrazamZgode','wyrazamZgode'))) %>
+                </div>
+              <% } %>
+
+              <% if (hasAny(wantsInvoice, invD.name, invD.nip, invAddr)) { %>
+                <h3 class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">Dane do faktury (z formularza)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <%- rowHtml('Prośba o fakturę', wantsInvoice) %>
+                  <%- rowHtml('Nazwa / Firma', invD.name) %>
+                  <%- rowHtml('Adres', invAddr.replace(/\n/g, ', ')) %>
+                  <%- rowHtml('NIP', invD.nip) %>
+                </div>
+              <% } %>
+
+              <% if (!hasAny(addrStreet, addrCity, plGet('Npwz','npwz'), plGet('Dishes','dishes'), invD.name) && !leftovers.length) { %>
+                <p class="text-sm text-gray-400 dark:text-slate-500">Brak dodatkowych danych w formularzu (payload pusty).</p>
+              <% } %>
+            </section>
+
+            <%# Pozostałe pola formularza (cokolwiek niestandardowego) %>
+            <% if (leftovers.length) { %>
+              <section class="module-card p-5">
+                <h2 class="module-title mb-4">Pozostałe pola formularza</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <% leftovers.forEach(([k, v]) => { %>
+                    <%- rowHtml(prettyKey(k), payloadVal(v)) %>
+                  <% }) %>
+                </div>
+              </section>
+            <% } %>
+
+            <%# ═══ EDYCJA DANYCH ═══ %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-1">Edytuj dane</h2>
+              <p class="text-xs text-gray-500 dark:text-slate-400 mb-4 leading-relaxed">
+                Zmieniasz dane uczestnika (tabela <code>users</code>) i notatki do płatności.
+                Status zmienisz akcjami powyżej, a kwoty edytować nie można — musi być spójna z fakturą.
+              </p>
+              <form method="POST" action="<%= adminPrefix %>/platnosci/kursy/<%= payment.id %>/edytuj" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Imię</label>
+                    <input type="text" name="name" value="<%= u.name || '' %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Nazwisko</label>
+                    <input type="text" name="surname" value="<%= u.surname || '' %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">E-mail (login do panelu)</label>
+                    <input type="email" name="email" value="<%= u.email || '' %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Telefon</label>
+                    <input type="text" name="phone" value="<%= u.phone || '' %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Notatki (wewnętrzne)</label>
+                  <textarea name="notes" rows="3" placeholder="Np. „prosił o kontakt po 17:00”…"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= payment.notes || '' %></textarea>
+                </div>
+                <button type="submit" class="btn btn-save">Zapisz zmiany</button>
+              </form>
+            </section>
+          </div>
+
+          <%# ═══ PRAWA KOLUMNA ═══ %>
+          <div class="space-y-6">
+
+            <%# Płatność %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Płatność</h2>
+              <div class="space-y-3 text-sm">
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge <%= statusBadgeMap[payment.status] || 'badge-amber' %>"><%= statusLabelMap[payment.status] || payment.status %></span>
+                  <span class="badge badge-outline"><%= methodLabelMap[payment.method] || payment.method || '—' %></span>
+                </div>
+                <div><p class="text-xs text-gray-500 dark:text-slate-400">Numer zamówienia</p>
+                  <p class="font-mono font-medium text-gray-900 dark:text-white break-all"><%= payment.order_number || '—' %></p></div>
+                <div><p class="text-xs text-gray-500 dark:text-slate-400">ID zewnętrzne</p>
+                  <p class="font-mono text-xs text-gray-600 dark:text-slate-400 break-all"><%= payment.external_id || '—' %></p></div>
+                <% if (payment.resume_url) { %>
+                  <a href="<%= payment.resume_url %>" target="_blank" rel="noopener" class="btn btn-sm btn-neutral w-full">Link do płatności ↗</a>
+                <% } %>
+              </div>
+            </section>
+
+            <%# Kurs %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Kurs</h2>
+              <div class="space-y-3 text-sm">
+                <div><p class="text-xs text-gray-500 dark:text-slate-400">Tytuł</p>
+                  <p class="font-medium text-gray-900 dark:text-white"><%= c.title || payment.course_id || '—' %></p></div>
+                <% if (c.start_date) { %>
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Data rozpoczęcia</p>
+                    <p class="text-gray-900 dark:text-white"><%= new Date(c.start_date).toLocaleDateString('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' }) %></p></div>
+                <% } %>
+              </div>
+            </section>
+
+            <%# Faktura %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Faktura VAT</h2>
+              <% if (inv) { %>
+                <div class="space-y-3 text-sm">
+                  <div>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Numer faktury</p>
+                    <p class="font-semibold text-gray-900 dark:text-white"><%= inv.invoice_number %></p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="badge <%= inv.status === 'paid' ? 'badge-green' : 'badge-amber' %>"><%= inv.status === 'paid' ? 'Opłacona' : (inv.status || 'Wystawiona') %></span>
+                    <span class="badge <%= ['sent','accepted','delivered'].includes((inv.ksef_status || '').toLowerCase()) ? 'badge-green' : 'badge-outline' %>">KSeF: <%= inv.ksef_status || 'nie wysłano' %></span>
+                  </div>
+                  <% if (inv.buyer_name) { %>
+                    <div>
+                      <p class="text-xs text-gray-500 dark:text-slate-400">Nabywca</p>
+                      <p class="text-gray-900 dark:text-white"><%= inv.buyer_name %><% if (inv.buyer_nip) { %> · NIP <%= inv.buyer_nip %><% } %></p>
+                    </div>
+                  <% } %>
+                  <a href="<%= adminPrefix %>/platnosci/faktura/<%= inv.id %>/pdf" target="_blank"
+                     class="btn btn-sm btn-neutral w-full">Pobierz PDF faktury</a>
+                </div>
+              <% } else { %>
+                <% if (!wantsInvoice && !invD.name && !invD.nip) { %>
+                  <p class="text-xs text-gray-400 dark:text-slate-500 mb-3">Uczestnik nie zaznaczył faktury w formularzu — wystaw tylko na jego prośbę.</p>
+                <% } %>
+                <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/faktura" class="space-y-3">
+                  <input type="hidden" name="back" value="kursy">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Nazwa / Firma</label>
+                    <input type="text" name="buyerName" value="<%= invD.name || `${u.name || ''} ${u.surname || ''}`.trim() %>" required
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Adres</label>
+                    <textarea name="buyerAddress" rows="2"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= invAddr || [addrStreet, addrCity].filter(Boolean).join('\n') %></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">NIP (opcjonalnie)</label>
+                    <input type="text" name="buyerNip" value="<%= invD.nip %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <button type="submit" class="btn btn-save w-full">Wystaw fakturę</button>
+                </form>
+              <% } %>
+            </section>
+
+            <%# Strefa niebezpieczna %>
+            <section class="module-card p-5 border border-red-200 dark:border-red-500/30">
+              <h2 class="module-title mb-2 text-red-600 dark:text-red-400">Strefa niebezpieczna</h2>
+              <p class="text-xs text-gray-500 dark:text-slate-400 mb-3 leading-relaxed">
+                Usunięcie uczestnika skasuje jego zapis na kurs (enrollments) i rekord płatności.
+                Konto użytkownika i ewentualna faktura zostają (archiwum księgowe). Uczestnik otrzyma mail z potwierdzeniem.
+              </p>
+              <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/usun-uczestnika"
+                    onsubmit="return confirm('Usunąć <%= `${u.name || ''} ${u.surname || ''}`.trim() || 'tego uczestnika' %> z listy uczestników kursu „<%= c.title || '' %>”?\n\nZostaną usunięte: zapis na kurs i rekord płatności.\nZostają: konto użytkownika i faktura.\n\nUczestnik otrzyma mail z potwierdzeniem.<%= isPaid ? '\n\nPłatność jest ZAKSIĘGOWANA — pamiętaj o zwrocie środków!' : '' %>')">
+                <button type="submit" class="btn btn-sm btn-delete w-full">Usuń uczestnika</button>
+              </form>
+            </section>
+
+          </div>
+        </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

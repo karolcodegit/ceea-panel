@@ -391,6 +391,8 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   align-items: center;
   justify-content: center;
   gap: .4rem;
+  padding: .6rem 1.2rem;   /* domyślny rozmiar (= btn-md); btn-sm/btn-xs nadpisują */
+  font-size: .925rem;
   font-weight: 600;
   border-radius: .75rem;
   border: 1px solid transparent;
@@ -450,6 +452,14 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   color: #fff;
 }
 .btn-success:hover:not(:disabled) { background: #15803d; }
+
+/* Zapis formularza / utworzenie dokumentu (zielony, jak success) */
+.btn-save {
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(22, 163, 74, .3), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.btn-save:hover:not(:disabled) { background: #15803d; }
 
 /* ── Dark mode ── */
 .dark .btn-neutral {

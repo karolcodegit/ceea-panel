@@ -15,25 +15,28 @@
     <%
       const q = locals.query || {};
       const STATUS_FLOW = [
-        { key: 'new',        label: 'Nowe' },
+        { key: 'new',        label: 'Złożone' },
         { key: 'paid',       label: 'Opłacone' },
         { key: 'shipped',    label: 'Wysłane' },
         { key: 'completed',  label: 'Zrealizowane' },
       ];
       const statusLabelMap = {
-        new: 'Nowe', awaiting_payment: 'Oczekuje online', awaiting_transfer: 'Oczekuje na przelew',
+        new: 'Złożone', awaiting_payment: 'Oczekuje online', awaiting_transfer: 'Oczekuje na przelew',
         paid: 'Opłacone', confirmed: 'Potwierdzone', shipped: 'Wysłane',
         completed: 'Zrealizowane', canceled: 'Anulowane',
       };
       const isCanceled = order.status === 'canceled';
-      const isAwaitingPayment = ['awaiting_payment', 'awaiting_transfer'].includes(order.status);
+      const isAwaitingPayment = ['awaiting_payment', 'awaiting_transfer', 'new'].includes(order.status);
+      const isPaid = order.status === 'paid';
       const currentIdx = isCanceled ? -1 : Math.max(0, STATUS_FLOW.findIndex(s => s.key === order.status));
       const items = Array.isArray(order.items) ? order.items : [];
       const totalQty = items.reduce((s, i) => s + (Number(i.qty || i.quantity) || 1), 0);
       const addr = [order.street, order.city && [order.postcode, order.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-      const inpostLabel = { created: 'Utworzona', offered: 'Odebrana przez kuriera', sent_from_sorting_center: 'W sortowni',
+      const inpostLabel = { created: 'Utworzona', confirmed: 'Potwierdzona', offered: 'Odebrana przez kuriera', sent_from_sorting_center: 'W sortowni',
         ready_to_pickup: 'Gotowa do odbioru', pickup_reminder_sent: 'Przypomnienie o odbiorze', picked_up: 'Odebrana',
         delivered: 'Doręczona', canceled: 'Anulowana' };
+      // Przesyłka istnieje = mamy ID ShipX (numer śledzenia może przyjść później)
+      const hasShipment = !!(order.inpost_shipment_id || order.tracking_number);
     %>
 
     <div class="lg:pl-64 pt-16">
@@ -41,7 +44,10 @@
         <section class="module-card p-4 sm:p-5">
 
         <div class="mb-5">
-          <a href="<%= adminPrefix %>/platnosci" class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">← Wróć do płatności</a>
+          <a href="<%= adminPrefix %>/platnosci" class="btn btn-sm btn-neutral">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            Wróć do płatności
+          </a>
         </div>
 
         <%# ── Timeline statusów ── %>
@@ -52,8 +58,13 @@
             </div>
           <% } else { %>
             <% if (isAwaitingPayment) { %>
-              <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300">
-                ⏳ Oczekuje na płatność — wysyłka odblokuje się po zaksięgowaniu wpłaty.
+              <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between gap-3 flex-wrap">
+                <span>⏳ Oczekuje na płatność — wysyłka odblokuje się po zaksięgowaniu wpłaty.</span>
+                <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/zaplacono"
+                      onsubmit="return confirm('Zaksięgować wpłatę? Klient otrzyma mail z potwierdzeniem, a przesyłka InPost utworzy się automatycznie. Zamówienie pozostanie „Opłacone” do czasu kliknięcia „Wysłane”.')">
+                  <input type="hidden" name="back" value="order">
+                  <button type="submit" class="btn btn-sm btn-primary">Zaksięguj wpłatę</button>
+                </form>
               </div>
             <% } %>
             <div class="steps">
@@ -151,23 +162,52 @@
                 <% if (locals.inpostSandbox) { %><span class="badge badge-amber">sandbox</span><% } %>
               </div>
 
-              <% if (order.tracking_number) { %>
+              <% if (hasShipment) { %>
                 <div class="space-y-3 text-sm">
-                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Numer przesyłki</p>
-                    <p class="font-mono font-semibold text-gray-900 dark:text-white break-all"><%= order.tracking_number %></p></div>
+                  <% if (order.tracking_number) { %>
+                    <div><p class="text-xs text-gray-500 dark:text-slate-400">Numer przesyłki</p>
+                      <p class="font-mono font-semibold text-gray-900 dark:text-white break-all"><%= order.tracking_number %></p></div>
+                  <% } else { %>
+                    <div class="p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                      Numer śledzenia pojawi się, gdy InPost go nada — panel odświeża go automatycznie.
+                    </div>
+                  <% } %>
                   <div><p class="text-xs text-gray-500 dark:text-slate-400">Status InPost</p>
                     <p class="font-medium text-gray-900 dark:text-white"><%= inpostLabel[order.inpost_status] || order.inpost_status || '—' %></p></div>
                   <div><p class="text-xs text-gray-500 dark:text-slate-400">Gabaryt</p>
                     <p class="font-medium text-gray-900 dark:text-white uppercase"><%= order.parcel_size || '—' %></p></div>
                   <% if (order.shipped_at) { %>
-                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Nadano</p>
+                  <div><p class="text-xs text-gray-500 dark:text-slate-400">Wysłano</p>
                     <p class="font-medium text-gray-900 dark:text-white"><%= new Date(order.shipped_at).toLocaleString('pl-PL') %></p></div>
                   <% } %>
+
                   <a href="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/etykieta" target="_blank"
-                     class="btn btn-sm btn-primary w-full">🖨 Pobierz etykietę PDF</a>
-                  <a href="https://inpost.pl/sledzenie-przesylek?number=<%= order.tracking_number %>" target="_blank" rel="noopener"
-                     class="btn btn-sm btn-neutral w-full">Śledzenie ↗</a>
+                     class="btn btn-sm btn-neutral w-full">🖨 Pobierz etykietę PDF</a>
+                  <% if (order.tracking_number) { %>
+                    <a href="https://inpost.pl/sledzenie-przesylek?number=<%= order.tracking_number %>" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-neutral w-full">Śledzenie ↗</a>
+                  <% } %>
+
+                  <% if (isPaid) { %>
+                    <div class="p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                      📦 Przesyłka utworzona — zamówienie czeka na wysyłkę. Sprawdź stan magazynowy, spakuj paczkę i kliknij „Wysłane”. Klient dostanie maila dopiero po tym kliknięciu.
+                    </div>
+                    <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/wyslano"
+                          onsubmit="return confirm('Oznaczyć zamówienie jako WYSŁANE? Klient otrzyma mail z potwierdzeniem wysyłki i numerem śledzenia.')">
+                      <input type="hidden" name="back" value="order">
+                      <button type="submit" class="btn btn-sm btn-primary w-full">📮 Wysłane — powiadom klienta</button>
+                    </form>
+                  <% } %>
+
+                  <% if (!isCanceled) { %>
+                    <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/usun-przesylke"
+                          onsubmit="return confirm('Anulować przesyłkę InPost? Środki wrócą na saldo ShipX, zamówienie wróci do statusu „Opłacone”, a klient otrzyma mail o anulowaniu przesyłki.')">
+                      <button type="submit" class="btn btn-sm btn-delete w-full">Anuluj przesyłkę</button>
+                    </form>
+                  <% } %>
                 </div>
+              <% } else if (isCanceled) { %>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Zamówienie anulowane — wysyłka niedostępna.</p>
               <% } else if (!locals.inpostConfigured) { %>
                 <div class="p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
                   InPost nie jest jeszcze skonfigurowany. Uzupełnij <code>INPOST_API_TOKEN</code> i <code>INPOST_ORG_ID</code> w env (Northflank) oraz ustaw <code>INPOST_ENV=production</code> po podpisaniu umowy.
@@ -177,6 +217,9 @@
                   Utworzenie przesyłki będzie możliwe po zaksięgowaniu płatności (status „Opłacone").
                 </div>
               <% } else { %>
+                <div class="p-3 bg-gray-50 dark:bg-slate-700/40 rounded-xl text-xs text-gray-500 dark:text-slate-400 mb-3">
+                  Ręczne tworzenie przesyłki — przydatne, gdy automatyczne utworzenie nie powiodło się (np. chwilowy brak środków na koncie InPost).
+                </div>
                 <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/wyslij" class="space-y-3">
                   <div>
                     <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Gabaryt paczki</label>
@@ -188,6 +231,64 @@
                     </select>
                   </div>
                   <button type="submit" class="btn btn-sm btn-primary w-full">📦 Utwórz przesyłkę InPost</button>
+                </form>
+              <% } %>
+            </section>
+
+            <%# Faktura VAT — dokument w tabeli invoices (wspólnej z kursami, z KSeF) %>
+            <section class="module-card p-5">
+              <h2 class="module-title mb-4">Faktura VAT</h2>
+              <% if (locals.invoice) { %>
+                <div class="space-y-3 text-sm">
+                  <div>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Numer faktury</p>
+                    <p class="font-semibold text-gray-900 dark:text-white"><%= invoice.invoice_number %></p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="badge <%= invoice.status === 'paid' ? 'badge-green' : 'badge-amber' %>"><%= invoice.status === 'paid' ? 'Opłacona' : (invoice.status || 'Wystawiona') %></span>
+                    <span class="badge <%= ['sent','accepted','delivered'].includes((invoice.ksef_status || '').toLowerCase()) ? 'badge-green' : 'badge-outline' %>">KSeF: <%= invoice.ksef_status || 'nie wysłano' %></span>
+                  </div>
+                  <% if (invoice.buyer_name) { %>
+                    <div>
+                      <p class="text-xs text-gray-500 dark:text-slate-400">Nabywca</p>
+                      <p class="text-gray-900 dark:text-white"><%= invoice.buyer_name %><% if (invoice.buyer_nip) { %> · NIP <%= invoice.buyer_nip %><% } %></p>
+                    </div>
+                  <% } %>
+                  <a href="<%= adminPrefix %>/platnosci/faktura/<%= invoice.id %>/pdf" target="_blank"
+                     class="btn btn-sm btn-neutral w-full">Pobierz PDF faktury</a>
+                </div>
+              <% } else if (isCanceled) { %>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Zamówienie anulowane — faktura nie została wystawiona.</p>
+              <% } else { %>
+                <%
+                  const invName = (order.invoice_name || `${order.name || ''} ${order.surname || ''}`.trim()).trim();
+                  const invAddr = [
+                    [order.invoice_street, order.invoice_number_home].filter(Boolean).join(' '),
+                    [order.invoice_postcode, order.invoice_city].filter(Boolean).join(' '),
+                  ].filter(Boolean).join('\n');
+                %>
+                <% if (!order.want_invoice && !order.invoice_name && !order.invoice_nip) { %>
+                  <p class="text-xs text-gray-400 dark:text-slate-500 mb-3">Klient nie zaznaczył faktury przy zamówieniu — wystaw tylko na jego prośbę.</p>
+                <% } %>
+                <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/faktura" class="space-y-3">
+                  <input type="hidden" name="back" value="order">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Nazwa / Firma</label>
+                    <input type="text" name="buyerName" value="<%= invName %>" required
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Adres</label>
+                    <textarea name="buyerAddress" rows="2"
+                      class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400"><%= invAddr %></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">NIP (opcjonalnie)</label>
+                    <input type="text" name="buyerNip" value="<%= order.invoice_nip || '' %>"
+                           class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none focus:border-red-400">
+                  </div>
+                  <button type="submit" class="btn btn-save w-full">Wystaw fakturę</button>
+                  <p class="text-[11px] text-gray-400 dark:text-slate-500 leading-relaxed">Pozycje i kwoty zostaną policzone z zamówienia (książki 5% VAT, różnica = koszt dostawy). Faktura trafi do modułu Faktury i KSeF.</p>
                 </form>
               <% } %>
             </section>
@@ -215,6 +316,20 @@
                 </div>
               <% } %>
             </section>
+
+            <%# Strefa niebezpieczna %>
+            <% if (!isCanceled) { %>
+            <section class="module-card p-5 border border-red-200 dark:border-red-500/30">
+              <h2 class="module-title mb-2 text-red-600 dark:text-red-400">Strefa niebezpieczna</h2>
+              <p class="text-xs text-gray-500 dark:text-slate-400 mb-3 leading-relaxed">
+                Anulowanie zamówienia jest nieodwracalne z poziomu panelu. Istniejąca przesyłka InPost zostanie anulowana (środki wrócą na saldo ShipX), a klient otrzyma mail z potwierdzeniem. Jeśli zamówienie było opłacone — pamiętaj o zwrocie środków.
+              </p>
+              <form method="POST" action="<%= adminPrefix %>/platnosci/ksiazki/<%= order.id %>/anuluj"
+                    onsubmit="return confirm('Anulować CAŁE zamówienie <%= order.order_number || '' %>? Istniejąca przesyłka InPost zostanie anulowana. Operacji nie cofniesz z poziomu panelu.')">
+                <button type="submit" class="btn btn-sm btn-delete w-full">Anuluj zamówienie</button>
+              </form>
+            </section>
+            <% } %>
 
           </div>
         </div>

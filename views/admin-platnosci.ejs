@@ -351,7 +351,7 @@
                 >
                   Anuluj
                 </button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                <button type="submit" class="btn btn-save flex-1">
                   Generuj fakturę
                 </button>
               </div>
@@ -436,6 +436,31 @@
              };
            }
 
+           // ── Dane nabywcy z kolumn checkoutu book_orders ──
+           function bookInvoiceData(o) {
+             return {
+               name: (o.invoice_name || `${o.name || ''} ${o.surname || ''}`.trim()).trim(),
+               address: [
+                 [o.invoice_street, o.invoice_number_home].filter(Boolean).join(' '),
+                 [o.invoice_postcode, o.invoice_city].filter(Boolean).join(' '),
+               ].filter(Boolean).join('\n'),
+               nip: (o.invoice_nip || '').toString().trim(),
+             };
+           }
+
+           // ── Pigułka wystawionej faktury (wspólna dla kursów i książek) ──
+           function invoiceBadge(inv) {
+             const ksef = (inv.ksef_status || '').toLowerCase();
+             const sent = ['sent', 'accepted', 'delivered'].includes(ksef);
+             const tip = 'Faktura ' + inv.invoice_number + ' · KSeF: ' + (inv.ksef_status || 'nie wysłano') + ' — kliknij, aby otworzyć PDF';
+             return `<a href="<%= adminPrefix %>/platnosci/faktura/${inv.id}/pdf" target="_blank" title="${tip}"
+               class="badge ${sent ? 'badge-green' : 'badge-blue'} hover:opacity-75 transition-opacity cursor-pointer no-underline">
+               <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+               <span>${inv.invoice_number}</span>
+               ${sent ? '<svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>' : ''}
+             </a>`;
+           }
+
            // ═════════════ PANEL: KURSY ═════════════
            const courseName = p =>
              (p.courses && (p.courses.title || p.courses.nameCourse)) || p.course_id || '-';
@@ -475,26 +500,15 @@
                  render: p => `<span class="text-gray-700 dark:text-slate-300">${courseName(p)}</span>` },
                { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
                  render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
-               { key: 'status', label: 'Status', sortable: true,
+               { key: 'status', label: 'Status', align: 'center', sortable: true,
                  sortValue: r => r.status,
                  render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${statusLabel[p.status]||p.status}</span>` },
-               { key: 'method', label: 'Metoda',
+               { key: 'method', label: 'Metoda', align: 'center',
                  render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${methodLabel[p.method]||p.method}</span>` },
-               { key: 'invoice', label: 'Faktura', sortable: false,
+               { key: 'invoice', label: 'Faktura', align: 'center', sortable: false,
                  render: p => {
                    // 1) Faktura wystawiona → pigułka z numerem (zielona = w KSeF)
-                   if (p.invoices) {
-                     const inv = p.invoices;
-                     const ksef = (inv.ksef_status || '').toLowerCase();
-                     const sent = ['sent', 'accepted', 'delivered'].includes(ksef);
-                     const tip = 'Faktura ' + inv.invoice_number + ' · KSeF: ' + (inv.ksef_status || 'nie wysłano') + ' — kliknij, aby otworzyć PDF';
-                     return `<a href="<%= adminPrefix %>/platnosci/faktura/${inv.id}/pdf" target="_blank" title="${tip}"
-                       class="badge ${sent ? 'badge-green' : 'badge-blue'} hover:opacity-75 transition-opacity cursor-pointer no-underline">
-                       <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-                       <span>${inv.invoice_number}</span>
-                       ${sent ? '<svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>' : ''}
-                     </a>`;
-                   }
+                   if (p.invoices) return invoiceBadge(p.invoices);
                    // 2) Faktura niewystawiona, ale dane wypełnione w formularzu → „Do wystawienia"
                    const d = invoiceData(p);
                    if (d.name || d.nip) {
@@ -511,6 +525,7 @@
                { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
                  render: p => {
                    const actions = [];
+                   actions.push({ label: 'Szczegóły', href: `<%= adminPrefix %>/platnosci/kursy/${p.id}` });
                    if (p.status !== 'paid') actions.push({
                      label: 'Zapłacono', primary: true,
                      formAction: `<%= adminPrefix %>/platnosci/${p.id}/zaplacono`,
@@ -519,6 +534,13 @@
                    });
                    if (!p.invoices) actions.push({ label: 'Faktura', onclick: `openInvoiceModal('${p.id}')` });
                    else actions.push({ label: 'Pobierz PDF', href: `<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf` });
+                   // Usunięcie z listy uczestników (enrollments + płatność; konto i faktura zostają)
+                   actions.push({
+                     label: 'Usuń uczestnika', danger: true,
+                     formAction: `<%= adminPrefix %>/platnosci/${p.id}/usun-uczestnika`,
+                     confirm: `Usunąć ${(p.users ? ((p.users.name || '') + ' ' + (p.users.surname || '')).trim() : '') || 'tego uczestnika'} z listy uczestników kursu „${(p.courses && p.courses.title) || ''}”?\n\nZostaną usunięte: zapis na kurs (enrollments) i rekord płatności.\nZostają: konto użytkownika i faktura.\n\nUczestnik otrzyma mail z potwierdzeniem.${p.status === 'paid' ? '\n\nPłatność jest ZAKSIĘGOWANA — pamiętaj o zwrocie środków!' : ''}`,
+                     confirmOk: 'Tak, usuń uczestnika',
+                   });
                    return rowActions(actions);
                  } },
              ],
@@ -583,6 +605,19 @@
            function closeModal() {
              document.getElementById('invoiceModal').classList.add('hidden');
              document.getElementById('invoiceModal').classList.remove('flex');
+           }
+
+           // Ten sam modal, ale dla zamówienia książek — dane z kolumn checkoutu
+           function openBookInvoiceModal(orderId) {
+             const o = allBookOrders.find(x => x.id === orderId);
+             const d = o ? bookInvoiceData(o) : {};
+             document.getElementById('modalPaymentId').value = orderId;
+             document.getElementById('mName').value = d.name || '';
+             document.getElementById('mNip').value = d.nip || '';
+             document.getElementById('mAddress').value = d.address || '';
+             document.getElementById('invoiceForm').action = `<%= adminPrefix %>/platnosci/ksiazki/${orderId}/faktura`;
+             document.getElementById('invoiceModal').classList.remove('hidden');
+             document.getElementById('invoiceModal').classList.add('flex');
            }
 
            if (ACTIVE_COURSE) {
@@ -681,26 +716,66 @@
                  render: o => bookItemsSummary(o.items) },
                { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
                  render: o => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(o.amount)}</span>` },
-               { key: 'status', label: 'Status', sortable: true,
+               { key: 'status', label: 'Status', align: 'center', sortable: true,
                  sortValue: r => r.status,
                  render: o => `<span class="badge ${bookStatusBadge[o.status]||'badge-amber'}">${bookStatusLabel[o.status]||o.status}</span>` },
-               { key: '_delivery', label: 'Dostawa', sortable: true,
+               { key: '_delivery', label: 'Dostawa', align: 'center', sortable: true,
                  sortValue: r => deliveryKind(r),
                  render: o => deliveryCell(o) },
+               { key: '_invoice', label: 'Faktura', align: 'center', sortable: false,
+                 render: o => {
+                   // 1) Wystawiona → pigułka z numerem (jak przy kursach)
+                   if (o.invoices) return invoiceBadge(o.invoices);
+                   // 2) Klient zaznaczył fakturę przy zakupie → „Do wystawienia"
+                   if (o.want_invoice || o.invoice_name || o.invoice_nip) {
+                     const tip = 'Klient prosi o fakturę' + (o.invoice_name ? ': ' + o.invoice_name : '') + (o.invoice_nip ? ' · NIP: ' + o.invoice_nip : '') + ' — kliknij, aby wystawić';
+                     return `<button type="button" onclick="openBookInvoiceModal('${o.id}')" title="${tip}"
+                       class="badge badge-amber hover:opacity-75 transition-opacity cursor-pointer">
+                       <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                       <span>Do wystawienia</span>
+                     </button>`;
+                   }
+                   return '<span class="text-gray-400 text-xs">—</span>';
+                 } },
                { key: 'order_number', label: 'Zamówienie',
                  csvValue: r => r.order_number || '',
                  render: o => `<div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>` },
                { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
                  render: o => {
                    const actions = [];
-                   if (!['paid', 'shipped', 'completed'].includes(o.status)) actions.push({
+                   if (!['paid', 'shipped', 'completed', 'canceled'].includes(o.status)) actions.push({
                      label: 'Zapłacono', primary: true,
                      formAction: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/zaplacono`,
-                     confirm: 'Oznaczyć zamówienie jako opłacone? Wysyłka zostanie odblokowana.',
+                     confirm: 'Oznaczyć zamówienie jako opłacone? Klient otrzyma mail z potwierdzeniem płatności, a przesyłka InPost utworzy się automatycznie.\n\nZamówienie pozostanie „Opłacone” do czasu kliknięcia „Wysłane”.',
                      confirmOk: 'Tak, zaksięguj',
+                   });
+                   // Wysyłka to OSOBNA akcja — po sprawdzeniu stanu magazynowego.
+                   // Dopiero ona zmienia status na „Wysłane" i wysyła maila do klienta.
+                   if (o.status === 'paid') actions.push({
+                     label: 'Wysłane', primary: true,
+                     formAction: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/wyslano`,
+                     confirm: 'Oznaczyć zamówienie jako WYSŁANE?\n\nKlient otrzyma mail z potwierdzeniem wysyłki' + ((o.tracking_number || o.inpost_shipment_id) ? ' i numerem śledzenia.' : '.\n\nUWAGA: to zamówienie nie ma jeszcze przesyłki InPost — utwórz ją ze szczegółów zamówienia.'),
+                     confirmOk: 'Tak, wysłane',
                    });
                    actions.push({ label: 'Szczegóły', href: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}` });
                    if (o.resume_url) actions.push({ label: 'Podgląd ↗', href: o.resume_url });
+                   if (o.invoices) actions.push({ label: 'Faktura PDF', href: `<%= adminPrefix %>/platnosci/faktura/${o.invoices.id}/pdf` });
+                   else if (o.status !== 'canceled') actions.push({ label: 'Wystaw fakturę', onclick: `openBookInvoiceModal('${o.id}')` });
+                   if (o.tracking_number || o.inpost_shipment_id) actions.push({
+                     label: 'Etykieta PDF', href: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/etykieta`,
+                   });
+                   if (o.tracking_number || o.inpost_shipment_id) actions.push({
+                     label: 'Anuluj przesyłkę', danger: true,
+                     formAction: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/usun-przesylke`,
+                     confirm: 'Anulować przesyłkę InPost? Zamówienie wróci do statusu „Opłacone”.',
+                     confirmOk: 'Tak, anuluj przesyłkę',
+                   });
+                   if (o.status !== 'canceled') actions.push({
+                     label: 'Anuluj zamówienie', danger: true,
+                     formAction: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/anuluj`,
+                     confirm: 'Anulować CAŁE zamówienie? Istniejąca przesyłka InPost zostanie anulowana. Operacji nie cofniesz z poziomu panelu.',
+                     confirmOk: 'Tak, anuluj zamówienie',
+                   });
                    return rowActions(actions);
                  } },
              ],
@@ -906,6 +981,7 @@
                ['Numer zamówienia','Data','Imię','Nazwisko','E-mail','Telefon',
                 'Metoda dostawy','Paczkomat','Ulica','Kod pocztowy','Miasto',
                 'Pozycje','Sztuk łącznie','Kwota (zł)','Status',
+                'Faktura','Nr faktury','Faktura: nazwa','Faktura: NIP',
                 'Status InPost','Nr śledzenia','Rozmiar paczki','Data wysyłki',
                 'ID zewnętrzne','Notatki','Link do płatności'],
                lastBookOrders.map(o => [
@@ -924,6 +1000,10 @@
                  itemsQty(o.items),
                  csvNum(o.amount),
                  bookStatusLabel[o.status] || o.status || '',
+                 o.want_invoice ? 'Tak' : '',
+                 o.invoices ? o.invoices.invoice_number : '',
+                 o.invoice_name || '',
+                 o.invoice_nip || '',
                  o.inpost_status || '',
                  o.tracking_number || '',
                  o.parcel_size || '',

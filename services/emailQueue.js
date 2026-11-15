@@ -8,7 +8,7 @@
 // selecta bez wierszy), więc logi Supabase przestają pokazywać false-warnings.
 const { sendMail } = require("./mailer");
 
-const DAILY_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT || 50);
+const DAILY_LIMIT = Number(process.env.EMAIL_DAILY_LIMIT || 100);
 const DELAY_MS = 45000;
 
 class EmailQueue {

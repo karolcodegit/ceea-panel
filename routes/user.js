@@ -3,15 +3,21 @@ const router = express.Router();
 const MarkdownIt = require("markdown-it");
 const supabase = require("../config/supabase");
 const { userOnly, requireAuth } = require("../middleware/auth");
-const { resolveIcon } = require("../config/user-icons");
+const { ICONS } = require("../config/user-icons");
 const { getYearFromDate } = require("../utils/getYearFromDate");
-const { wrapIcon } = require("../config/user-icons");
+const { resolveIcon } = require("../config/user-icons");
+
+
 const rateLimit = require("express-rate-limit");
 const { sendPasswordEmail } = require("../services/mailer");
 const { generatePassword, hashPassword, verifyPassword } = require("../services/passwords");
+let inpost = null;
+try { inpost = require("../services/inpost"); } catch { /* moduł opcjonalny */ }
+
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 const MAIN_SITE_URL = "https://ceea.org.pl";
 const CALLOUT_ICONS = { info: "ℹ️", warning: "⚠️", danger: "🚨" };
+const DEFAULT_ICON = `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
 
 function renderAnswer(q) {
   const answerHtml = md.render(q.answer || "");
@@ -117,6 +123,18 @@ function formatDateRangePL(start, end) {
   return `${fmtDayPL(s)} – ${fmtDayPL(e)}`;
 }
 
+const fmtDatePL = (v) => {
+  if (!v) return "";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "" : fmtDayPL(d);
+};
+
+const fmtPLN = (v) => {
+  const n = Number(v);
+  if (Number.isNaN(n)) return "";
+  return n.toFixed(2).replace(".", ",") + " zł";
+};
+
 function mapCourse(c) {
   return {
     available: c.is_active,
@@ -154,6 +172,163 @@ async function fetchActiveCourse() {
   const c = (data || [])[0];
   if (!c) return null;
   return { ...mapCourse(c), year: getYearFromDate(c.start_date) };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ── Zamówienia książek (tabela book_orders) ──
+// ═══════════════════════════════════════════════════════════════
+// Słowniki zgodne z realnymi wartościami w bazie:
+//   status: awaiting_transfer, paid
+//   delivery_method: paczkomat, courier
+// Status przesyłki (inpost_status) przychodzi z InPost ShipX.
+
+const ORDER_STATUS_PL = {
+  awaiting_transfer: { label: "Oczekuje na płatność", tone: "amber" },
+  paid: { label: "Opłacone", tone: "blue" },
+  shipped: { label: "Wysłane", tone: "green" },
+  canceled: { label: "Anulowane", tone: "gray" },
+};
+
+const DELIVERY_PL = {
+  paczkomat: "Paczkomat InPost",
+  courier: "Kurier InPost",
+};
+
+// Statusy ShipX → polski (nieznany status wyświetli się surowy)
+const INPOST_PL = {
+  created: "Przesyłka utworzona",
+  confirmed: "Przesyłka potwierdzona",
+  dispatched_by_sender: "Nadana przez nadawcę",
+  collected_from_sender: "Odebrana od nadawcy",
+  taken_by_courier: "Przejęta przez kuriera",
+  adopted_at_source_branch: "W sortowni nadawczej",
+  sent_from_source_branch: "Wysłana z sortowni",
+  adopted_at_target_branch: "W sortowni docelowej",
+  out_for_delivery: "W doręczeniu",
+  ready_to_pickup: "Gotowa do odbioru",
+  pickup_time_expired: "Upłynął czas odbioru",
+  avizo: "Awizo — ponowna próba doręczenia",
+  delivered: "Doręczona",
+  returned_to_sender: "Zwrot do nadawcy",
+  canceled: "Anulowana",
+};
+const INPOST_FINAL = ["delivered", "canceled", "returned_to_sender"];
+
+// Timeline zamówienia: done / current / todo
+function orderSteps(o) {
+  const paid = o.status === "paid" || o.status === "shipped";
+  // Wysłane = dopiero po akcji „Wysłane" w panelu admina (status/shipped_at).
+  // Sam tracking_number pojawia się już przy utworzeniu przesyłki — za wcześnie.
+  const shipped = o.status === "shipped" || !!o.shipped_at;
+  const delivered = o.inpost_status === "delivered";
+  const lastLabel = o.delivery_method === "paczkomat" ? "Do odbioru" : "Doręczenie";
+  return [
+    { label: "Złożone", at: o.created_at, state: "done" },
+    { label: "Opłacone", state: paid ? "done" : "current" },
+    { label: "Wysłane", at: o.shipped_at, state: delivered || shipped ? "done" : paid ? "current" : "todo" },
+    { label: lastLabel, state: delivered ? "done" : shipped ? "current" : "todo" },
+  ];
+}
+
+function mapBookOrder(o) {
+  const items = Array.isArray(o.items) ? o.items : [];
+  const st = ORDER_STATUS_PL[o.status] || { label: o.status || "—", tone: "gray" };
+  return {
+    ...o,
+    items,
+    itemsCount: items.reduce((sum, it) => sum + (Number(it.qty) || 1), 0),
+    createdLabel: fmtDatePL(o.created_at),
+    shippedLabel: fmtDatePL(o.shipped_at),
+    amountLabel: fmtPLN(o.amount),
+    statusLabel: st.label,
+    statusTone: st.tone,
+    deliveryLabel: DELIVERY_PL[o.delivery_method] || o.delivery_method || "—",
+    addressLine: [o.street, [o.postcode, o.city].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+    inpostLabel: o.inpost_status ? (INPOST_PL[o.inpost_status] || o.inpost_status) : null,
+    inpostFinal: INPOST_FINAL.includes(o.inpost_status),
+    trackingUrl: o.tracking_number
+      ? `https://inpost.pl/sledzenie-przesylek?number=${encodeURIComponent(o.tracking_number)}`
+      : null,
+    resumeUrl: o.resume_url || null,        // link dokończenia płatności (tpay)
+    wantInvoice: !!o.want_invoice,          // faktura VAT z checkoutu
+    _steps: orderSteps(o),
+  };
+}
+
+// Okładki/autorzy pozycji — z tabeli products.
+// Dopasowanie 1) po productId z items jsonb, 2) fallback po znormalizowanym
+// tytule (na wypadek gdyby productId wskazywał np. datocms_id albo go brakło).
+// Katalog książek jest mały, więc pobieramy go w całości (1 zapytanie).
+// Błąd zapytania nigdy nie psuje strony — pozycje zostają bez miniaturek.
+const _normTitle = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+
+async function fetchProductsMap() {
+  const empty = { byId: new Map(), byName: new Map() };
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, author, image_url")
+    .limit(500);
+  if (error) {
+    console.error("user/ksiazki products:", error.message);
+    return empty;
+  }
+  const byId = new Map();
+  const byName = new Map();
+  (data || []).forEach((p) => {
+    byId.set(String(p.id), p);
+    const n = _normTitle(p.name);
+    if (n && !byName.has(n)) byName.set(n, p);
+  });
+  return { byId, byName };
+}
+
+// Odśwież status przesyłki z InPost — tylko gdy:
+//  • zamówienie ma zapisane inpost_shipment_id (kolumna z SQL z paczki),
+//  • status nie jest końcowy,
+//  • ostatnie odświeżenie starsze niż 15 minut (cache w samej tabeli).
+// Błąd API nigdy nie psuje strony — zostaje ostatni znany status.
+async function refreshInPostStatus(o) {
+  if (!inpost || !o.inpost_shipment_id) return;
+  if (INPOST_FINAL.includes(o.inpost_status)) return;
+  if (o.inpost_status_at && Date.now() - new Date(o.inpost_status_at).getTime() < 15 * 60 * 1000) return;
+  try {
+    const s = await inpost.getShipment(o.inpost_shipment_id);
+    const patch = { inpost_status: s.status, inpost_status_at: new Date().toISOString() };
+    if (s.tracking_number && !o.tracking_number) patch.tracking_number = s.tracking_number;
+    await supabase.from("book_orders").update(patch).eq("id", o.id);
+    Object.assign(o, patch);
+  } catch (e) {
+    console.error("inpost/status:", e.message);
+  }
+}
+
+async function fetchBookOrders(email) {
+  const { data, error } = await supabase
+    .from("book_orders")
+    .select("*")
+    .ilike("email", String(email || "").trim())
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("user/ksiazki:", error.message);
+    return [];
+  }
+  const orders = data || [];
+  for (const o of orders) await refreshInPostStatus(o); // sekwencyjnie — zwykle 0–2 zamówienia
+  const products = await fetchProductsMap();
+  return orders.map((o) => {
+    // wzbogać pozycje o okładkę/autora (image z checkoutu ma pierwszeństwo)
+    const items = (Array.isArray(o.items) ? o.items : []).map((it) => {
+      const p =
+        products.byId.get(String(it && it.productId ? it.productId : "")) ||
+        products.byName.get(_normTitle(it && (it.title || it.name)));
+      return {
+        ...it,
+        image: it.image || (p && p.image_url) || null,
+        author: it.author || (p && p.author) || null,
+      };
+    });
+    return mapBookOrder({ ...o, items });
+  });
 }
 
 // Strona pomocy (FAQ) — kategorie i pytania z Supabase
@@ -287,7 +462,7 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
        .eq("status", "paid")
        .limit(1)
        .maybeSingle();
- 
+
      if (payErr) console.error("sprawdz/payments:", payErr);
      if (!paidPayment) return sent();
 
@@ -313,7 +488,7 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
     try {
       await sendPasswordEmail(user.email, password);
     } catch (mailErr) {
-      console.error("MailerSend:", mailErr.message);
+      console.error("mail/hasło:", mailErr.message);
     }
 
     return sent();
@@ -408,9 +583,30 @@ router.get("/kursy", userOnly, requireAuth, async (req, res) => {
   }
 });
 
+// ===== KSIĄŻKI (zamówienia uczestnika) =====
+router.get("/ksiazki", userOnly, requireAuth, async (req, res) => {
+  try {
+    const orders = await fetchBookOrders(req.session.user.email);
+    res.render("user-ksiazki", {
+      title: "Książki — CEEA",
+      user: req.session.user,
+      orders,
+      shopUrl: `${MAIN_SITE_URL}/ksiazki`,
+    });
+  } catch (err) {
+    console.error("Błąd serwera (ksiazki):", err);
+    res.render("user-ksiazki", {
+      title: "Książki — CEEA",
+      user: req.session.user,
+      orders: [],
+      shopUrl: `${MAIN_SITE_URL}/ksiazki`,
+    });
+  }
+});
+
 // ===== PROFIL =====
 router.get("/profil", userOnly, requireAuth, (req, res) => {
-  res.render("profil", {
+  res.render("user-profil", {
     title: "Profil — CEEA",
     user: req.session.user,
     sent: req.query.sent === "1",
@@ -437,7 +633,7 @@ router.post("/profil/reset-hasla", userOnly, requireAuth, passwordLimiter, async
 router.get("/ustawienia", userOnly, requireAuth, async (req, res) => {
   const { data: prefs } = await supabase
     .from("users").select("notify_materials").eq("id", req.session.user.id).maybeSingle();
-  res.render("ustawienia", {
+  res.render("user-ustawienia", {
     title: "Ustawienia — CEEA",
     user: { ...req.session.user, ...prefs },
   });

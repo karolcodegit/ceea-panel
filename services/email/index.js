@@ -37,6 +37,22 @@ const ALIASES = {
   free: "custom",
   wlasne: "custom",
   "własne": "custom",
+  // ── Transakcyjne (systemowe — wywoływane z mailer.js) ──
+  shipment_sent: "shipment_sent",
+  "shipment-sent": "shipment_sent",
+  wysylka: "shipment_sent",
+  "wysyłka": "shipment_sent",
+  shipment_canceled: "shipment_canceled",
+  "shipment-canceled": "shipment_canceled",
+  przesylka: "shipment_canceled",
+  "przesyłka": "shipment_canceled",
+  order_canceled: "order_canceled",
+  "order-canceled": "order_canceled",
+  anulowanie: "order_canceled",
+  course_removed: "course_removed",
+  "course-removed": "course_removed",
+  usuniecie: "course_removed",
+  "usunięcie": "course_removed",
 };
 
 function getTemplate(key) {
