@@ -14,7 +14,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="min-h-screen bg-gray-50 dark:bg-[#0B1120] transition-colors">
     <%- include('partials/admin-nav', { active: 'faktury' }) %> <%-
     include('partials/header') %>
 
@@ -36,42 +36,73 @@
             <% } %>
           </div>
 
+          <!-- Filtry (zwijane na małych ekranach) -->
           <div class="module-item p-4 sm:p-5 mb-5 no-print">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
-              <div class="sm:col-span-2">
-                <label
-                  for="search"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Szukaj</label
-                >
-                <div class="relative">
-                  <span
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
-                    >🔍</span
-                  >
-                  <input
-                    type="text"
-                    id="search"
-                    placeholder="nazwa firmy, NIP, email, nazwisko..."
-                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
-                  />
-                </div>
+            <div class="filter-bar-head">
+              <span class="filter-bar-title">Filtry</span>
+              <div class="filter-bar-actions">
+                <button type="button" id="clearFilters" class="filter-clear">
+                  Wyczyść filtry ✕
+                </button>
+                <button type="button" id="filtersToggle" class="filter-toggle">
+                  <span data-ft-label>Pokaż</span> <span class="chev">▾</span>
+                </button>
               </div>
-              <div>
-                <label
-                  for="fStatus"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Status faktury</label
-                >
-                <select
-                  id="fStatus"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
-                >
-                  <option value="all">Wszystkie</option>
-                  <option value="missing">Nie wystawiona</option>
-                  <option value="pdf">Wystawiona (PDF)</option>
-                  <option value="ksef">W KSeF</option>
-                </select>
+            </div>
+            <div id="filtersBody" class="filter-bar-body">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                <div class="sm:col-span-2">
+                  <label
+                    for="search"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Szukaj</label
+                  >
+                  <div class="relative">
+                    <span
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                      >🔍</span
+                    >
+                    <input
+                      type="text"
+                      id="search"
+                      placeholder="nazwa firmy, NIP, email, nazwisko..."
+                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    for="fStatus"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Status faktury</label
+                  >
+                  <select
+                    id="fStatus"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="missing">Nie wystawiona</option>
+                    <option value="pdf">Wystawiona (PDF)</option>
+                    <option value="ksef">W KSeF</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    for="fCourse"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Kurs</label
+                  >
+                  <select
+                    id="fCourse"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="all">Wszystkie kursy</option>
+                    <% Object.entries(courseTitles || {}).sort((a, b) =>
+                    String(a[1]).localeCompare(String(b[1]), 'pl')).forEach(([id, title]) => { %>
+                    <option value="<%= id %>"><%= title %></option>
+                    <% }) %>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -142,7 +173,7 @@
                 >
                   Anuluj
                 </button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                <button type="submit" class="btn btn-save flex-1">
                   Generuj fakturę PDF
                 </button>
               </div>
@@ -174,6 +205,26 @@
         csvFilename: 'faktury.csv',
         pageSize: 10,
         emptyText: 'Brak osób z danymi faktury dla wybranych filtrów.',
+
+        // EKSPORT — moduł deklaruje tylko CO ma być eksportowane.
+        // Formaty (CSV / Excel / JSON) obsługuje DataTable.
+        exportData: rows => ({
+          filename: 'faktury',
+          headers: ['Numer faktury', 'Status KSeF', 'Uczestnik', 'E-mail', 'Nabywca', 'NIP', 'Adres nabywcy', 'Kurs', 'Kwota (PLN)', 'Faktura PDF'],
+          rows: rows.map(p => [
+            p.invoices?.invoice_number || '',
+            p.invoices ? (ksefLabel[p.invoices.ksef_status] || 'Nie wysłana') : 'Nie wystawiona',
+            `${p.users?.name || ''} ${p.users?.surname || ''}`.trim(),
+            p.users?.email || '',
+            p.invoiceData?.name || '',
+            p.invoiceData?.nip || '',
+            address(p.invoiceData || {}),
+            COURSES[p.course_id] || (p.course_id || ''),
+            Number(p.amount) || 0,
+            p.invoices ? `${location.origin}<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf` : '',
+          ]),
+        }),
+
         columns: [
           { key: '_user', label: 'Uczestnik',
             sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
@@ -194,7 +245,7 @@
             render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
           { key: 'course_id', label: 'Kurs',
             sortValue: r => COURSES[r.course_id] || r.course_id,
-            render: p => `<span class="text-xs text-gray-700 dark:text-slate-300">${COURSES[p.course_id] || p.course_id}</span>` },
+            render: p => `<span class="text-xs text-gray-700 dark:text-slate-300">${COURSES[p.course_id] || p.course_id || '—'}</span>` },
           { key: 'invoice', label: 'Faktura', sortable: false,
             csvValue: r => r.invoices?.invoice_number || '',
             render: p => {
@@ -216,8 +267,8 @@
           { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
             render: p => `<div class="btn-group">` + (
               p.invoices
-                ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-edit">PDF</a>`
-                : `<button onclick="openModal('${p.id}')" class="btn btn-xs btn-primary">Generuj</button>`
+                ? `<a href="<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf" target="_blank" class="btn btn-xs btn-neutral">PDF</a>`
+                : `<button onclick="openModal('${p.id}')" class="btn btn-xs btn-save">Generuj</button>`
             ) + `</div>` },
         ],
       });
@@ -225,6 +276,7 @@
       function render() {
         const s = document.getElementById('search').value.toLowerCase();
         const fs = document.getElementById('fStatus').value;
+        const fc = document.getElementById('fCourse').value;
 
         const rows = DATA.filter(p => {
           const d = p.invoiceData || {};
@@ -239,7 +291,8 @@
             || (fs === 'missing' && !hasPdf)
             || (fs === 'pdf' && hasPdf && ksef === 'not_sent')
             || (fs === 'ksef' && ksef !== 'not_sent');
-          return matchS && matchF;
+          const matchC = fc === 'all' || String(p.course_id || '') === String(fc);
+          return matchS && matchF && matchC;
         });
 
         table.setRows(rows);
@@ -264,7 +317,18 @@
         document.getElementById('invoiceModal').classList.remove('flex');
       }
 
-      ['search', 'fStatus'].forEach(id => document.getElementById(id).addEventListener('input', render));
+      // Wyczyść filtry
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        document.getElementById('fStatus').value = 'all';
+        document.getElementById('fCourse').value = 'all';
+        render();
+      });
+
+      // Zwijanie filtrów na małych ekranach (wspólne dla modułów)
+      initCollapsibleFilters('filtersBody', document.getElementById('filtersToggle'));
+
+      ['search', 'fStatus', 'fCourse'].forEach(id => document.getElementById(id).addEventListener('input', render));
       render();
     </script>
   </body>

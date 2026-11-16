@@ -20,39 +20,44 @@
             </button>
           </div>
 
-          <div
-            class="module-item p-4 sm:p-5 mb-5 flex flex-wrap items-center gap-2"
-          >
-            <div class="relative flex-1 min-w-[220px]">
-              <span
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
-                >🔍</span
-              >
-              <input
-                type="text"
-                id="search"
-                placeholder="szukaj po imieniu, nazwisku, emailu..."
-                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
-              />
+          <!-- Filtry (zwijane na małych ekranach) -->
+          <div class="module-item p-4 sm:p-5 mb-5 no-print">
+            <div class="filter-bar-head">
+              <span class="filter-bar-title">Filtry</span>
+              <div class="filter-bar-actions">
+                <button type="button" id="clearFilters" class="filter-clear">
+                  Wyczyść filtry ✕
+                </button>
+                <button type="button" id="filtersToggle" class="filter-toggle">
+                  <span data-ft-label>Pokaż</span> <span class="chev">▾</span>
+                </button>
+              </div>
             </div>
-            <button
-              data-filter="all"
-              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white"
-            >
-              Wszyscy
-            </button>
-            <button
-              data-filter="active"
-              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200"
-            >
-              Aktywni
-            </button>
-            <button
-              data-filter="inactive"
-              class="fbtn px-4 py-2.5 rounded-xl text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200"
-            >
-              Ukryci
-            </button>
+            <div id="filtersBody" class="filter-bar-body">
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="relative flex-1 min-w-[220px]">
+                  <span
+                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                    >🔍</span
+                  >
+                  <input
+                    type="text"
+                    id="search"
+                    placeholder="szukaj po imieniu, nazwisku, emailu..."
+                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+                  />
+                </div>
+                <button data-filter="all" class="fbtn btn btn-sm btn-primary">
+                  Wszyscy
+                </button>
+                <button data-filter="active" class="fbtn btn btn-sm btn-neutral">
+                  Aktywni
+                </button>
+                <button data-filter="inactive" class="fbtn btn btn-sm btn-neutral">
+                  Ukryci
+                </button>
+              </div>
+            </div>
           </div>
 
           <div id="empTable"></div>
@@ -208,7 +213,7 @@
                 >
                   Anuluj
                 </button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                <button type="submit" class="btn btn-save flex-1">
                   Zapisz
                 </button>
               </div>
@@ -226,6 +231,24 @@
         csvFilename: 'pracownicy.csv',
         pageSize: 10,
         emptyText: 'Brak pracowników w bazie.',
+
+        // EKSPORT — moduł deklaruje tylko CO eksportujemy
+        exportData: rows => ({
+          filename: 'pracownicy',
+          headers: ['Kolejność', 'Imię', 'Nazwisko', 'Tytuł', 'Rola', 'Telefon', 'Drugi telefon', 'E-mail', 'Widoczny'],
+          rows: rows.map(p => [
+            p.sort_order ?? '',
+            p.name || '',
+            p.surname || '',
+            p.degree || '',
+            p.role || '',
+            p.phone || '',
+            p.second_phone || '',
+            p.email || '',
+            p.is_active ? 'Tak' : 'Nie',
+          ]),
+        }),
+
         columns: [
           { key: 'sort_order', label: '#', sortable: true, align: 'right',
             render: p => `<span class="text-gray-500 dark:text-slate-400 font-medium">${p.sort_order}</span>` },
@@ -312,15 +335,27 @@
         document.getElementById('empModal').classList.remove('flex');
       }
 
+      // Wyczyść filtry
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        filter = 'all';
+        document.querySelectorAll('.fbtn').forEach(b => {
+          const active = b.dataset.filter === 'all';
+          b.className = 'fbtn btn btn-sm ' + (active ? 'btn-primary' : 'btn-neutral');
+        });
+        render();
+      });
+
+      // Zwijanie filtrów na małych ekranach (wspólne dla modułów)
+      initCollapsibleFilters('filtersBody', document.getElementById('filtersToggle'));
+
       document.getElementById('search').addEventListener('input', render);
       document.querySelectorAll('.fbtn').forEach(btn => {
         btn.addEventListener('click', () => {
           filter = btn.dataset.filter;
           document.querySelectorAll('.fbtn').forEach(b => {
             const active = b === btn;
-            b.className = 'fbtn px-4 py-2.5 rounded-xl text-sm font-medium ' + (active
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200');
+            b.className = 'fbtn btn btn-sm ' + (active ? 'btn-primary' : 'btn-neutral');
           });
           render();
         });

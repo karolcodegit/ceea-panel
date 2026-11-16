@@ -262,8 +262,8 @@
             <section class="module-card p-5">
               <h2 class="module-title mb-1">Edytuj dane</h2>
               <p class="text-xs text-gray-500 dark:text-slate-400 mb-4 leading-relaxed">
-                Zmieniasz dane uczestnika (tabela <code>users</code>) i notatki do płatności.
-                Status zmienisz akcjami powyżej, a kwoty edytować nie można — musi być spójna z fakturą.
+                Zmieniasz dane uczestnika i notatki do płatności.
+                Status zmienisz akcjami powyżej, reszta danych musi być spójna z fakturą.
               </p>
               <form method="POST" action="<%= adminPrefix %>/platnosci/kursy/<%= payment.id %>/edytuj" class="space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -384,7 +384,7 @@
             <section class="module-card p-5 border border-red-200 dark:border-red-500/30">
               <h2 class="module-title mb-2 text-red-600 dark:text-red-400">Strefa niebezpieczna</h2>
               <p class="text-xs text-gray-500 dark:text-slate-400 mb-3 leading-relaxed">
-                Usunięcie uczestnika skasuje jego zapis na kurs (enrollments) i rekord płatności.
+                Usunięcie uczestnika skasuje jego zapis na kurs i rekord płatności.
                 Konto użytkownika i ewentualna faktura zostają (archiwum księgowe). Uczestnik otrzyma mail z potwierdzeniem.
               </p>
               <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/usun-uczestnika"

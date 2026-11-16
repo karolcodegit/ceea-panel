@@ -5,7 +5,7 @@
     <title>Sponsorzy — Panel CEEA</title>
   </head>
   <body>
-    <%- include('partials/admin-nav', { active: 'sponsorzy' }) %> 
+    <%- include('partials/admin-nav', { active: 'sponsorzy' }) %>
     <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
@@ -20,41 +20,55 @@
             </button>
           </div>
 
-          <div class="module-item p-4 sm:p-5 mb-5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
-              <div>
-                <label
-                  for="search"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Szukaj</label
-                >
-                <div class="relative">
-                  <span
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
-                    >🔍</span
-                  >
-                  <input
-                    type="text"
-                    id="search"
-                    placeholder="nazwa sponsora..."
-                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
-                  />
-                </div>
+          <!-- Filtry (zwijane na małych ekranach) -->
+          <div class="module-item p-4 sm:p-5 mb-5 no-print">
+            <div class="filter-bar-head">
+              <span class="filter-bar-title">Filtry</span>
+              <div class="filter-bar-actions">
+                <button type="button" id="clearFilters" class="filter-clear">
+                  Wyczyść filtry ✕
+                </button>
+                <button type="button" id="filtersToggle" class="filter-toggle">
+                  <span data-ft-label>Pokaż</span> <span class="chev">▾</span>
+                </button>
               </div>
-              <div>
-                <label
-                  for="fActive"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Status</label
-                >
-                <select
-                  id="fActive"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
-                >
-                  <option value="all">Wszyscy</option>
-                  <option value="active">Aktywni</option>
-                  <option value="inactive">Ukryci</option>
-                </select>
+            </div>
+            <div id="filtersBody" class="filter-bar-body">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+                <div>
+                  <label
+                    for="search"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Szukaj</label
+                  >
+                  <div class="relative">
+                    <span
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                      >🔍</span
+                    >
+                    <input
+                      type="text"
+                      id="search"
+                      placeholder="nazwa sponsora..."
+                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    for="fActive"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Status</label
+                  >
+                  <select
+                    id="fActive"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="all">Wszyscy</option>
+                    <option value="active">Aktywni</option>
+                    <option value="inactive">Ukryci</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -148,7 +162,7 @@
                 <input
                   type="checkbox"
                   name="is_active"
-                  id="fActive"
+                  id="fActiveModal"
                   value="1"
                   class="w-4 h-4 accent-red-600"
                   checked
@@ -164,7 +178,7 @@
                 >
                   Anuluj
                 </button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                <button type="submit" class="btn btn-save flex-1">
                   Zapisz
                 </button>
               </div>
@@ -181,6 +195,20 @@
         csvFilename: 'sponsorzy.csv',
         pageSize: 10,
         emptyText: 'Brak sponsorów w bazie.',
+
+        // EKSPORT — moduł deklaruje tylko CO eksportujemy
+        exportData: rows => ({
+          filename: 'sponsorzy',
+          headers: ['Kolejność', 'Nazwa', 'Logo URL', 'Strona www', 'Widoczny'],
+          rows: rows.map(p => [
+            p.sort_order ?? '',
+            p.name || '',
+            p.logo_url || '',
+            p.website_url || '',
+            p.is_active ? 'Tak' : 'Nie',
+          ]),
+        }),
+
         columns: [
           { key: 'sort_order', label: '#', sortable: true, align: 'right',
             render: p => `<span class="text-gray-500 dark:text-slate-400 font-medium">${p.sort_order}</span>` },
@@ -231,7 +259,7 @@
         const form = document.querySelector('#sponsorModal form');
         form.reset();
         document.getElementById('fId').value = '';
-        document.getElementById('fActive').checked = true;
+        document.getElementById('fActiveModal').checked = true;
 
         if (id) {
           const p = DATA.find(x => x.id === id);
@@ -242,7 +270,7 @@
             document.getElementById('fLogoUrl').value = p.logo_url || '';
             document.getElementById('fWebsiteUrl').value = p.website_url || '';
             document.getElementById('fSortOrder').value = p.sort_order ?? 0;
-            document.getElementById('fActive').checked = !!p.is_active;
+            document.getElementById('fActiveModal').checked = !!p.is_active;
           }
         } else {
           document.getElementById('modalTitle').textContent = 'Dodaj sponsora';
@@ -255,6 +283,16 @@
         document.getElementById('sponsorModal').classList.add('hidden');
         document.getElementById('sponsorModal').classList.remove('flex');
       }
+
+      // Wyczyść filtry
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        document.getElementById('fActive').value = 'all';
+        render();
+      });
+
+      // Zwijanie filtrów na małych ekranach (wspólne dla modułów)
+      initCollapsibleFilters('filtersBody', document.getElementById('filtersToggle'));
 
       ['search', 'fActive'].forEach(id => document.getElementById(id).addEventListener('input', render));
       render();

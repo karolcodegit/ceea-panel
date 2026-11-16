@@ -5,7 +5,7 @@
     <title>Książki — Panel CEEA</title>
   </head>
   <body>
-    <%- include('partials/admin-nav', { active: 'ksiazki' }) %> 
+    <%- include('partials/admin-nav', { active: 'ksiazki' }) %>
     <%- include('partials/header') %>
 
     <div class="lg:pl-64 pt-16">
@@ -19,57 +19,72 @@
               + Dodaj książkę
             </button>
           </div>
-          <div class="module-item p-4 sm:p-5 mb-5">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
-              <div>
-                <label
-                  for="search"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Szukaj</label
-                >
-                <div class="relative">
-                  <span
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
-                    >🔍</span
+
+          <!-- Filtry (zwijane na małych ekranach) -->
+          <div class="module-item p-4 sm:p-5 mb-5 no-print">
+            <div class="filter-bar-head">
+              <span class="filter-bar-title">Filtry</span>
+              <div class="filter-bar-actions">
+                <button type="button" id="clearFilters" class="filter-clear">
+                  Wyczyść filtry ✕
+                </button>
+                <button type="button" id="filtersToggle" class="filter-toggle">
+                  <span data-ft-label>Pokaż</span> <span class="chev">▾</span>
+                </button>
+              </div>
+            </div>
+            <div id="filtersBody" class="filter-bar-body">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
+                <div>
+                  <label
+                    for="search"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Szukaj</label
                   >
-                  <input
-                    type="text"
-                    id="search"
-                    placeholder="tytuł, autor, wydawnictwo..."
-                    class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
-                  />
+                  <div class="relative">
+                    <span
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none"
+                      >🔍</span
+                    >
+                    <input
+                      type="text"
+                      id="search"
+                      placeholder="tytuł, autor, wydawnictwo..."
+                      class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label
-                  for="fAvail"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Dostępność</label
-                >
-                <select
-                  id="fAvail"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
-                >
-                  <option value="all">Wszystkie</option>
-                  <option value="available">Dostępne w sprzedaży</option>
-                  <option value="unavailable">Niedostępne</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  for="fStock"
-                  class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
-                  >Stan magazynowy</label
-                >
-                <select
-                  id="fStock"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
-                >
-                  <option value="all">Wszystkie</option>
-                  <option value="zero">Stan: 0</option>
-                  <option value="low">Stan &lt; 5</option>
-                  <option value="ok">Stan ≥ 5</option>
-                </select>
+                <div>
+                  <label
+                    for="fAvail"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Dostępność</label
+                  >
+                  <select
+                    id="fAvail"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="available">Dostępne w sprzedaży</option>
+                    <option value="unavailable">Niedostępne</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    for="fStock"
+                    class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5"
+                    >Stan magazynowy</label
+                  >
+                  <select
+                    id="fStock"
+                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white text-sm outline-none transition-colors focus:border-red-400 dark:focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="zero">Stan: 0</option>
+                    <option value="low">Stan &lt; 5</option>
+                    <option value="ok">Stan ≥ 5</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -272,7 +287,7 @@
                 >
                   Anuluj
                 </button>
-                <button type="submit" class="btn btn-sm btn-primary flex-1">
+                <button type="submit" class="btn btn-save flex-1">
                   Zapisz
                 </button>
               </div>
@@ -309,6 +324,27 @@
         csvFilename: 'ksiazki.csv',
         pageSize: 10,
         emptyText: 'Brak książek w bazie.',
+
+        // EKSPORT — moduł deklaruje tylko CO eksportujemy
+        exportData: rows => ({
+          filename: 'ksiazki',
+          headers: ['Tytuł', 'Autor', 'Cena (zł)', 'Rok wydania', 'Wydawnictwo', 'Okładka', 'Stan magazynowy', 'Dostępna', 'Dodruk', 'Druk na żądanie', 'URL okładki', 'Dodatkowe informacje'],
+          rows: rows.map(p => [
+            p.name || '',
+            p.author || '',
+            p.price ?? '',
+            p.year ?? '',
+            p.publisher || '',
+            p.cover_type || '',
+            Number(p.stock_quantity) || 0,
+            p.available ? 'Tak' : 'Nie',
+            p.reprint ? 'Tak' : 'Nie',
+            p.print_on_demand ? 'Tak' : 'Nie',
+            p.image_url || '',
+            p.additional_info || '',
+          ]),
+        }),
+
         columns: [
           { key: '_cover', label: 'Okładka', sortable: false,
             csvValue: r => r.image_url || '',
@@ -402,6 +438,17 @@
         document.getElementById('bookModal').classList.remove('flex');
       }
 
+      // Wyczyść filtry
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        document.getElementById('fAvail').value = 'all';
+        document.getElementById('fStock').value = 'all';
+        render();
+      });
+
+      // Zwijanie filtrów na małych ekranach (wspólne dla modułów)
+      initCollapsibleFilters('filtersBody', document.getElementById('filtersToggle'));
+
       ['search', 'fAvail', 'fStock'].forEach(id => document.getElementById(id).addEventListener('input', render));
       render();
     </script>
@@ -412,7 +459,9 @@
         var wrap = document.createElement("div");
         wrap.className = "flex items-center gap-2 mt-2";
         wrap.innerHTML =
-          '<button type="button" id="upCover" class="px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-medium hover:bg-gray-200">⬆ Wgraj do Cloudinary</button>' +
+          '<button type="button" id="upCover" class="btn btn-xs btn-neutral">' +
+          '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>' +
+          'Wgraj do Cloudinary</button>' +
           '<span id="coverPrev" class="text-xs text-gray-400"></span>';
         input.parentNode.appendChild(wrap);
         var prev = wrap.querySelector("#coverPrev");
