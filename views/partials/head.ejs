@@ -1,5 +1,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="<%= csrfToken %>">
 <link rel="icon" type="image/png" href="/images/Icon-logo.png">
 <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 
@@ -31,19 +32,9 @@
   })();
 </script>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        },
-      },
-    },
-  };
-</script>
+<%# Tailwind: lokalny build /css/style.css (npm run build:css) — bez CDN w produkcji (audyt #11).
+     Konfiguracja: tailwind.config.js (darkMode class + Inter). Po zmianie klas w widokach
+     trzeba przebudować CSS. %>
 
 <%# ── CookieScript: TYLKO poza panelem admina.
      locals.adminPrefix ustawia middleware routes/admin.js — istnieje wyłącznie

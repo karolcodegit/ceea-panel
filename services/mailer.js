@@ -199,13 +199,26 @@ function sendCourseRemovedEmail(to, { firstName = "", surname = "", courseTitle 
   }, { firstName, surname });
 }
 
+// Jednorazowy link do ustawienia hasła uczestnika (audyt #7)
+function sendPasswordResetEmail(to, { resetLink, firstName = "" } = {}) {
+  return _sendTemplateEmail("password_reset", to, { resetLink }, { firstName });
+}
+
+// Link konfiguracji 2FA dla administratora (nowe konto lub reset 2FA)
+// setupLink = jednorazowy, ważny 24 h; trafia TYLKO mailem do adresata.
+function sendAdminSetupEmail(to, { setupLink, firstName = "" } = {}) {
+  return _sendTemplateEmail("admin_setup", to, { setupLink }, { firstName });
+}
+
 module.exports = {
   sendMail,
   sendPasswordEmail,
+  sendPasswordResetEmail,
   sendShipmentCanceledEmail,
   sendShipmentSentEmail,
   sendOrderCanceledEmail,
   sendCourseRemovedEmail,
+  sendAdminSetupEmail,
   sendViaZepto,
   sendViaMailerSend,
 };

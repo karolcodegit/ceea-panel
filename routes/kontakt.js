@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
-const { adminOnly } = require("../middleware/auth");
+const { adminOnly, requireAdmin } = require("../middleware/auth");
 
 // GET /kontakt — kontakt do twórcy panelu / wsparcie techniczne
-router.get("/kontakt", adminOnly, async (req, res) => {
+router.get("/kontakt", adminOnly, requireAdmin, async (req, res) => {
   let support = [];
   try {
     // Kontakt do twórcy panelu = konta super admina (dane z profili, edytowalne w /profil)

@@ -106,7 +106,7 @@
             if (!confirm(`Usunąć zdjęcie:\n${x.public_id}?`)) return;
             const r = await fetch('<%- adminPrefix %>/api/media/usun', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
               body: JSON.stringify({ public_id: x.public_id }),
             });
             const j = await r.json();

@@ -31,7 +31,10 @@ const ALIASES = {
   password: "password",
   haslo: "password",
   "hasło": "password",
-  reset: "password",
+  password_reset: "password_reset",
+  "password-reset": "password_reset",
+  reset: "password_reset",
+  "reset-hasla": "password_reset",
   custom: "custom",
   own: "custom",
   free: "custom",
@@ -53,6 +56,9 @@ const ALIASES = {
   "course-removed": "course_removed",
   usuniecie: "course_removed",
   "usunięcie": "course_removed",
+  admin_setup: "admin_setup",
+  "admin-setup": "admin_setup",
+  setup2fa: "admin_setup",
 };
 
 function getTemplate(key) {

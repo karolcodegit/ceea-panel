@@ -1,6 +1,6 @@
 const ADMIN_PREFIX = "/ceea-poznan-admin";
 
-const crypto = require("crypto");
+const adminSessions = require("../services/adminSessions");
 
 // Flaga: czy żądanie dotyczy panelu admina
 const setAdminPathFlag = (req, res, next) => {
@@ -14,15 +14,16 @@ const requireAuth = (req, res, next) => {
   res.redirect("/");
 };
 
-// Wymaga zalogowanego admina; ustawia res.locals.adminUser
-const requireAdmin = (req, res, next) => {
+// Wymaga zalogowanego admina; ustawia res.locals.adminUser.
+// Sesja admina żyje w tabeli admin_sessions (hash tokenu) — przetrwa restart.
+const requireAdmin = async (req, res, next) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
     req.cookies?.adminToken;
 
-  const session = req.app.locals.sessions.get(token);
+  const session = await adminSessions.getSession(token);
 
-  if (session && session.expires > Date.now()) {
+  if (session) {
     res.locals.adminUser = req.app.locals.admins.get(session.email) || {
       email: session.email,
     };
@@ -43,17 +44,14 @@ const userOnly = (req, res, next) => {
   next();
 };
 
-// ── Sesje ────────────────────────────────────────────────
-function destroySession(app, token) {
-  const s = app.locals.sessions.get(token);
-  if (s) app.locals.admins.delete(s.email);
-  app.locals.sessions.delete(token);
+// ── Sesje adminów (baza, hash tokenu) ─────────────────────────
+async function destroySession(app, token) {
+  await adminSessions.deleteSession(token);
 }
-function currentSession(req, app) {
+async function currentSession(req, app) {
   const token = req.cookies?.adminToken;
-  const s = token && app.locals.sessions.get(token);
-  if (s && s.expires > Date.now()) return { token, ...s };
-  return null;
+  const s = token && (await adminSessions.getSession(token));
+  return s ? { token, ...s } : null;
 }
 
 module.exports = {

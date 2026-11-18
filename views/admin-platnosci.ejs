@@ -305,6 +305,7 @@
               Dane do faktury
             </h3>
             <form id="invoiceForm" method="POST" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="paymentId" id="modalPaymentId" />
               <div>
                 <label
@@ -373,9 +374,10 @@
     </div>
 
     <script>
-           let allPayments = <%- JSON.stringify(payments) %>;
-           let allBookOrders = <%- JSON.stringify(typeof bookOrders !== 'undefined' ? bookOrders : []) %>;
-           const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null) %>;
+           // XSS-safe: "<" w danych zamieniane na sekwencję ucieczki przed wstawieniem do skryptu
+           let allPayments = <%- JSON.stringify(payments).replace(/</g, '\\u003c') %>;
+           let allBookOrders = <%- JSON.stringify(typeof bookOrders !== 'undefined' ? bookOrders : []).replace(/</g, '\\u003c') %>;
+           const ACTIVE_COURSE = <%- JSON.stringify(typeof activeCourseId !== 'undefined' ? activeCourseId : null).replace(/</g, '\\u003c') %>;
            // Ostatnio wyświetlane (przefiltrowane) wiersze — na nich działa eksport CSV
            let lastPayments = [];
            let lastBookOrders = [];
@@ -453,10 +455,10 @@
              const ksef = (inv.ksef_status || '').toLowerCase();
              const sent = ['sent', 'accepted', 'delivered'].includes(ksef);
              const tip = 'Faktura ' + inv.invoice_number + ' · KSeF: ' + (inv.ksef_status || 'nie wysłano') + ' — kliknij, aby otworzyć PDF';
-             return `<a href="<%= adminPrefix %>/platnosci/faktura/${inv.id}/pdf" target="_blank" title="${tip}"
+             return `<a href="<%= adminPrefix %>/platnosci/faktura/${encodeURIComponent(inv.id)}/pdf" target="_blank" title="${esc(tip)}"
                class="badge ${sent ? 'badge-green' : 'badge-blue'} hover:opacity-75 transition-opacity cursor-pointer no-underline">
                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-               <span>${inv.invoice_number}</span>
+               <span>${esc(inv.invoice_number)}</span>
                ${sent ? '<svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>' : ''}
              </a>`;
            }
@@ -496,18 +498,18 @@
                  sortValue: r => `${r.users?.name||''} ${r.users?.surname||''}`.toLowerCase(),
                  csvValue: r => `${r.users?.name||''} ${r.users?.surname||''} (${r.users?.email||''})`,
                  render: p => `
-                   <div class="font-medium text-gray-900 dark:text-white">${p.users?.name||''} ${p.users?.surname||''}</div>
-                   <div class="text-xs text-gray-500 dark:text-slate-500">${p.users?.email||''}</div>` },
+                   <div class="font-medium text-gray-900 dark:text-white">${esc(p.users?.name)} ${esc(p.users?.surname)}</div>
+                   <div class="text-xs text-gray-500 dark:text-slate-500">${esc(p.users?.email)}</div>` },
                { key: 'course_id', label: 'Kurs',
                  sortValue: r => courseName(r),
-                 render: p => `<span class="text-gray-700 dark:text-slate-300">${courseName(p)}</span>` },
+                 render: p => `<span class="text-gray-700 dark:text-slate-300">${esc(courseName(p))}</span>` },
                { key: 'amount', label: 'Kwota', align: 'right', sortable: true, summary: 'sum',
                  render: p => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(p.amount)}</span>` },
                { key: 'status', label: 'Status', align: 'center', sortable: true,
                  sortValue: r => r.status,
-                 render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${statusLabel[p.status]||p.status}</span>` },
+                 render: p => `<span class="badge ${statusBadge[p.status]||'badge-amber'}">${esc(statusLabel[p.status]||p.status)}</span>` },
                { key: 'method', label: 'Metoda', align: 'center',
-                 render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${methodLabel[p.method]||p.method}</span>` },
+                 render: p => `<span class="badge ${methodBadge[p.method]||'badge-outline'}">${esc(methodLabel[p.method]||p.method)}</span>` },
                { key: 'invoice', label: 'Faktura', align: 'center', sortable: false,
                  render: p => {
                    // 1) Faktura wystawiona → pigułka z numerem (zielona = w KSeF)
@@ -516,7 +518,8 @@
                    const d = invoiceData(p);
                    if (d.name || d.nip) {
                      const tip = 'Dane do faktury wypełnione' + (d.name ? ': ' + d.name : '') + (d.nip ? ' · NIP: ' + d.nip : '') + ' — kliknij, aby wystawić';
-                     return `<button type="button" onclick="openInvoiceModal('${p.id}')" title="${tip}"
+                     // id w data-* + this.dataset — NIE w onclick (esc() nie wystarcza w atrybucie z kodem JS)
+                     return `<button type="button" data-payment-id="${esc(p.id)}" onclick="openInvoiceModal(this.dataset.paymentId)" title="${esc(tip)}"
                        class="badge badge-amber hover:opacity-75 transition-opacity cursor-pointer">
                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                        <span>Do wystawienia</span>
@@ -535,7 +538,7 @@
                      confirm: 'Oznaczyć jako zapłacone? Kursant otrzyma mail z potwierdzeniem.',
                      confirmOk: 'Tak, zaksięguj',
                    });
-                   if (!p.invoices) actions.push({ label: 'Faktura', onclick: `openInvoiceModal('${p.id}')` });
+                   if (!p.invoices) actions.push({ label: 'Faktura', onclick: `openInvoiceModal('${String(p.id).replace(/[^0-9a-fA-F-]/g, '')}')` }); // id = UUID, whitelist znaków zamyka wektor XSS
                    else actions.push({ label: 'Pobierz PDF', href: `<%= adminPrefix %>/platnosci/faktura/${p.invoices.id}/pdf` });
                    // Usunięcie z listy uczestników (enrollments + płatność; konto i faktura zostają)
                    actions.push({
@@ -592,7 +595,7 @@
 
            // ── Modal faktury ──
            function openInvoiceModal(paymentId) {
-             const p = allPayments.find(x => x.id === paymentId);
+             const p = allPayments.find(x => String(x.id) === String(paymentId));
              const d = p ? invoiceData(p) : {};
              document.getElementById('modalPaymentId').value = paymentId;
              document.getElementById('mName').value = d.name || '';
@@ -612,7 +615,7 @@
 
            // Ten sam modal, ale dla zamówienia książek — dane z kolumn checkoutu
            function openBookInvoiceModal(orderId) {
-             const o = allBookOrders.find(x => x.id === orderId);
+             const o = allBookOrders.find(x => String(x.id) === String(orderId));
              const d = o ? bookInvoiceData(o) : {};
              document.getElementById('modalPaymentId').value = orderId;
              document.getElementById('mName').value = d.name || '';
@@ -670,9 +673,9 @@
              const kind = deliveryKind(o);
              const label = deliveryLabel[kind] || o.delivery_method || '—';
              const extra = (kind === 'parcel_locker' && o.parcel_locker_code)
-               ? `<div class="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">${o.parcel_locker_code}</div>`
+               ? `<div class="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">${esc(o.parcel_locker_code)}</div>`
                : '';
-             return `<span class="badge ${deliveryBadge[kind]}">${label}</span>${extra}`;
+             return `<span class="badge ${deliveryBadge[kind]}">${esc(label)}</span>${extra}`;
            }
 
            // items (jsonb) → "Tytuł ×2, Tytuł 2"
@@ -681,7 +684,7 @@
              const s = items.map(i => {
                const t = i.title || i.name || 'Pozycja';
                const q = Number(i.qty || i.quantity) || 1;
-               return q > 1 ? `${t} ×${q}` : t;
+               return q > 1 ? `${esc(t)} ×${q}` : esc(t);
              }).join(', ');
              return `<span class="text-gray-700 dark:text-slate-300">${s}</span>`;
            }
@@ -713,8 +716,8 @@
                  sortValue: r => `${r.name||''} ${r.surname||''}`.toLowerCase(),
                  csvValue: r => `${r.name||''} ${r.surname||''} (${r.email||''})`,
                  render: o => `
-                  <div class="font-medium text-gray-900 dark:text-white">${o.name||''} ${o.surname||''}</div>
-                  <div class="text-xs text-gray-500 dark:text-slate-500 break-all" title="${o.email||''}">${o.email||''}</div>`
+                  <div class="font-medium text-gray-900 dark:text-white">${esc(o.name)} ${esc(o.surname)}</div>
+                  <div class="text-xs text-gray-500 dark:text-slate-500 break-all" title="${esc(o.email)}">${esc(o.email)}</div>`
               },
                { key: '_items', label: 'Książki',
                  csvValue: r => (r.items || []).map(i => i.title || i.name).join('; '),
@@ -723,7 +726,7 @@
                  render: o => `<span class="font-medium text-gray-900 dark:text-white">${fmtMoney(o.amount)}</span>` },
                { key: 'status', label: 'Status', align: 'center', sortable: true,
                  sortValue: r => r.status,
-                 render: o => `<span class="badge ${bookStatusBadge[o.status]||'badge-amber'}">${bookStatusLabel[o.status]||o.status}</span>` },
+                 render: o => `<span class="badge ${bookStatusBadge[o.status]||'badge-amber'}">${esc(bookStatusLabel[o.status]||o.status)}</span>` },
                { key: '_delivery', label: 'Dostawa', align: 'center', sortable: true,
                  sortValue: r => deliveryKind(r),
                  render: o => deliveryCell(o) },
@@ -734,7 +737,7 @@
                    // 2) Klient zaznaczył fakturę przy zakupie → „Do wystawienia"
                    if (o.want_invoice || o.invoice_name || o.invoice_nip) {
                      const tip = 'Klient prosi o fakturę' + (o.invoice_name ? ': ' + o.invoice_name : '') + (o.invoice_nip ? ' · NIP: ' + o.invoice_nip : '') + ' — kliknij, aby wystawić';
-                     return `<button type="button" onclick="openBookInvoiceModal('${o.id}')" title="${tip}"
+                     return `<button type="button" data-order-id="${esc(o.id)}" onclick="openBookInvoiceModal(this.dataset.orderId)" title="${esc(tip)}"
                        class="badge badge-amber hover:opacity-75 transition-opacity cursor-pointer">
                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                        <span>Do wystawienia</span>
@@ -744,7 +747,7 @@
                  } },
                { key: 'order_number', label: 'Zamówienie',
                  csvValue: r => r.order_number || '',
-                 render: o => `<div class="text-xs font-medium text-gray-700 dark:text-slate-300">${o.order_number || '—'}</div>` },
+                 render: o => `<div class="text-xs font-medium text-gray-700 dark:text-slate-300">${esc(o.order_number) || '—'}</div>` },
                { key: '_actions', label: 'Akcje', align: 'right', sortable: false,
                  render: o => {
                    const actions = [];
@@ -765,7 +768,7 @@
                    actions.push({ label: 'Szczegóły', href: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}` });
                    if (o.resume_url) actions.push({ label: 'Podgląd ↗', href: o.resume_url });
                    if (o.invoices) actions.push({ label: 'Faktura PDF', href: `<%= adminPrefix %>/platnosci/faktura/${o.invoices.id}/pdf` });
-                   else if (o.status !== 'canceled') actions.push({ label: 'Wystaw fakturę', onclick: `openBookInvoiceModal('${o.id}')` });
+                   else if (o.status !== 'canceled') actions.push({ label: 'Wystaw fakturę', onclick: `openBookInvoiceModal('${String(o.id).replace(/[^0-9a-fA-F-]/g, '')}')` });
                    if (o.tracking_number || o.inpost_shipment_id) actions.push({
                      label: 'Etykieta PDF', href: `<%= adminPrefix %>/platnosci/ksiazki/${o.id}/etykieta`,
                    });

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <%- include('partials/head') %>
+    <title><%= title || 'Ustaw nowe hasło — CEEA' %></title>
+  </head>
+
+  <body class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950 px-4">
+    <div class="w-full max-w-md">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+
+        <% if (success) { %>
+          <div class="text-center">
+            <div class="mx-auto mb-5 w-14 h-14 rounded-full bg-green-100 dark:bg-green-500/15 flex items-center justify-center">
+              <svg class="w-7 h-7 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Hasło zmienione</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400 mb-8">
+              Twoje nowe hasło jest już aktywne. Możesz się zalogować.
+            </p>
+            <a href="/"
+               class="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-center font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30">
+              Przejdź do logowania
+            </a>
+          </div>
+
+        <% } else if (valid) { %>
+          <div class="text-center mb-8">
+            <img src="/images/logo-header-color-black.jpg" alt="CEEA" class="h-10 mx-auto mb-6 dark:hidden" />
+            <img src="/images/logo-header.png" alt="CEEA" class="h-10 mx-auto mb-6 hidden dark:block brightness-0 invert" />
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Ustaw nowe hasło</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400">
+              dla konta <strong class="text-gray-800 dark:text-slate-100"><%= email %></strong>
+            </p>
+          </div>
+
+          <% if (error) { %>
+            <div class="mb-5 p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-sm text-red-700 dark:text-red-300">
+              <%= error %>
+            </div>
+          <% } %>
+
+          <form method="POST" action="/reset-hasla" id="form-reset">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="token" value="<%= token %>">
+            <input type="hidden" name="email" value="<%= email %>">
+
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1.5" for="password">
+              Nowe hasło
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              minlength="8"
+              autocomplete="new-password"
+              class="w-full mb-4 px-4 py-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500 transition"
+              placeholder="minimum 8 znaków"
+            />
+
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1.5" for="password2">
+              Powtórz hasło
+            </label>
+            <input
+              type="password"
+              id="password2"
+              name="password2"
+              required
+              minlength="8"
+              autocomplete="new-password"
+              class="w-full mb-6 px-4 py-3 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500 transition"
+              placeholder="powtórz nowe hasło"
+            />
+
+            <button
+              type="submit"
+              class="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:-translate-y-0.5"
+            >
+              Zapisz nowe hasło
+            </button>
+          </form>
+
+          <script>
+            document.getElementById("form-reset").addEventListener("submit", function (e) {
+              var p1 = document.getElementById("password").value;
+              var p2 = document.getElementById("password2").value;
+              if (p1 !== p2) {
+                e.preventDefault();
+                alert("Hasła nie są identyczne.");
+              }
+            });
+          </script>
+
+        <% } else { %>
+          <div class="text-center">
+            <div class="mx-auto mb-5 w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/15 flex items-center justify-center">
+              <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3l9.5 16.5H2.5L12 3z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Link wygasł lub jest nieprawidłowy</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400 mb-8">
+              Link do ustawienia hasła jest jednorazowy i ważny 1 godzinę.
+              Wyślij nowy link ze strony logowania.
+            </p>
+            <a href="/"
+               class="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-center font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30">
+              Wróć do logowania
+            </a>
+          </div>
+        <% } %>
+
+      </div>
+    </div>
+  </body>
+</html>

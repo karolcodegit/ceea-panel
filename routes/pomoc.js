@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabase");
-const { adminOnly } = require("../middleware/auth");
+const { adminOnly, requireAdmin } = require("../middleware/auth");
 
 // CAŁY moduł tylko dla zalogowanych adminów (lista + mutacje)
-router.use(adminOnly);
+router.use(adminOnly, requireAdmin);
 
 // ── helpers ──
 const s = (v) => String(v ?? "").trim();

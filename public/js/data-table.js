@@ -39,6 +39,16 @@
 
     const fmtPLN = n => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(Number(n) || 0);
 
+    // ── BEZPIECZEŃSTWO (XSS): escapowanie danych z bazy wklejanych do HTML ──
+    // Używaj w KAŻDEJ funkcji render/csvValue, gdy wstawiasz do template stringa
+    // wartość pochodzącą od użytkownika (imię, email, adres, tytuł zamówienia…):
+    //   render: r => `<span>${esc(r.email)}</span>`
+    function escHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
+    }
+
     // ── Ikony SVG (heroicons outline) — bez emoji ──
     const svgIcon = (path, size, sw) =>
       `<svg width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw || 1.8}" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink:0">${path}</svg>`;
@@ -408,7 +418,7 @@
     if (!list.length) return '';
 
     function escAttr(s) {
-      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
     function oneBtn(a) {
       const cls = 'btn btn-xs ' + (a.danger ? 'btn-delete' : a.primary ? 'btn-primary' : 'btn-neutral');
@@ -543,4 +553,5 @@
     global.DataTable = DataTable;
     global.rowActions = rowActions;
     global.initCollapsibleFilters = initCollapsibleFilters;
+    global.esc = escHtml; // globalny helper XSS dla funkcji render() w widokach
   })(window);

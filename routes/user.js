@@ -9,8 +9,31 @@ const { resolveIcon } = require("../config/user-icons");
 
 
 const rateLimit = require("express-rate-limit");
-const { sendPasswordEmail } = require("../services/mailer");
+const { sendPasswordEmail, sendPasswordResetEmail } = require("../services/mailer");
 const { generatePassword, hashPassword, verifyPassword } = require("../services/passwords");
+const crypto = require("crypto");
+
+// ── Reset hasła jednorazowym linkiem (audyt #7) ──
+// W bazie trzymamy wyłącznie hash SHA-256 tokenu; link ważny 1 h.
+const RESET_TOKEN_TTL = 60 * 60 * 1000;
+const hashResetToken = (t) =>
+  crypto.createHash("sha256").update(String(t)).digest("hex");
+
+async function findUserByResetToken(email, token) {
+  if (!email || !token) return null;
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, email, name, reset_token_hash, reset_token_expires")
+    .ilike("email", String(email).toLowerCase().trim())
+    .maybeSingle();
+  if (error || !user?.reset_token_hash || !user.reset_token_expires) return null;
+  if (new Date(user.reset_token_expires).getTime() <= Date.now()) return null;
+  const given = Buffer.from(hashResetToken(token), "utf8");
+  const stored = Buffer.from(user.reset_token_hash, "utf8");
+  if (given.length !== stored.length || !crypto.timingSafeEqual(given, stored))
+    return null;
+  return user;
+}
 let inpost = null;
 try { inpost = require("../services/inpost"); } catch { /* moduł opcjonalny */ }
 
@@ -447,7 +470,7 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
   try {
     const { data: user, error: userErr } = await supabase
       .from("users")
-      .select("id, email, password_hash")
+      .select("id, email, name, password_hash")
       .ilike("email", email)
       .maybeSingle();
 
@@ -471,13 +494,18 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
       return res.json({ status: "password" });
     }
 
-    // pierwszy raz albo reset — nowe hasło
-    const password = generatePassword();
-    const password_hash = await hashPassword(password);
+    // Pierwszy raz albo reset — jednorazowy LINK do ustawienia hasła (audyt #7).
+    // Dotychczas każdy znający adres e-mail mógł wymusić wygenerowanie nowego
+    // hasła (mail-bombing + utrata dostępu). Teraz hasło zmieni się dopiero
+    // po kliknięciu linku i ustawieniu nowego hasła przez właściciela skrzynki.
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
     const { error: updErr } = await supabase
       .from("users")
-      .update({ password_hash })
+      .update({
+        reset_token_hash: hashResetToken(resetToken),
+        reset_token_expires: new Date(Date.now() + RESET_TOKEN_TTL).toISOString(),
+      })
       .eq("id", user.id);
 
     if (updErr) {
@@ -485,10 +513,11 @@ router.post("/login/sprawdz", userOnly, emailLimiter, async (req, res) => {
       return sent();
     }
 
+    const resetLink = `${req.protocol}://${req.get("host")}/reset-hasla?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
     try {
-      await sendPasswordEmail(user.email, password);
+      await sendPasswordResetEmail(user.email, { resetLink, firstName: user.name });
     } catch (mailErr) {
-      console.error("mail/hasło:", mailErr.message);
+      console.error("mail/reset:", mailErr.message);
     }
 
     return sent();
@@ -659,9 +688,94 @@ router.get("/ustawienia/eksport", userOnly, requireAuth, async (req, res) => {
   res.send(JSON.stringify({ user, enrollments, payments }, null, 2));
 });
 
+// ===== USTAWIANIE HASŁA Z LINKU (audyt #7) =====
+router.get("/reset-hasla", userOnly, async (req, res) => {
+  const { token, email } = req.query;
+  const user = await findUserByResetToken(email, token);
+  res.render("reset-hasla", {
+    title: "Ustaw nowe hasło — CEEA",
+    valid: !!user,
+    success: false,
+    token: user ? String(token) : "",
+    email: user ? String(email) : "",
+    error: null,
+  });
+});
+
+router.post("/reset-hasla", userOnly, passwordLimiter, async (req, res) => {
+  const { token, email } = req.body;
+  const password = String(req.body.password || "");
+
+  const invalid = () =>
+    res.status(400).render("reset-hasla", {
+      title: "Ustaw nowe hasło — CEEA",
+      valid: false,
+      success: false,
+      token: "",
+      email: "",
+      error: null,
+    });
+
+  const user = await findUserByResetToken(email, token);
+  if (!user) return invalid();
+
+  if (password.length < 8) {
+    return res.status(400).render("reset-hasla", {
+      title: "Ustaw nowe hasło — CEEA",
+      valid: true,
+      success: false,
+      token: String(token || ""),
+      email: String(email || ""),
+      error: "Hasło musi mieć co najmniej 8 znaków.",
+    });
+  }
+
+  const password_hash = await hashPassword(password);
+  const { error: updErr } = await supabase
+    .from("users")
+    .update({
+      password_hash,
+      reset_token_hash: null, // token jednorazowy — kasujemy po użyciu
+      reset_token_expires: null,
+    })
+    .eq("id", user.id);
+
+  if (updErr) {
+    console.error("reset-hasla/update:", updErr);
+    return invalid();
+  }
+
+  // Unieważnij dotychczasowe sesje tego uczestnika (gdyby ktoś był zalogowany)
+  try {
+    await supabase
+      .from("app_sessions")
+      .delete()
+      .filter("sess->user->>id", "eq", user.id);
+  } catch (e) {
+    console.error("reset-hasla/sessions:", e.message);
+  }
+
+  res.render("reset-hasla", {
+    title: "Hasło zmienione — CEEA",
+    valid: false,
+    success: true,
+    token: "",
+    email: "",
+    error: null,
+  });
+});
+
+// ===== WYLOGOWANIE =====
+// GET nie zmienia stanu (audyt #10). Właściwe wylogowanie tylko przez POST.
 router.get("/wyloguj", userOnly, (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
+  res.redirect(req.session.user ? "/kursy" : "/");
+});
+
+router.post("/wyloguj", userOnly, (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.redirect("/");
+  });
 });
 
 // ===== STRONA POMOCY =====

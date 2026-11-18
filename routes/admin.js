@@ -6,11 +6,12 @@ const adminModules = require("../config/admin-modules");
 const adminIcon = require("../config/admin-icons");
 const secrets = require("../services/secrets");
 const { getFlags, setFlag } = require("../services/flags");
+const adminSessions = require("../services/adminSessions");
 const { version: PANEL_VERSION } = require("../package.json");
 
 // ── Kontekst wspólny dla całego panelu (moduły montowane NIŻEJ też go dostają,
 //    bo przechodzą przez ten middleware przed własnymi route'ami) ──
-router.use((req, res, next) => {
+router.use(async (req, res, next) => {
   res.locals.adminPrefix = ADMIN_PREFIX;
   res.locals.adminModules = adminModules;
   res.locals.adminIcon = adminIcon;
@@ -21,8 +22,8 @@ router.use((req, res, next) => {
   res.locals.supportEmail = process.env.SUPPORT_EMAIL || "karol.znojkiewicz@outlook.com";
 
   const token = req.cookies?.adminToken;
-  const session = req.app.locals.sessions.get(token);
-  if (session && session.expires > Date.now()) {
+  const session = token && (await adminSessions.getSession(token));
+  if (session) {
     res.locals.adminUser = req.app.locals.admins.get(session.email);
   } else {
     res.locals.adminUser = null;
@@ -31,10 +32,16 @@ router.use((req, res, next) => {
   next();
 });
 
+// Bez bazy sesji nie zalogujesz się — przy błędzie Supabase nie wywalaj panelu
+router.use((err, req, res, next) => {
+  console.error("admin middleware:", err.message);
+  next();
+});
+
 // ===== PULPIT (lub login, gdy niezalogowany) =====
 router.get("/", adminOnly, async (req, res) => {
   const token = req.cookies?.adminToken;
-  const logged = token && req.app.locals.sessions.has(token);
+  const logged = !!(token && (await adminSessions.getSession(token)));
   if (!logged) {
     return res.render("admin-login", {
       error: null,
@@ -609,12 +616,18 @@ router.post(
 );
 
 // ===== WYLOGOWANIE =====
+// GET nie zmienia stanu (audyt #10 — ochrona przed wymuszonym wylogowaniem
+// przez podsunięty link/obrazek). Właściwe wylogowanie tylko przez POST.
 router.get("/wyloguj", adminOnly, (req, res) => {
+  res.redirect(ADMIN_PREFIX + "/");
+});
+
+router.post("/wyloguj", adminOnly, async (req, res) => {
   const token =
     req.headers.authorization?.replace("Bearer ", "") ||
     req.cookies?.adminToken;
-  req.app.locals.sessions.delete(token);
-  req.session.isAdmin = false;
+  await adminSessions.deleteSession(token);
+  res.clearCookie("adminToken");
   res.redirect(ADMIN_PREFIX + "/");
 });
 

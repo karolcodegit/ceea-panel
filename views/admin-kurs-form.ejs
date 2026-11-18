@@ -23,6 +23,7 @@
         </div>
 
         <form method="POST" action="<%= adminPrefix %>/kursy/zapis" class="space-y-6">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
           <% if (course) { %>
             <input type="hidden" name="course_id" value="<%= c.course_id %>" />

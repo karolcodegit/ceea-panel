@@ -107,13 +107,13 @@
         const visible = (filter === 'all' ? DATA : DATA.filter(n => !n.read_at));
         const item = table.filtered[(page - 1) * size + idx];
         if (!item || item.read_at) return;
-        await fetch(`${PREFIX}/api/notifications/${item.id}/read`, { method: 'POST' });
+        await fetch(`${PREFIX}/api/notifications/${item.id}/read`, { method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content } });
         item.read_at = new Date().toISOString();
         render();
       });
 
       document.getElementById('markAllRead').addEventListener('click', async () => {
-        await fetch(`${PREFIX}/api/notifications/read`, { method: 'POST' });
+        await fetch(`${PREFIX}/api/notifications/read`, { method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content } });
         const now = new Date().toISOString();
         DATA.forEach(n => { if (!n.read_at) n.read_at = now; });
         render();

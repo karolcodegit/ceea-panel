@@ -2,6 +2,7 @@
 // Blokuje ROUTY UCZESTNIKA (app.use("/", userRoutes)), gdy flaga maintenance_panel jest włączona.
 // Przepuszcza: zasoby statyczne, API auth (logowanie admina) oraz zalogowanych adminów.
 const { getFlags } = require("../services/flags");
+const adminSessions = require("../services/adminSessions");
 
 module.exports = async function maintenanceGate(req, res, next) {
   try {
@@ -15,10 +16,10 @@ module.exports = async function maintenanceGate(req, res, next) {
     const m = flags.maintenance_panel;
     if (!m || !m.enabled) return next();
 
-    // zalogowany admin może wejść (sprawdzamy sesję admina)
+    // zalogowany admin może wejść (sesja admina w bazie — działa też po restarcie)
     const token = req.cookies?.adminToken;
-    const session = token && req.app.locals.sessions.get(token);
-    if (session && session.expires > Date.now()) return next();
+    const session = token && (await adminSessions.getSession(token));
+    if (session) return next();
 
     res.status(503).render("maintenance", {
       title: "Przerwa techniczna",

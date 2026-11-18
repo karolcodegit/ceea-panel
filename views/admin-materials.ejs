@@ -28,6 +28,7 @@
               method="POST"
               action="<%= adminPrefix %>/kursy/<%= course.id %>/materials"
               class="space-y-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
           <input type="text"
                  name="title"
@@ -137,6 +138,7 @@
                         action="<%= adminPrefix %>/materials/<%= m.id %>/delete"
                         class="js-confirm"
                         data-confirm="Usunąć materiał „<%= m.title %>"?">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button type="submit" class="btn btn-xs btn-delete">Usuń</button>
                   </form>
                 </div>

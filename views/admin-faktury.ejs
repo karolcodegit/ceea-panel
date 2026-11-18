@@ -127,6 +127,7 @@
               Dane do faktury
             </h3>
             <form id="invoiceForm" method="POST" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="paymentId" id="mPaymentId" />
               <div>
                 <label

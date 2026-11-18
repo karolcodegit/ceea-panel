@@ -2,6 +2,24 @@ const express = require("express");
 const router = express.Router();
 const { ADMIN_PREFIX, requireAdmin, adminOnly } = require("../middleware/auth");
 const adminsService = require("../services/admins");
+const { sendAdminSetupEmail } = require("../services/mailer");
+
+// Buduje jednorazowy link konfiguracji 2FA (host z żądania — działa lokalnie i na Northflank)
+function setupLink(req, email, setupToken) {
+  return `${req.protocol}://${req.get("host")}${ADMIN_PREFIX}/?setup=${setupToken}&email=${encodeURIComponent(email)}`;
+}
+
+// Wysyła link mailem; gdy mail nie wyjdzie, link ląduje w komunikacie (fallback ręczny)
+async function sendSetupLink(req, res, email, name, setupToken) {
+  const link = setupLink(req, email, setupToken);
+  try {
+    await sendAdminSetupEmail(email, { setupLink: link, firstName: name || "" });
+    return null; // sukces
+  } catch (mailErr) {
+    console.error("admini/setup-mail:", mailErr.message);
+    return link; // fallback — super admin przekazuje link ręcznie
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ===== ADMINISTRATORZY =====
@@ -29,12 +47,18 @@ router.get("/admini", adminOnly, requireAdmin, async (req, res) => {
   }
 });
 
-// Tworzenie: bez hasła – nowy admin zobaczy QR przy pierwszym logowaniu (/start)
+// Tworzenie: bez hasła – nowy admin dostaje MAILEM jednorazowy link do konfiguracji 2FA
 router.post("/admini", adminOnly, requireAdmin, async (req, res) => {
   try {
-    await adminsService.createAdmin(req.body, req.app);
+    const { email, setupToken } = await adminsService.createAdmin(req.body, req.app);
+    const fallbackLink = await sendSetupLink(req, res, email, req.body.name, setupToken);
+    if (fallbackLink) {
+      return res.redirect(`${ADMIN_PREFIX}/admini?error=${encodeURIComponent(
+        "Konto dodane, ale mail z linkiem nie wyszedł. Przekaż administratorowi ten link ręcznie (ważny 24 h): " + fallbackLink
+      )}`);
+    }
     res.redirect(`${ADMIN_PREFIX}/admini?success=${encodeURIComponent(
-      "Dodano. Nowy administrator zaloguje się emailem i zeskanuje QR przy pierwszym wejściu."
+      "Dodano. Na adres administratora wysłaliśmy jednorazowy link do konfiguracji 2FA (ważny 24 h)."
     )}`);
   } catch (err) {
     res.redirect(`${ADMIN_PREFIX}/admini?error=${encodeURIComponent(err.message)}`);
@@ -52,9 +76,15 @@ router.post("/admini/:email/usun", adminOnly, requireAdmin, async (req, res) => 
 
 router.post("/admini/:email/reset-2fa", adminOnly, requireAdmin, async (req, res) => {
   try {
-    await adminsService.reset2fa(req.params.email, req.app);
+    const { setupToken } = await adminsService.reset2fa(req.params.email, req.app);
+    const fallbackLink = await sendSetupLink(req, res, req.params.email, "", setupToken);
+    if (fallbackLink) {
+      return res.redirect(`${ADMIN_PREFIX}/admini?error=${encodeURIComponent(
+        "2FA zresetowane, ale mail z linkiem nie wyszedł. Przekaż administratorowi ten link ręcznie (ważny 24 h): " + fallbackLink
+      )}`);
+    }
     res.redirect(`${ADMIN_PREFIX}/admini?success=${encodeURIComponent(
-      "Zresetowano 2FA – admin zaloguje się emailem i zeskanuje nowy QR"
+      "Zresetowano 2FA — administrator dostał maila z jednorazowym linkiem do nowej konfiguracji (ważny 24 h)."
     )}`);
   } catch (err) {
     res.redirect(`${ADMIN_PREFIX}/admini?error=${encodeURIComponent(err.message)}`);

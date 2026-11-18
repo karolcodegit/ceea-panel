@@ -120,6 +120,7 @@
           </p>
 
           <form method="POST" action="<%= adminPrefix %>/ustawienia/serwis" class="space-y-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="module-item p-4">
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -163,6 +164,7 @@
       <div data-panel-content="firma" class="hidden">
         <% const c = locals.company || {}; %>
         <form method="POST" action="<%= adminPrefix %>/ustawienia/firma" class="module-card p-5 sm:p-6 space-y-5">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
           <div>
             <h3 class="module-title mb-4">Podstawowe</h3>
@@ -303,6 +305,7 @@
         <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg p-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4" id="keyModalTitle">Dodaj klucz API</h3>
           <form method="POST" action="<%= adminPrefix %>/ustawienia/klucze" id="keyForm" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="id" id="keyId" />
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -595,7 +598,7 @@
         try {
           const r = await fetch('<%= adminPrefix %>/ustawienia/klucze/import', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
             body: JSON.stringify({ items }),
           });
           const j = await r.json();

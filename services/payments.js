@@ -3,6 +3,23 @@ const numeral = require("numeral");
 
 const year = new Date().getFullYear();
 
+// ── BEZPIECZEŃSTWO (injection w PDF) ─────────────────────────
+// Dane nabywcy i pozycje faktury pochodzą z formularza checkoutu,
+// czyli od użytkownika. Wszystko ląduje w HTML renderowanym przez
+// serwerowy Chromium — bez escapowania atakujący mógł wstrzyknąć
+// własny HTML/JS do faktury. Dlatego KAŻDA wartość z zewnątrz
+// przechodzi przez esc() przed wstawieniem do szablonu.
+const esc = (s) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+
+// adres bywa wielolinijkowy (\n z checkoutu) — po escapowaniu zamieniamy na <br>
+const escNl2br = (s) => esc(s).replace(/\r?\n/g, "<br>");
+
+// liczby z jsonb mogą przyjść jako string — przepuszczamy tylko sensowne znaki
+const escNum = (v) => esc(String(v ?? "").replace(/[^\d.,\s-]/g, ""));
+
 async function generateInvoiceNumber(supabase) {
   const { count } = await supabase
     .from("invoices")
@@ -21,11 +38,11 @@ function invoiceTemplate(inv, courseName, userEmail) {
   const rows = items.map((it, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>${it.name}</td>
-      <td>${it.quantity}</td>
-      <td>${it.unit}</td>
+      <td>${esc(it.name)}</td>
+      <td>${escNum(it.quantity)}</td>
+      <td>${esc(it.unit)}</td>
       <td>${fmt(it.net_price)}</td>
-      <td>${it.vat_rate}%</td>
+      <td>${escNum(it.vat_rate)}%</td>
       <td>${fmt(it.vat_amount)}</td>
       <td>${fmt(it.gross_price)}</td>
     </tr>`
@@ -57,9 +74,9 @@ function invoiceTemplate(inv, courseName, userEmail) {
   <div class="header">
     <div class="logo">CEEA Poznań</div>
     <div class="meta">
-      Faktura VAT nr <strong>${inv.invoice_number}</strong><br>
-      Data wystawienia: ${inv.issue_date}<br>
-      Termin płatności: ${inv.due_date}
+      Faktura VAT nr <strong>${esc(inv.invoice_number)}</strong><br>
+      Data wystawienia: ${esc(inv.issue_date)}<br>
+      Termin płatności: ${esc(inv.due_date)}
     </div>
   </div>
   <div style="display:flex; gap:15px;">
@@ -71,12 +88,12 @@ function invoiceTemplate(inv, courseName, userEmail) {
     </div>
     <div class="box" style="flex:1;">
       <strong>Nabywca</strong>
-      ${inv.buyer_name}<br>
-      ${inv.buyer_address || ""}<br>
-      ${inv.buyer_nip ? `NIP: ${inv.buyer_nip}` : ""}
+      ${esc(inv.buyer_name)}<br>
+      ${escNl2br(inv.buyer_address)}<br>
+      ${inv.buyer_nip ? `NIP: ${esc(inv.buyer_nip)}` : ""}
     </div>
   </div>
-  <h1>${courseName || "Udział w kursie"}</h1>
+  <h1>${esc(courseName) || "Udział w kursie"}</h1>
   <table>
     <thead>
       <tr>
@@ -93,7 +110,7 @@ function invoiceTemplate(inv, courseName, userEmail) {
   </div>
   <div class="footer">
     Konto: 47 1140 2004 0000 3202 8319 5381<br>
-    Tytuł: ${inv.invoice_number}<br>
+    Tytuł: ${esc(inv.invoice_number)}<br>
     kontakt: sekretariat@ceea.org.pl
   </div>
 </body>
@@ -118,12 +135,26 @@ async function generateInvoicePDF(supabase, invoiceId) {
   const html = invoiceTemplate(inv, null, user?.email);
 
   const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-  await browser.close();
+  try {
+    const page = await browser.newPage();
 
-  return { pdfBuffer, invoice: inv };
+    // Tarcza nr 2: faktura jest w 100% self-contained, więc odcinamy
+    // WSZYSTKIE żądania sieciowe — gdyby kiedykolwiek do HTML-a wszedł
+    // zewnętrzny zasób/skrypt (błąd w escapowaniu, nowy kod), nie wykona się.
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const url = req.url();
+      if (url.startsWith("data:") || url.startsWith("about:")) return req.continue();
+      return req.abort();
+    });
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+
+    return { pdfBuffer, invoice: inv };
+  } finally {
+    await browser.close(); // przy błędzie renderu proces Chromium nie zostaje w tle
+  }
 }
 
 module.exports = { generateInvoiceNumber, generateInvoicePDF };

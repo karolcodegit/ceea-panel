@@ -80,7 +80,7 @@
     bell && bell.addEventListener('click', async function () {
       panel.classList.toggle('hidden');
       if (!panel.classList.contains('hidden') && notifs.some(function (n) { return !n.read_at; })) {
-        await fetch(prefix + '/api/notifications/read', { method: 'POST' });
+        await fetch(prefix + '/api/notifications/read', { method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content } });
         setTimeout(loadNotifs, 400);
       }
     });

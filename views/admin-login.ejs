@@ -231,10 +231,25 @@
     <script>
       let currentEmail = "";
 
+      // Jednorazowy token konfiguracji 2FA z linku mailowego (?setup=...&email=...)
+      // Bez ważnego tokenu serwer NIE zwraca kodu QR z sekretem TOTP.
+      const SETUP_TOKEN = new URLSearchParams(window.location.search).get("setup") || "";
+      (function initFromSetupLink() {
+        const params = new URLSearchParams(window.location.search);
+        const email = params.get("email");
+        if (email) document.getElementById("email").value = email;
+        // Token nie zostaje w historii przeglądarki ani pasku adresu
+        if (params.has("setup")) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        // Wejście z linku konfiguracyjnego: od razu krok z kodem QR
+        if (email && SETUP_TOKEN) startAuth();
+      })();
+
       async function api(url, body) {
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
           body: JSON.stringify(body),
         });
         return res.json();
@@ -255,7 +270,7 @@
         const email = document.getElementById("email").value.trim();
         if (!email) return alert("Wpisz email");
         currentEmail = email;
-        const data = await api("/api/auth/start", { email });
+        const data = await api("/api/auth/start", { email, setupToken: SETUP_TOKEN });
         if (data.error) return alert(data.error);
         if (data.step === "setup") {
           document.getElementById("qrCode").src = data.qrCode;
@@ -270,6 +285,7 @@
         const data = await api("/api/auth/verify-setup", {
           email: currentEmail,
           token,
+          setupToken: SETUP_TOKEN,
         });
         if (data.success) {
           window.location.href = "/ceea-poznan-admin/kursy";

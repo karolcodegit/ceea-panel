@@ -61,6 +61,7 @@
                   </summary>
                   <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
                     <form method="POST" action="<%= adminPrefix %>/pomoc/kategorie/<%= cat.id %>" class="space-y-2.5">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <div>
                         <label class="hp-label">Nazwa</label>
                         <input type="text" name="title" value="<%= cat.title %>" required class="hp-input" />
@@ -106,6 +107,7 @@
             <section class="module-card p-4 sm:p-5">
               <h2 class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Dodaj kategorię</h2>
               <form method="POST" action="<%= adminPrefix %>/pomoc/kategorie" class="space-y-2.5">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div>
                   <label class="hp-label">Nazwa</label>
                   <input type="text" name="title" required class="hp-input" placeholder="np. Płatności" />
@@ -134,6 +136,7 @@
                   <svg class="hp-chevron w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </summary>
                 <form method="POST" action="<%= adminPrefix %>/pomoc/pytania" class="space-y-3 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700/60">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="sm:col-span-2">
                       <label class="hp-label">Pytanie</label>
@@ -210,6 +213,7 @@
                   </summary>
                   <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
                     <form method="POST" action="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-2">
                           <label class="hp-label">Pytanie</label>
@@ -289,6 +293,7 @@
                   </summary>
                   <div class="px-3 pb-3 pt-2 border-t border-gray-100 dark:border-slate-700/60">
                     <form method="POST" action="<%= adminPrefix %>/pomoc/pytania/<%= q.id %>" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-2">
                           <label class="hp-label">Pytanie</label>

@@ -16,7 +16,6 @@
   "dependencies": {
     "@google-analytics/data": "^6.1.0",
     "@supabase/supabase-js": "^2.49.0",
-    "airtable": "^0.12.2",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
@@ -26,10 +25,11 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "graphql-request": "^7.4.0",
-    "markdown-it": "^14.3.0",
-    "nodemailer": "^6.10.0",
+    "helmet": "^8.1.0",
+    "markdown-it": "^15.0.3",
+    "nodemailer": "^10.6.0",
     "numeral": "^2.0.6",
-    "puppeteer": "^24.43.1",
+    "puppeteer": "^25.18.1",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "ws": "^8.18.0"

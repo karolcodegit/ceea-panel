@@ -1,10 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
-   './views/**/*.ejs',      // views/*.ejs i views/*/*.ejs
-    './views/**/**/*.ejs',   // views/*/*/*.ejs (głębsze foldery)
+    './views/**/*.ejs',     // wszystkie widoki (dowolna głębokość)
+    './public/js/**/*.js',  // klasy generowane w JS (data-table, widgety)
     './public/**/*.html',
-    './views/*.ejs',
   ],
   theme: {
     extend: {
@@ -12,8 +12,11 @@ module.exports = {
         ceea: {
           red: '#dc2626',
           dark: '#1a1a1a',
-        }
-      }
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
     },
   },
   plugins: [],

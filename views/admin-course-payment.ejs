@@ -139,6 +139,7 @@
                 <span>⏳ <%= statusLabelMap[payment.status] || payment.status %> — po zaksięgowaniu uczestnik otrzyma mail z potwierdzeniem.</span>
                 <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/zaplacono"
                       onsubmit="return confirm('Oznaczyć jako zapłacone? Kursant otrzyma mail z potwierdzeniem.')">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="back" value="kursy">
                   <button type="submit" class="btn btn-sm btn-primary">Zaksięguj wpłatę</button>
                 </form>
@@ -266,6 +267,7 @@
                 Status zmienisz akcjami powyżej, reszta danych musi być spójna z fakturą.
               </p>
               <form method="POST" action="<%= adminPrefix %>/platnosci/kursy/<%= payment.id %>/edytuj" class="space-y-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Imię</label>
@@ -359,6 +361,7 @@
                   <p class="text-xs text-gray-400 dark:text-slate-500 mb-3">Uczestnik nie zaznaczył faktury w formularzu — wystaw tylko na jego prośbę.</p>
                 <% } %>
                 <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/faktura" class="space-y-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="back" value="kursy">
                   <div>
                     <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Nazwa / Firma</label>
@@ -389,6 +392,7 @@
               </p>
               <form method="POST" action="<%= adminPrefix %>/platnosci/<%= payment.id %>/usun-uczestnika"
                     onsubmit="return confirm('Usunąć <%= `${u.name || ''} ${u.surname || ''}`.trim() || 'tego uczestnika' %> z listy uczestników kursu „<%= c.title || '' %>”?\n\nZostaną usunięte: zapis na kurs i rekord płatności.\nZostają: konto użytkownika i faktura.\n\nUczestnik otrzyma mail z potwierdzeniem.<%= isPaid ? '\n\nPłatność jest ZAKSIĘGOWANA — pamiętaj o zwrocie środków!' : '' %>')">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn btn-sm btn-delete w-full">Usuń uczestnika</button>
               </form>
             </section>

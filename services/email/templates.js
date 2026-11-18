@@ -606,6 +606,98 @@ const TRANSACTIONAL_TEMPLATES = {
       return { subject, preheader, html, text: htmlToText(html) };
     },
   },
+
+  // Link konfiguracji 2FA administratora (nowe konto / reset 2FA)
+  // BEZPIECZEŃSTWO: QR z sekretem TOTP jest dostępny dopiero po kliknięciu
+  // jednorazowego linku — nie na sam email, jak wcześniej.
+  admin_setup: {
+    key: "admin_setup",
+    name: "Konfiguracja 2FA administratora",
+    description:
+      "Systemowy mail z jednorazowym linkiem do konfiguracji logowania administratora.",
+    icon: "🛡️",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga", type: "textarea", rows: 2 },
+    ],
+    defaults() {
+      return {
+        subject: "Skonfiguruj dostęp do panelu administratora CEEA",
+        preheader: "Jednorazowy link do konfiguracji logowania (ważny 24 h).",
+        values: {
+          heading: "Konfiguracja dostępu administratora",
+          intro:
+            "otrzymujesz tę wiadomość, ponieważ utworzono dla Ciebie konto administratora panelu CEEA (lub zresetowano Twoje uwierzytelnianie dwuskładnikowe). Kliknij przycisk poniżej i zeskanuj kod QR w aplikacji Google Authenticator lub Microsoft Authenticator.",
+          note:
+            "Link jest jednorazowy i ważny 24 godziny. Jeśli nie spodziewasz się tej wiadomości, zignoruj ją — bez kliknięcia linku nikt nie skonfiguruje dostępu do konta.",
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        ctaButton("Skonfiguruj dostęp", values.setupLink),
+        infoBox(
+          `<p style="margin:0;font-size:13px;color:#991b1b">${nl2br(values.note)}</p>`
+        ),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
+  password_reset: {
+    key: "password_reset",
+    name: "Link do ustawienia hasła",
+    description:
+      "Systemowy mail z jednorazowym linkiem do ustawienia nowego hasła uczestnika (audyt #7).",
+    icon: "🔑",
+    transactional: true,
+    fields: [
+      { key: "heading", label: "Nagłówek", type: "text" },
+      { key: "intro", label: "Wstęp", type: "textarea", rows: 3 },
+      { key: "note", label: "Uwaga", type: "textarea", rows: 2 },
+    ],
+    defaults() {
+      return {
+        subject: "Ustaw nowe hasło do panelu CEEA",
+        preheader: "Jednorazowy link do ustawienia hasła (ważny 1 godzinę).",
+        values: {
+          heading: "Ustaw nowe hasło",
+          intro:
+            "otrzymujesz tę wiadomość, ponieważ poproszono o link do ustawienia hasła do panelu uczestnika CEEA. Kliknij przycisk poniżej i ustaw nowe hasło.",
+          note:
+            "Link jest jednorazowy i ważny 1 godzinę. Jeśli to nie Ty prosiłeś o zmianę hasła, zignoruj tę wiadomość — Twoje obecne hasło pozostanie bez zmian.",
+        },
+      };
+    },
+    render({ subject, preheader, values, recipient }) {
+      const content = [
+        greeting(recipient),
+        `<p>${nl2br(values.intro)}</p>`,
+        ctaButton("Ustaw nowe hasło", values.resetLink),
+        infoBox(
+          `<p style="margin:0;font-size:13px;color:#991b1b">${nl2br(values.note)}</p>`
+        ),
+        CLOSING,
+      ].join("\n");
+
+      const { html } = renderEmail({
+        preheader,
+        title: values.heading,
+        content,
+      });
+      return { subject, preheader, html, text: htmlToText(html) };
+    },
+  },
 };
 
 module.exports = { TEMPLATES, TRANSACTIONAL_TEMPLATES };

@@ -357,7 +357,7 @@
         try {
           const res = await fetch(`${PREFIX}/maile/template-data`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
             body: JSON.stringify({
               templateKey: currentTemplate,
               courseId: $("courseId").value,
@@ -450,7 +450,7 @@
         try {
           const res = await fetch(`${PREFIX}/maile/preview`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
             body: JSON.stringify({
               templateKey: currentTemplate,
               courseId: $("courseId").value,

@@ -24,6 +24,7 @@
           <form method="POST"
                 action="<%= adminPrefix %>/kursy/<%= course.id %>/uczestnicy"
                 class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="email"
                    name="email"
                    placeholder="Email uczestnika"
@@ -42,7 +43,9 @@
     </div>
 
     <script>
-      const DATA = <%- JSON.stringify(enrollments) %>;
+      // XSS-safe: "<" w danych zamieniane na sekwencję ucieczki przed wstawieniem do skryptu
+      const DATA = <%- JSON.stringify(enrollments).replace(/</g, '\\u003c') %>;
+      // esc() — globalny helper z /js/data-table.js (escapuje dane przed wklejeniem do HTML)
 
       const fmtDate = d => d ? new Date(d).toLocaleDateString('pl-PL') : '—';
 
@@ -65,11 +68,11 @@
         columns: [
           { key: 'email', label: 'Email', sortable: true,
             sortValue: r => (r.email || '').toLowerCase(),
-            render: e => `<span class="font-medium text-gray-900 dark:text-white break-all">${e.email || ''}</span>` },
+            render: e => `<span class="font-medium text-gray-900 dark:text-white break-all">${esc(e.email)}</span>` },
           { key: 'status', label: 'Status', sortable: true,
             sortValue: r => r.status || '',
             csvValue: r => r.status === 'active' ? 'Aktywny' : (r.status || ''),
-            render: e => `<span class="badge ${e.status === 'active' ? 'badge-green' : 'badge-gray'}">${e.status === 'active' ? 'Aktywny' : (e.status || '—')}</span>` },
+            render: e => `<span class="badge ${e.status === 'active' ? 'badge-green' : 'badge-gray'}">${e.status === 'active' ? 'Aktywny' : esc(e.status || '—')}</span>` },
           { key: 'created_at', label: 'Data zapisu', sortable: true,
             sortValue: r => r.created_at ? new Date(r.created_at).getTime() : 0,
             csvValue: r => fmtDate(r.created_at),
