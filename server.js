@@ -40,6 +40,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
+
         scriptSrc: [
           "'self'",
           "'unsafe-inline'",
@@ -50,27 +51,55 @@ app.use(
           "https://upload-widget.cloudinary.com",
           "https://cdn.cookie-script.com",
         ],
-        // helmet v8 domyślnie ustawia script-src-attr 'none', co blokuje
-        // inline'owe onclick/onsubmit — panel używa ich w wielu miejscach.
+
+        // Panel używa inline'owych onclick/onsubmit.
         scriptSrcAttr: ["'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.quilljs.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://cdn.cookie-script.com"],
+
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+          "https://cdn.quilljs.com",
+        ],
+
+        fontSrc: [
+          "'self'",
+          "https://fonts.gstatic.com",
+        ],
+
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://res.cloudinary.com",
+          "https://cdn.cookie-script.com",
+        ],
+
         connectSrc: [
           "'self'",
           "https://api.cloudinary.com",
           "https://kdksdqfnfqoauphpippu.supabase.co",
           "https://cdn.cookie-script.com",
         ],
-        mediaSrc: ["'self'", "https://res.cloudinary.com"],
+
+        frameSrc: [
+          "'self'",
+          "https://upload-widget.cloudinary.com",
+        ],
+
+        mediaSrc: [
+          "'self'",
+          "https://res.cloudinary.com",
+        ],
+
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
       },
     },
-    // Cloudinary nie wysyła nagłówków CORP — przy domyślnym COEP obrazki
-    // i widget przestałyby się ładować.
+
+    // Wyłączenie COEP, bo Cloudinary nie wysyła wymaganych nagłówków CORP.
     crossOriginEmbedderPolicy: false,
   })
 );
