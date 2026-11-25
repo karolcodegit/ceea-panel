@@ -420,6 +420,12 @@
     function escAttr(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+    function csrfField() {
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      const token = meta ? meta.getAttribute('content') : '';
+      if (!token) return '';
+      return '<input type="hidden" name="_csrf" value="' + escAttr(token) + '">';
+    }
     function oneBtn(a) {
       const cls = 'btn btn-xs ' + (a.danger ? 'btn-delete' : a.primary ? 'btn-primary' : 'btn-neutral');
       if (a.formAction) {
@@ -428,6 +434,7 @@
             (a.confirmOk ? ' data-confirm-ok="' + escAttr(a.confirmOk) + '"' : '') +
             (a.danger ? ' data-confirm-danger="1"' : '') : '') +
           ' style="display:inline">' +
+          csrfField() +
           '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
       }
       if (a.onclick) {
@@ -445,6 +452,7 @@
             (a.confirmOk ? ' data-confirm-ok="' + escAttr(a.confirmOk) + '"' : '') +
             (a.danger ? ' data-confirm-danger="1"' : '') : '') +
           ' style="display:block;margin:0">' +
+          csrfField() +
           '<button type="submit" class="' + cls + '"' + (a.disabled ? ' disabled' : '') + '>' + a.label + '</button></form>';
       }
       if (a.onclick) {
