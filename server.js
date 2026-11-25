@@ -55,6 +55,8 @@ app.use(
         // Panel używa inline'owych onclick/onsubmit.
         scriptSrcAttr: ["'unsafe-inline'"],
 
+        
+
         styleSrc: [
           "'self'",
           "'unsafe-inline'",
